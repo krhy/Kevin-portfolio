@@ -1,0 +1,779 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Kevin Rhys Sadueste — SDET & Test Automation</title>
+<meta name="description" content="Kevin Rhys Sadueste — SDET at Visa Worldwide with 13+ years in test automation, code coverage, and agentic AI for fintech and banking systems.">
+<link rel="icon" type="image/png" href="data:image/png;base64,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">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Baloo+2:wght@500;600;700;800&family=Inter:wght@400;500;600&family=Space+Mono:wght@400;700&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --dur:0.9s;
+    --ease:cubic-bezier(.16,.8,.24,1);
+    --bg:#020304;
+    --bg-2:#03050A;
+    --card:#0A121E;
+    --card-2:#0E1A2A;
+    --line:#2A4260;
+    --ink:#F4F2FA;
+    --ink-soft:#BFCEE0;
+    --ink-dim:#7E93A8;
+    --violet:#0B57FF;
+    --magenta:#0EA5C4;
+    --pink:#0EA5C4;
+    --grad: linear-gradient(135deg, var(--violet), var(--magenta));
+    --grad-soft: linear-gradient(135deg, rgba(11,87,255,0.16), rgba(34,211,238,0.14));
+  }
+  *{box-sizing:border-box;}
+  html{scroll-behavior:smooth;}
+  body{
+    margin:0;
+    background:var(--bg);
+    background-image: radial-gradient(circle at 50% -10%, #081A38 0%, var(--bg) 32%);
+    color:var(--ink);
+    font-family:'Inter', sans-serif;
+    line-height:1.6;
+    -webkit-font-smoothing:antialiased;
+    text-align:center;
+  }
+  .heading{font-family:'Baloo 2', sans-serif;}
+  .mono{font-family:'Space Mono', monospace;}
+  a{color:inherit;}
+  ::selection{background:rgba(11,87,255,0.4);color:#fff;}
+
+  .wrap{max-width:760px;margin:0 auto;padding:0 26px;}
+
+  nav{
+    position:sticky;top:0;z-index:50;
+    background:rgba(10,11,31,0.85);
+    backdrop-filter:blur(10px);
+    border-bottom:1px solid var(--line);
+  }
+  nav .wrap{
+    display:flex;align-items:center;justify-content:space-between;
+    height:66px;max-width:900px;
+  }
+  .nav-name{font-family:'Baloo 2', sans-serif;font-size:17px;font-weight:700;color:var(--ink);letter-spacing:0.01em;}
+  .nav-links{display:none;gap:26px;font-size:14px;color:var(--ink-soft);}
+  .nav-links a{text-decoration:none;transition:color .15s;}
+  .nav-links a:hover{color:#fff;}
+
+  /* Reset so these buttons are visually indistinguishable from the links/buttons they replace */
+  .nav-link-btn{
+    font:inherit;color:inherit;background:none;border:none;margin:0;padding:0;
+    cursor:pointer;-webkit-appearance:none;appearance:none;
+  }
+  .nav-links .nav-link-btn{text-decoration:none;transition:color .15s;}
+  .nav-links .nav-link-btn:hover{color:#fff;}
+  .mobile-menu .nav-link-btn{
+    text-decoration:none;color:var(--ink);
+    font-family:'Baloo 2', sans-serif;font-size:22px;font-weight:600;
+    padding:16px 4px;border-bottom:1px solid var(--line);
+    width:100%;text-align:left;
+  }
+  .quick-links .nav-link-btn{text-decoration:none;color:var(--ink-soft);}
+  .quick-links .nav-link-btn:hover{color:var(--ink);}
+
+  .page-link{text-decoration:none;font:inherit;color:inherit;}
+  .nav-links .page-link{font-size:14px;color:var(--ink-soft);transition:color .15s;}
+  .nav-links .page-link:hover{color:#fff;}
+  .mobile-page-link{
+    color:var(--ink);font-family:'Baloo 2', sans-serif;font-size:22px;font-weight:600;
+    padding:16px 4px;border-bottom:1px solid var(--line);
+    width:100%;text-align:left;display:block;
+    opacity:0;transform:translateX(-24px);
+    transition:opacity var(--dur) var(--ease), transform var(--dur) var(--ease);
+    transition-delay:.44s;
+  }
+  .mobile-menu.open .mobile-page-link{opacity:1;transform:translateX(0);}
+  .quick-page-link{color:var(--ink-soft);}
+  .quick-page-link:hover{color:var(--ink);}
+  .btn.nav-link-btn{font:inherit;}
+  @media(min-width:680px){.nav-links{display:flex;}}
+
+  .hamburger{
+    display:flex;align-items:center;justify-content:center;
+    width:44px;height:44px;border-radius:12px;
+    background:var(--card);border:1px solid var(--line);
+    cursor:pointer;
+  }
+  .hamburger svg{width:18px;height:18px;color:var(--ink);}
+  @media(min-width:680px){.hamburger{display:none;}}
+
+  .mobile-menu{
+    position:fixed;top:66px;left:0;right:0;bottom:0;
+    background:rgba(2,3,4,0.97);
+    backdrop-filter:blur(10px);
+    z-index:60;
+    padding:30px 26px;
+    display:flex;
+    flex-direction:column;
+    gap:6px;
+    transform:translateX(-100%);
+    opacity:0;
+    pointer-events:none;
+    transition:transform var(--dur) var(--ease), opacity var(--dur) var(--ease);
+  }
+  .mobile-menu.open{
+    transform:translateX(0);
+    opacity:1;
+    pointer-events:auto;
+  }
+  .mobile-menu .nav-link-btn{
+    opacity:0;transform:translateX(-24px);
+    transition:opacity var(--dur) var(--ease), transform var(--dur) var(--ease);
+  }
+  .mobile-menu.open .nav-link-btn{opacity:1;transform:translateX(0);}
+  .mobile-menu .nav-link-btn:nth-child(1){transition-delay:.12s;}
+  .mobile-menu .nav-link-btn:nth-child(2){transition-delay:.2s;}
+  .mobile-menu .nav-link-btn:nth-child(3){transition-delay:.28s;}
+  .mobile-menu .nav-link-btn:nth-child(4){transition-delay:.36s;}
+  .mobile-menu .nav-link-btn:nth-child(5){transition-delay:.44s;}
+  .mobile-menu .nav-link-btn:nth-child(6){transition-delay:.52s;}
+  .mobile-menu .nav-link-btn:hover{color:var(--ink);}
+
+  /* HERO */
+  header.hero{padding:64px 0 56px;}
+  .logo-mark{margin:0 auto 26px;width:64px;height:64px;position:relative;}
+  .logo-mark svg{width:100%;height:100%;}
+
+  .pill-tag{
+    display:inline-flex;align-items:center;gap:8px;
+    font-size:13px;color:var(--ink-soft);
+    background:var(--card);
+    border:1px solid var(--line);
+    padding:8px 18px;border-radius:999px;
+    margin-bottom:28px;
+  }
+  .pill-tag b{
+    background:var(--grad);
+    -webkit-background-clip:text;background-clip:text;color:transparent;font-weight:700;
+  }
+
+  h1.headline{
+    font-family:'Baloo 2', sans-serif;
+    font-weight:700;
+    font-size:clamp(32px,7vw,52px);
+    line-height:1.15;
+    margin:0 auto 22px;
+    max-width:600px;
+  }
+  h1.headline .accent{
+    background:var(--grad);
+    -webkit-background-clip:text;background-clip:text;color:transparent;
+  }
+  .lede{
+    font-size:16.5px;
+    color:var(--ink-soft);
+    max-width:480px;
+    margin:0 auto 36px;
+  }
+  .lede b{color:var(--ink);font-weight:600;}
+
+  .hero-ctas{display:flex;gap:14px;flex-wrap:wrap;justify-content:center;margin-bottom:20px;}
+  .hero-textlink{
+    font-family:'Inter', sans-serif;font-size:14px;color:var(--ink-soft);
+    text-decoration:underline;text-underline-offset:3px;
+    display:block;text-align:center;margin-bottom:56px;
+  }
+  .hero-textlink:hover{color:var(--ink);}
+  .btn{
+    font-family:'Inter', sans-serif;
+    font-size:15px;font-weight:600;
+    padding:15px 28px;border-radius:999px;
+    text-decoration:none;
+    display:inline-flex;align-items:center;gap:8px;
+    transition:transform .15s, opacity .15s, border-color .15s;
+  }
+  .btn-primary{background:var(--grad);color:#fff;box-shadow:0 8px 24px -8px rgba(0,229,255,0.5);}
+  .btn-primary:hover{transform:translateY(-2px);}
+  .btn-ghost{background:transparent;color:var(--ink);border:1.5px solid var(--line);}
+  .btn-ghost:hover{border-color:var(--violet);}
+
+  .stat-row{
+    display:flex;justify-content:center;gap:0;
+    max-width:520px;margin:0 auto;
+  }
+  .stat{padding:0 28px;position:relative;}
+  .stat:not(:last-child)::after{
+    content:"";position:absolute;right:0;top:8px;bottom:8px;width:1px;background:var(--line);
+  }
+  .stat-num{
+    font-family:'Baloo 2', sans-serif;font-size:28px;font-weight:700;
+    background:var(--grad);-webkit-background-clip:text;background-clip:text;color:transparent;
+  }
+  .stat-label{font-size:11.5px;color:var(--ink-dim);margin-top:4px;}
+
+  /* SECTIONS */
+  section{padding:72px 0;}
+  .eyebrow-pill{
+    display:inline-block;font-size:13px;color:var(--ink-soft);
+    background:transparent;border:1.5px solid var(--line);
+    padding:7px 20px;border-radius:999px;margin-bottom:20px;
+  }
+  h2.section-title{
+    font-family:'Baloo 2', sans-serif;font-weight:700;
+    font-size:clamp(26px,4vw,34px);margin:0 0 16px;color:var(--ink);
+  }
+  .section-sub{color:var(--ink-soft);font-size:15.5px;max-width:460px;margin:0 auto 44px;}
+
+  /* ABOUT */
+  .about-text{font-size:16px;color:var(--ink-soft);max-width:560px;margin:0 auto;}
+  .about-text p{margin:0 0 16px;}
+  .about-text strong{color:var(--ink);font-weight:600;}
+
+  /* HIGHLIGHT CARDS */
+  .highlight-stack{display:flex;flex-direction:column;gap:22px;max-width:520px;margin:0 auto;}
+  .highlight-card{
+    background:var(--card);
+    border:1px solid var(--line);
+    border-radius:22px;
+    padding:38px 30px;
+    opacity:1;transform:none;
+    transition:opacity var(--dur) var(--ease), transform var(--dur) var(--ease);
+  }
+  .js .highlight-card{opacity:0;transform:translateX(-160px);}
+  .highlight-card.visible{opacity:1;transform:translateX(0);}
+
+  /* Content is visible by default. The .js class (added at runtime) is what allows the
+     hidden/offset starting states below — so if JS ever fails to load, nothing stays invisible. */
+  .reveal{opacity:1;transition:opacity var(--dur) var(--ease), transform var(--dur) var(--ease);}
+  .js .reveal{opacity:0;}
+  .js .reveal-up{transform:translateY(56px);}
+  .js .reveal-left{transform:translateX(-72px);}
+  .js .reveal-right{transform:translateX(72px);}
+  .js .reveal-scale{transform:scale(0.8) translateY(18px);}
+  .reveal.visible{opacity:1;transform:none !important;}
+
+  .highlight-icon{
+    width:52px;height:52px;margin:0 auto 20px;
+    display:flex;align-items:center;justify-content:center;
+    color:var(--violet);
+  }
+  .highlight-icon svg{width:100%;height:100%;}
+  .highlight-title{font-family:'Baloo 2', sans-serif;font-size:22px;font-weight:700;color:var(--ink);margin-bottom:12px;}
+  .highlight-desc{font-size:14.5px;color:var(--ink-soft);margin-bottom:22px;max-width:380px;margin-left:auto;margin-right:auto;}
+  .btn-more{
+    font-size:13.5px;font-weight:600;color:var(--ink);
+    border:1.5px solid var(--line);padding:10px 22px;border-radius:999px;
+    display:inline-flex;align-items:center;gap:6px;text-decoration:none;
+    transition:border-color .15s;
+  }
+  .btn-more:hover{border-color:var(--violet);}
+
+  /* PIPELINE / EXPERIENCE (kept as a real sequence — order matters here) */
+  .pipeline{position:relative;max-width:560px;margin:0 auto;text-align:left;padding-left:30px;}
+  .pipeline::before{
+    content:"";position:absolute;left:6px;top:6px;bottom:6px;
+    width:2px;background:linear-gradient(var(--violet), var(--line));
+  }
+  .stage{position:relative;padding-bottom:44px;}
+  .stage:last-child{padding-bottom:0;}
+  .stage::before{
+    content:"";position:absolute;left:-30px;top:4px;
+    width:13px;height:13px;border-radius:50%;
+    background:var(--bg);border:2px solid var(--ink-dim);
+  }
+  .stage.current::before{border:none;background:var(--grad);box-shadow:0 0 0 5px rgba(34,211,238,0.25);}
+  .stage-head{display:flex;flex-wrap:wrap;align-items:baseline;gap:10px;margin-bottom:6px;}
+  .stage-role{font-family:'Baloo 2', sans-serif;font-weight:700;font-size:18.5px;color:var(--ink);}
+  .stage-current-tag{
+    font-size:10.5px;font-weight:600;letter-spacing:0.04em;text-transform:uppercase;
+    background:var(--grad-soft);color:var(--magenta);border:1px solid var(--line);
+    padding:3px 10px;border-radius:999px;
+  }
+  .stage-org{font-size:14.5px;color:var(--ink-soft);margin-bottom:4px;}
+  .stage-meta{font-family:'Space Mono', monospace;font-size:11px;color:var(--ink-dim);margin-bottom:14px;}
+  .stage ul{margin:0;padding-left:18px;color:var(--ink-soft);font-size:14.5px;}
+  .stage ul li{margin-bottom:7px;}
+  .stage ul li::marker{color:var(--violet);}
+
+  /* SKILLS */
+  .skill-grid{display:grid;grid-template-columns:1fr;gap:16px;max-width:560px;margin:0 auto;}
+  @media(min-width:600px){.skill-grid{grid-template-columns:1fr 1fr;}}
+  .skill-card{
+    background:var(--card);border:1px solid var(--line);border-radius:18px;
+    padding:22px 20px;text-align:left;
+  }
+  .skill-cat{
+    font-size:12px;font-weight:600;letter-spacing:0.03em;text-transform:uppercase;
+    background:var(--grad);-webkit-background-clip:text;background-clip:text;color:transparent;
+    margin-bottom:14px;
+  }
+  .chip-row{display:flex;flex-wrap:wrap;gap:7px;}
+  .chip{
+    font-size:12.5px;background:var(--card-2);border:1px solid var(--line);
+    padding:6px 12px;border-radius:999px;color:var(--ink-soft);
+  }
+
+  /* CERTS: now rendered as chips, see .skill-card / .chip-row styles above */
+
+  /* EDUCATION */
+  .edu-card{
+    background:var(--card);border:1px solid var(--line);border-radius:18px;
+    padding:26px;max-width:420px;margin:0 auto;
+  }
+  .edu-degree{font-family:'Baloo 2', sans-serif;font-size:18.5px;font-weight:700;color:var(--ink);}
+  .edu-school{color:var(--ink-soft);font-size:14px;margin-top:6px;}
+
+  /* CONTACT */
+  section.connect{padding-top:64px;padding-bottom:24px;}
+  .connect-heading{
+    font-family:'Space Mono', monospace;font-weight:700;
+    font-size:clamp(24px,4.5vw,34px);letter-spacing:-0.01em;
+    margin:0 0 14px;color:var(--ink);
+  }
+  .connect-sub{color:var(--ink-soft);font-size:15px;margin-bottom:32px;}
+
+  .contact-grid{
+    display:grid;grid-template-columns:1fr;gap:14px;max-width:520px;margin:0 auto 52px;
+  }
+  @media(min-width:600px){.contact-grid{grid-template-columns:1fr 1fr;}}
+  .contact-item{
+    background:var(--card);border:1px solid var(--line);border-radius:16px;
+    padding:16px 18px;text-align:left;
+  }
+  .contact-item span{display:block;color:var(--ink-dim);font-size:10.5px;letter-spacing:0.05em;text-transform:uppercase;margin-bottom:4px;}
+  .contact-item a{text-decoration:none;color:var(--ink);font-size:14px;}
+  .contact-item a:hover{color:var(--magenta);}
+
+  /* FOOTER */
+  footer{border-top:1px solid var(--line);padding:52px 0 40px;}
+  .footer-logo{font-family:'Baloo 2', sans-serif;font-weight:700;font-size:20px;margin-bottom:10px;
+    background:var(--grad);-webkit-background-clip:text;background-clip:text;color:transparent;}
+  .footer-tag{color:var(--ink-soft);font-size:14px;margin-bottom:26px;}
+  .social-row{display:flex;justify-content:center;gap:12px;margin-bottom:44px;}
+  .social-icon{
+    width:44px;height:44px;border-radius:12px;border:1px solid var(--line);
+    display:flex;align-items:center;justify-content:center;color:var(--ink-soft);
+    text-decoration:none;transition:border-color .15s, color .15s;
+  }
+  .social-icon:hover{border-color:var(--violet);color:var(--ink);}
+  .social-icon svg{width:18px;height:18px;}
+
+  .quick-title{font-size:13px;font-weight:600;color:var(--ink-dim);letter-spacing:0.04em;text-transform:uppercase;margin-bottom:16px;}
+  .quick-links{display:flex;flex-wrap:wrap;justify-content:center;gap:10px 22px;margin-bottom:44px;font-size:14.5px;}
+  .quick-links a{text-decoration:none;color:var(--ink-soft);}
+  .quick-links a:hover{color:var(--ink);}
+
+  .back-top{
+    width:48px;height:48px;border-radius:50%;background:var(--grad);
+    display:flex;align-items:center;justify-content:center;margin:0 auto 28px;
+    text-decoration:none;color:#fff;
+  }
+  .foot-note{font-size:12.5px;color:var(--ink-dim);}
+</style>
+</head>
+<body>
+<script>document.documentElement.classList.add('js');</script>
+
+<nav>
+  <div class="wrap">
+    <div class="nav-name">Kevin Rhys Sadueste</div>
+    <div class="nav-links">
+      <button type="button" class="nav-link-btn" data-target="about">What I Do</button>
+      <button type="button" class="nav-link-btn" data-target="highlights">Highlights</button>
+      <button type="button" class="nav-link-btn" data-target="experience">Experience</button>
+      <button type="button" class="nav-link-btn" data-target="skills">Skills</button>
+      <a href="about.html" class="page-link">About Me</a>
+      <button type="button" class="nav-link-btn" data-target="contact">Contact</button>
+    </div>
+    <button class="hamburger" id="menuBtn" aria-label="Open menu">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"><path d="M4 7h16M4 12h16M4 17h16"/></svg>
+    </button>
+  </div>
+</nav>
+<div class="mobile-menu" id="mobileMenu">
+  <button type="button" class="nav-link-btn" data-target="about">What I Do</button>
+  <button type="button" class="nav-link-btn" data-target="highlights">Highlights</button>
+  <button type="button" class="nav-link-btn" data-target="experience">Experience</button>
+  <button type="button" class="nav-link-btn" data-target="skills">Skills</button>
+  <button type="button" class="nav-link-btn" data-target="certifications">Certifications</button>
+  <a href="about.html" class="page-link mobile-page-link">About Me</a>
+  <button type="button" class="nav-link-btn" data-target="contact">Contact</button>
+</div>
+
+<header class="hero">
+  <div class="wrap">
+    <div class="logo-mark">
+      <svg viewBox="0 0 64 64" fill="none">
+        <defs>
+          <linearGradient id="ringGrad" x1="0" y1="0" x2="64" y2="64">
+            <stop offset="0" stop-color="#0B57FF"/>
+            <stop offset="1" stop-color="#0EA5C4"/>
+          </linearGradient>
+        </defs>
+        <circle cx="32" cy="32" r="27" stroke="url(#ringGrad)" stroke-width="4"/>
+        <path d="M20 33.5L27.5 41L44 24" stroke="url(#ringGrad)" stroke-width="4.5" stroke-linecap="round" stroke-linejoin="round"/>
+      </svg>
+    </div>
+    <div class="pill-tag"><b>SDET</b> · Fintech · Test Automation · Agentic AI</div>
+    <h1 class="headline">Automated tests. Real coverage. <span class="accent">Root causes</span> found before they ship.</h1>
+    <p class="lede">13+ years building test automation and coverage tooling across banking and payments. My latest focus: teaching AI agents to figure out why tests fail, not just that they did.</p>
+    <div class="hero-ctas">
+      <button type="button" class="btn btn-primary nav-link-btn" data-target="contact">Get in touch →</button>
+      <a class="btn btn-ghost" href="Kevin-Rhys-Sadueste-Resume.pdf" target="_blank" rel="noopener">Download CV ↓</a>
+    </div>
+    <a href="about.html" class="hero-textlink">About me →</a>
+    <div class="stat-row">
+      <div class="stat reveal reveal-scale">
+        <div class="stat-num">13+</div>
+        <div class="stat-label">Years Building Automation</div>
+      </div>
+      <div class="stat reveal reveal-scale">
+        <div class="stat-num">7+</div>
+        <div class="stat-label">Engineers Led</div>
+      </div>
+    </div>
+  </div>
+</header>
+
+<section id="about">
+  <div class="wrap">
+    <div class="eyebrow-pill reveal reveal-up">Overview</div>
+    <h2 class="section-title reveal reveal-up">What I Do</h2>
+    <div class="about-text">
+      <p>I'm a <strong>Software Engineer &ndash; Sr. Consultant/SDET</strong> at <strong>Visa Worldwide</strong>. I built <strong>VTAF</strong>, a unified test automation framework covering UI, REST, and SOAP layers, for a global payments dispute resolution platform running on Java/JVM and Python microservices, and integrated it into our CI/CD pipelines using Jenkins and GitHub Actions.</p>
+      <p>Over the last year, I've been bringing <strong>agentic AI into the QA workflow</strong>: connecting AI agents via MCP to automatically pull logs and cross-reference source code, and building <strong>agent skills</strong> (Markdown-based instruction files that double as a knowledge base) so the system can tell on its own whether a failed test is a real bug, a bad script, bad data, or an environment issue.</p>
+      <p>I've also worked as part of our <strong>Security team</strong> on SAST (Checkmarx) and SCA (Sonatype) findings, fixing flagged issues and building automation to test for them going forward.</p>
+      <p>I'm <strong>ISTQB Certified at the Advanced Level</strong> across both streams, with experience running teams as a certified Scrum Master.</p>
+    </div>
+  </div>
+</section>
+
+<section id="highlights">
+  <div class="wrap">
+    <div class="eyebrow-pill reveal reveal-up">Highlights</div>
+    <h2 class="section-title reveal reveal-up">Explore what I've shipped</h2>
+    <p class="section-sub">Real work projects and systems I've built to make QA faster and more reliable.</p>
+
+    <div class="highlight-stack">
+
+      <div class="highlight-card fade-h">
+        <div class="highlight-icon">
+          <svg viewBox="0 0 48 48" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round">
+            <circle cx="24" cy="24" r="19"/>
+            <path d="M17 24l5 5 10-11"/>
+          </svg>
+        </div>
+        <div class="highlight-title">AI-Powered Failure Diagnosis</div>
+        <div class="highlight-desc">Agents connected via MCP that auto-fetch logs, JIRA tickets, and other knowledge bases, then cross-reference source code to classify failing tests as real bugs, script issues, bad data, or environment problems.</div>
+        <button type="button" class="btn-more" disabled>More →</button>
+      </div>
+
+      <div class="highlight-card fade-h">
+        <div class="highlight-icon">
+          <svg viewBox="0 0 48 48" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round">
+            <rect x="8" y="10" width="32" height="24" rx="3"/>
+            <path d="M8 18h32"/>
+            <path d="M15 25h6M15 30h12"/>
+          </svg>
+        </div>
+        <div class="highlight-title">Unified Test Automation Framework</div>
+        <div class="highlight-desc">Architected VTAF end to end, UI, REST, and SOAP layers in one Cucumber BDD framework, for Visa's global payments dispute platform.</div>
+        <button type="button" class="btn-more" disabled>More →</button>
+      </div>
+
+      <div class="highlight-card fade-h">
+        <div class="highlight-icon">
+          <svg viewBox="0 0 48 48" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M9 34V22M18 34V14M27 34V26M36 34V18"/>
+            <path d="M6 40h36"/>
+          </svg>
+        </div>
+        <div class="highlight-title">AI-Generated Test Coverage</div>
+        <div class="highlight-desc">Built a dashboard tracking test coverage across Java/JVM and Python microservices, then extended it with a Claude Skill that reads the coverage reports and auto-generates test cases for the gaps it finds.</div>
+        <button type="button" class="btn-more" disabled>More →</button>
+      </div>
+
+    </div>
+  </div>
+</section>
+
+<section id="experience">
+  <div class="wrap">
+    <div class="eyebrow-pill reveal reveal-up">Experience</div>
+    <h2 class="section-title reveal reveal-up">Career, run as a pipeline</h2>
+    <p class="section-sub">Thirteen years, one build that keeps passing.</p>
+    <div class="pipeline">
+
+      <div class="stage current reveal reveal-left">
+        <div class="stage-head">
+          <span class="stage-role">Software Engineer — Sr. Consultant</span>
+          <span class="stage-current-tag">Current</span>
+        </div>
+        <div class="stage-org">Visa Worldwide Pte. Ltd.</div>
+        <div class="stage-meta mono">FEB 2025 — PRESENT · SINGAPORE</div>
+        <ul>
+          <li>Extended VTAF with AI agents connected via MCP to auto-fetch application logs, cross-reference source code, and classify failed tests as real bugs, script issues, bad data, or environment problems.</li>
+          <li>Built agent skills (Markdown-based instruction files that double as a knowledge base) from years of JIRA tickets, user stories, and execution history, giving the AI agent the domain context to diagnose failures accurately.</li>
+          <li>Shipped a Microsoft Teams chatbot for on-demand regression and smoke test runs, including custom script triggers.</li>
+          <li>Built a code coverage dashboard spanning Java/JVM and Python microservices.</li>
+          <li>Extended the same agent with a Claude Skill that reads code coverage reports and automatically generates test cases for uncovered code paths, using the same knowledge base for context-aware generation.</li>
+          <li>Built a Jenkins pipeline running Checkmarx SAST/DAST and Sonatype SCA scans, fixing flagged security issues and gating unit, regression, and E2E tests through to production deployment.</li>
+        </ul>
+      </div>
+
+      <div class="stage reveal reveal-left">
+        <div class="stage-head"><span class="stage-role">Staff Software Test Engineer</span></div>
+        <div class="stage-org">Visa Worldwide Pte. Ltd.</div>
+        <div class="stage-meta mono">AUG 2022 — FEB 2025 · SINGAPORE</div>
+        <ul>
+          <li>Architected and maintained VTAF — a Java/TestNG/Cucumber BDD framework covering UI (Playwright/Selenium) and REST/SOAP layers.</li>
+          <li>Built and maintained CI/CD pipelines across Jenkins and GitHub Actions.</li>
+          <li>Served as Scrum Master for a cross-functional team of 7+, mentoring junior QA engineers.</li>
+        </ul>
+      </div>
+
+      <div class="stage reveal reveal-left">
+        <div class="stage-head"><span class="stage-role">Senior Software Test Engineer</span></div>
+        <div class="stage-org">Visa Worldwide Pte. Ltd.</div>
+        <div class="stage-meta mono">FEB 2019 — AUG 2022 · SINGAPORE</div>
+        <ul>
+          <li>Maintained BDD regression coverage across fraud disputes, pre-arbitration, pre-compliance, VDI score validation, and reporting flows.</li>
+        </ul>
+      </div>
+
+      <div class="stage reveal reveal-left">
+        <div class="stage-head"><span class="stage-role">Automation Engineer</span></div>
+        <div class="stage-org">Fluor Daniels Inc</div>
+        <div class="stage-meta mono">OCT 2017 — FEB 2019</div>
+        <ul>
+          <li>Designed and delivered a hybrid automation framework in UFT, unifying test scripts across all projects.</li>
+        </ul>
+      </div>
+
+      <div class="stage reveal reveal-left">
+        <div class="stage-head"><span class="stage-role">Test Analyst / Automation Lead</span></div>
+        <div class="stage-org">Macquarie Philippines</div>
+        <div class="stage-meta mono">DEC 2016 — OCT 2017</div>
+        <ul>
+          <li>Built a new automation framework using Ranorex and established team-wide automation standards.</li>
+        </ul>
+      </div>
+
+      <div class="stage reveal reveal-left">
+        <div class="stage-head"><span class="stage-role">Quality Analyst — Automation</span></div>
+        <div class="stage-org">Citco Group of Companies</div>
+        <div class="stage-meta mono">AUG 2015 — DEC 2016</div>
+        <ul>
+          <li>Built a test library architecture from scratch using UFT descriptive programming.</li>
+        </ul>
+      </div>
+
+      <div class="stage reveal reveal-left">
+        <div class="stage-head"><span class="stage-role">Quality Engineer</span></div>
+        <div class="stage-org">Misys Philippines (now Finastra)</div>
+        <div class="stage-meta mono">JUN 2013 — AUG 2015</div>
+        <ul>
+          <li>Tested core banking web and desktop applications within Agile teams.</li>
+        </ul>
+      </div>
+
+    </div>
+  </div>
+</section>
+
+<section id="skills">
+  <div class="wrap">
+    <div class="eyebrow-pill reveal reveal-up">Skills</div>
+    <h2 class="section-title reveal reveal-up">Core skills &amp; technologies</h2>
+    <div class="skill-grid">
+
+      <div class="skill-card reveal reveal-up">
+        <div class="skill-cat">AI / Agentic Tooling</div>
+        <div class="chip-row">
+          <span class="chip">MCP</span><span class="chip">Agent Skills</span><span class="chip">Claude Code</span><span class="chip">Codex</span>
+          <span class="chip">Copilot Studio</span><span class="chip">Power Automate</span><span class="chip">CLI-based workflows</span>
+        </div>
+      </div>
+
+      <div class="skill-card reveal reveal-up">
+        <div class="skill-cat">Test Frameworks</div>
+        <div class="chip-row">
+          <span class="chip">Cucumber BDD</span><span class="chip">Playwright</span><span class="chip">Selenium</span>
+          <span class="chip">TestNG</span><span class="chip">JUnit</span><span class="chip">UFT / QTP</span>
+        </div>
+      </div>
+
+      <div class="skill-card reveal reveal-up">
+        <div class="skill-cat">API / Integration</div>
+        <div class="chip-row">
+          <span class="chip">REST</span><span class="chip">RestAssured</span><span class="chip">SOAP / WSDL</span>
+        </div>
+      </div>
+
+      <div class="skill-card reveal reveal-up">
+        <div class="skill-cat">Languages &amp; Platforms</div>
+        <div class="chip-row">
+          <span class="chip">Java</span><span class="chip">Python</span><span class="chip">SQL</span>
+          <span class="chip">Linux</span><span class="chip">Bash / Shell Scripting</span><span class="chip">JVM</span><span class="chip">Kubernetes</span>
+        </div>
+      </div>
+
+      <div class="skill-card reveal reveal-up">
+        <div class="skill-cat">Build &amp; CI/CD</div>
+        <div class="chip-row">
+          <span class="chip">Maven</span><span class="chip">Jenkins</span><span class="chip">GitHub Actions</span><span class="chip">Git</span>
+        </div>
+      </div>
+
+      <div class="skill-card reveal reveal-up">
+        <div class="skill-cat">Code Coverage</div>
+        <div class="chip-row">
+          <span class="chip">JaCoCo</span><span class="chip">Slipcover</span><span class="chip">SonarQube</span><span class="chip">GitHub Pages</span>
+        </div>
+      </div>
+
+    </div>
+  </div>
+</section>
+
+<section id="certifications">
+  <div class="wrap">
+    <div class="eyebrow-pill reveal reveal-up">Certifications</div>
+    <h2 class="section-title reveal reveal-up">What I'm certified in</h2>
+    <div class="chip-row" style="justify-content:center;max-width:640px;margin:0 auto;">
+      <span class="chip reveal reveal-scale">ISTQB Advanced — Technical Test Analyst</span>
+      <span class="chip reveal reveal-scale">ISTQB Advanced — Test Analyst</span>
+      <span class="chip reveal reveal-scale">ISTQB Foundation Level</span>
+      <span class="chip reveal reveal-scale">PSM I — Scrum.org</span>
+      <span class="chip reveal reveal-scale">CSPO — Scrum Alliance</span>
+      <span class="chip reveal reveal-scale">AI &amp; ML Begins With Me — NUS</span>
+      <span class="chip reveal reveal-scale">Intro to RapidMiner AI/ML — NUS</span>
+    </div>
+  </div>
+</section>
+
+<section id="education">
+  <div class="wrap">
+    <div class="eyebrow-pill reveal reveal-up">Education</div>
+    <h2 class="section-title reveal reveal-up">Education</h2>
+    <div class="edu-card reveal reveal-up">
+      <div class="edu-degree">Bachelor of Science in Computer Science</div>
+      <div class="edu-school">University of the Philippines</div>
+    </div>
+  </div>
+</section>
+
+<section id="contact" class="connect">
+  <div class="wrap">
+    <h2 class="connect-heading">Want to connect?</h2>
+    <p class="connect-sub">Hiring for QA, test automation, or agentic AI in testing? Feel free to reach out.</p>
+    <div class="hero-ctas">
+      <a class="btn btn-primary" href="mailto:Kevin.sadueste@gmail.com">Contact →</a>
+    </div>
+    <div class="contact-grid">
+      <div class="contact-item reveal reveal-up">
+        <span>Email</span>
+        <a href="mailto:Kevin.sadueste@gmail.com">Kevin.sadueste@gmail.com</a>
+      </div>
+      <div class="contact-item reveal reveal-up">
+        <span>Phone</span>
+        <a href="tel:+6597255686">+65 9725 5686</a>
+      </div>
+      <div class="contact-item reveal reveal-up">
+        <span>LinkedIn</span>
+        <a href="https://linkedin.com/in/kevinrhys" target="_blank" rel="noopener">linkedin.com/in/kevinrhys</a>
+      </div>
+      <div class="contact-item reveal reveal-up">
+        <span>Location</span>
+        <span style="color:var(--ink);font-size:14px;">Singapore</span>
+      </div>
+    </div>
+  </div>
+</section>
+
+<footer>
+  <div class="wrap">
+    <div class="footer-logo">Kevin Rhys Sadueste</div>
+    <div class="footer-tag">QA strategy and testing in the real world.</div>
+    <div class="social-row">
+      <a class="social-icon" href="mailto:Kevin.sadueste@gmail.com" aria-label="Email">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="5" width="18" height="14" rx="2"/><path d="M3 7l9 6 9-6"/></svg>
+      </a>
+      <a class="social-icon" href="https://linkedin.com/in/kevinrhys" target="_blank" rel="noopener" aria-label="LinkedIn">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="18" height="18" rx="2"/><path d="M8 11v5M8 8v.01M12 16v-5M12 11c0-1.3 1-2 2.2-2 1.2 0 1.8.9 1.8 2.4V16"/></svg>
+      </a>
+    </div>
+    <div class="quick-title">Quick Access</div>
+    <div class="quick-links">
+      <button type="button" class="nav-link-btn" data-target="about">What I Do</button>
+      <button type="button" class="nav-link-btn" data-target="highlights">Highlights</button>
+      <button type="button" class="nav-link-btn" data-target="experience">Experience</button>
+      <button type="button" class="nav-link-btn" data-target="skills">Skills</button>
+      <button type="button" class="nav-link-btn" data-target="certifications">Certifications</button>
+      <a href="about.html" class="page-link quick-page-link">About Me</a>
+      <button type="button" class="nav-link-btn" data-target="contact">Contact</button>
+    </div>
+    <button type="button" class="back-top nav-link-btn" data-target="__top" aria-label="Back to top">
+      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M12 19V5M5 12l7-7 7 7"/></svg>
+    </button>
+    <div class="foot-note">© 2026 Kevin Rhys Sadueste</div>
+  </div>
+</footer>
+
+<script>
+  // Replays every time an element crosses in or out of view, in either scroll direction
+  const io = new IntersectionObserver((entries)=>{
+    entries.forEach(e=>{
+      if(e.isIntersecting){
+        e.target.classList.add('visible');
+      } else {
+        e.target.classList.remove('visible');
+      }
+    });
+  },{threshold:0.1, rootMargin:"0px 0px -8% 0px"});
+
+  // stagger elements that share a parent container so they cascade in one after another
+  const groups = new Map();
+  document.querySelectorAll('.reveal, .highlight-card').forEach(el=>{
+    const parent = el.parentElement;
+    if(!groups.has(parent)) groups.set(parent, []);
+    groups.get(parent).push(el);
+  });
+  groups.forEach(list=>{
+    list.forEach((el, i)=>{
+      el.style.transitionDelay = Math.min(i * 130, 650) + 'ms';
+      io.observe(el);
+    });
+  });
+</script>
+
+<script>
+  const menuBtn = document.getElementById('menuBtn');
+  const mobileMenu = document.getElementById('mobileMenu');
+  menuBtn.addEventListener('click', ()=>{
+    mobileMenu.classList.toggle('open');
+    menuBtn.innerHTML = mobileMenu.classList.contains('open')
+      ? '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"><path d="M6 6l12 12M18 6L6 18"/></svg>'
+      : '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"><path d="M4 7h16M4 12h16M4 17h16"/></svg>';
+  });
+  mobileMenu.querySelectorAll('.nav-link-btn').forEach(btn=>{
+    btn.addEventListener('click', ()=>{
+      mobileMenu.classList.remove('open');
+      menuBtn.innerHTML = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"><path d="M4 7h16M4 12h16M4 17h16"/></svg>';
+    });
+  });
+
+  // In-page section navigation uses real <button> elements with a data-target attribute rather than
+  // <a href="#..."> — the embedded preview environment intercepts anchor clicks (even same-page
+  // fragment ones) and tries to open them as external navigations, which buttons avoid entirely.
+  document.querySelectorAll('.nav-link-btn').forEach(btn=>{
+    btn.addEventListener('click', ()=>{
+      const id = btn.getAttribute('data-target');
+      if(id === '__top'){
+        window.scrollTo({top:0, behavior:'smooth'});
+        return;
+      }
+      const target = document.getElementById(id);
+      if(target){
+        target.scrollIntoView({behavior:'smooth', block:'start'});
+      }
+    });
+  });
+</script>
+</body>
+</html>
