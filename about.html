@@ -80,6 +80,7 @@
   .mobile-page-link{
     color:var(--ink);font-family:'Baloo 2', sans-serif;font-size:22px;font-weight:600;
     padding:16px 4px;border-bottom:1px solid var(--line);
+    width:100%;text-align:left;display:block;
     opacity:0;transform:translateX(-24px);
     transition:opacity var(--dur) var(--ease), transform var(--dur) var(--ease);
     transition-delay:.44s;
@@ -98,6 +99,17 @@
   }
   .hamburger svg{width:18px;height:18px;color:var(--ink);}
   @media(min-width:680px){.hamburger{display:none;}}
+
+  .back-arrow-btn{
+    display:flex;align-items:center;justify-content:center;
+    width:44px;height:44px;border-radius:12px;
+    background:var(--card);border:1px solid var(--line);
+    color:var(--ink);text-decoration:none;flex-shrink:0;
+    transition:border-color .15s;
+  }
+  .back-arrow-btn:hover{border-color:var(--violet);}
+  .back-arrow-btn svg{width:18px;height:18px;}
+  .nav-inner-group{display:flex;align-items:center;gap:12px;}
 
   .mobile-menu{
     position:fixed;top:66px;left:0;right:0;bottom:0;
@@ -373,7 +385,12 @@
 
 <nav>
   <div class="wrap">
-    <a href="index.html" class="nav-name" style="text-decoration:none;">Kevin Rhys Sadueste</a>
+    <div class="nav-inner-group">
+      <a href="index.html" class="back-arrow-btn" aria-label="Back to portfolio">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M19 12H5M12 19l-7-7 7-7"/></svg>
+      </a>
+      <a href="index.html" class="nav-name" style="text-decoration:none;">Kevin Rhys Sadueste</a>
+    </div>
     <div class="nav-links">
       <a href="index.html#about" class="page-link">What I Do</a>
       <a href="index.html#highlights" class="page-link">Highlights</a>
