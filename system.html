@@ -1,0 +1,156 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+  <title>How It Works — Kevin Rhys Sadueste</title>
+  <meta name="description" content="How Kevin Rhys Sadueste's test automation framework and AI agents work together, from CI/CD trigger to results.">
+  <link rel="preconnect" href="https://fonts.googleapis.com"><link href="https://fonts.googleapis.com/css2?family=Baloo+2:wght@500;600;700;800&family=Inter:wght@400;500;600;700&family=Space+Mono:wght@400;700&display=swap" rel="stylesheet">
+  <style>
+    :root{--bg:#020304;--card:#0A121E;--line:#2A4260;--ink:#F4F2FA;--soft:#BFCEE0;--dim:#7E93A8;--blue:#0B57FF;--cyan:#0EA5C4;--grad:linear-gradient(135deg,var(--blue),var(--cyan));--ink-soft:var(--soft);--ink-dim:var(--dim);--card-2:#0E1A2A;--dur:0.9s;--ease:cubic-bezier(.16,.8,.24,1)}*{box-sizing:border-box}body{margin:0;background:radial-gradient(circle at 50% -10%,#081A38 0%,var(--bg) 44%);color:var(--ink);font:15px/1.55 Inter,Arial,sans-serif}.shell{width:min(1160px,calc(100% - 36px));margin:auto}.mono{font:700 11px 'Space Mono',monospace;letter-spacing:.13em;text-transform:uppercase}.accent{background:var(--grad);-webkit-background-clip:text;background-clip:text;color:transparent}
+    .hero{text-align:center;padding:58px 0 30px}.eyebrow{display:inline-block;padding:7px 14px;border:1px solid var(--line);border-radius:99px;background:var(--card);color:var(--soft)}h1{font:700 clamp(38px,6vw,62px)/1.06 'Baloo 2',sans-serif;letter-spacing:-.035em;margin:17px auto 12px}.hero p{max-width:670px;margin:auto;color:var(--soft);font-size:17px}
+    .map{position:relative;margin:34px auto 64px;min-height:800px;padding:35px 25px 35px 270px}.ecosystem{position:relative;min-height:690px;border:1px solid #315576;border-radius:28px;background:linear-gradient(145deg,rgba(13,31,54,.72),rgba(4,9,16,.65));overflow:hidden}.ecosystem:before{content:"";position:absolute;inset:0;background:radial-gradient(circle at 52% 40%,rgba(11,87,255,.18),transparent 42%),radial-gradient(rgba(76,151,211,.12) 1px,transparent 1px);background-size:auto,18px 18px;pointer-events:none}.eco-title{position:absolute;top:20px;left:24px;color:#a9dff1}.eco-title b{display:block;color:var(--ink);font:700 23px 'Baloo 2',sans-serif;letter-spacing:0}.path{position:absolute;left:9%;right:9%;top:38%;height:3px;background:linear-gradient(90deg,transparent,var(--blue),var(--cyan),transparent);z-index:1}.path:after{content:"";position:absolute;right:-2px;top:50%;transform:translateY(-50%);border:7px solid transparent;border-left-color:var(--cyan)}.pulse{position:absolute;top:calc(38% - 5px);left:9%;width:11px;height:11px;border-radius:50%;background:#6ceaff;box-shadow:0 0 14px #31dbff;animation:across 5.5s linear infinite;z-index:2}.pulse.p2{animation-delay:-.9s}.pulse.p3{animation-delay:-1.8s}.pulse.p4{animation-delay:-2.7s}.pulse.p5{animation-delay:-3.6s}.pulse.p6{animation-delay:-4.5s}@keyframes across{0%{left:9%;opacity:0}8%{opacity:1}68%{left:91%;opacity:1}92%{left:91%;opacity:1}100%{left:91%;opacity:0}}
+    .stack{position:absolute;z-index:3;text-align:center;width:122px;transform:translate(-50%,-50%)}.logo{width:66px;height:66px;border:1px solid #315a82;border-radius:50%;display:grid;place-items:center;margin:auto;background:linear-gradient(145deg,#102b49,#091322);box-shadow:0 10px 24px rgba(0,0,0,.32);transition:.2s}.stack:hover .logo{transform:translateY(-5px);border-color:#51e5ff}.logo img{width:35px;height:35px;object-fit:contain;filter:invert(73%) sepia(48%) saturate(590%) hue-rotate(143deg) brightness(99%) contrast(98%)}.logo .letter{font:700 25px 'Baloo 2',sans-serif;background:var(--grad);-webkit-background-clip:text;background-clip:text;color:transparent}.teams-symbol{display:grid;place-items:center;width:36px;height:36px;border-radius:9px;background:#6264a7;color:#fff;font:700 25px 'Baloo 2',sans-serif;box-shadow:10px -5px 0 -4px #a9abf0}.playwright-symbol{color:#65e285;font:700 24px 'Baloo 2',sans-serif}.stack b{display:block;margin-top:8px;font:700 14px 'Baloo 2',sans-serif;line-height:1.05}.stack small{display:block;color:var(--dim);font-size:10px;margin-top:2px}.teams{left:10%;top:38%}.cicd{left:31%;top:38%}.docker{left:70%;top:38%}.results{left:91%;top:38%}.source-note{position:absolute;left:7%;bottom:25px;color:var(--dim);font-size:11px}.stack-flow{position:absolute;z-index:3;left:6%;right:6%;top:63%;display:flex;justify-content:space-between}.stack-flow:before{content:"";position:absolute;left:3%;right:3%;top:25px;height:2px;background:linear-gradient(90deg,transparent,var(--blue),var(--cyan),transparent);z-index:-1}.flow-pulse,.framework-pulse,.bus-pulse{position:absolute;width:11px;height:11px;border-radius:50%;background:#6ceaff;box-shadow:0 0 14px #31dbff;will-change:transform,left,top}.flow-pulse{top:20px;left:3%;animation:stackAcross 5s linear infinite}.flow-pulse.f2{animation-delay:-1.65s}.flow-pulse.f3{animation-delay:-3.3s}@keyframes stackAcross{0%{left:3%;opacity:0}8%{opacity:1}68%{left:93%;opacity:1}92%{left:93%;opacity:1}100%{left:93%;opacity:0}}.framework-tech{text-align:center;width:72px}.framework-tech .mini-logo{width:51px;height:51px;display:grid;place-items:center;margin:auto;border:1px solid #315a82;border-radius:50%;background:linear-gradient(145deg,#102b49,#091322);transition:.2s}.framework-tech:hover .mini-logo{transform:translateY(-4px);border-color:#51e5ff}.framework-tech img{width:27px;height:27px;object-fit:contain;filter:invert(73%) sepia(48%) saturate(590%) hue-rotate(143deg) brightness(99%) contrast(98%)}.framework-tech .mini-letter{font:700 16px 'Baloo 2',sans-serif;background:var(--grad);-webkit-background-clip:text;background-clip:text;color:transparent}.framework-tech b{display:block;margin-top:6px;font:700 11px/1 'Baloo 2',sans-serif}.framework-link{position:absolute;left:31%;top:45%;height:120px;border-left:1px dashed #48bfe3}.framework-pulse{left:-6px;top:0;animation:downStack 3s linear infinite}.framework-pulse.p2{animation-delay:-1.5s}@keyframes downStack{0%{top:0;opacity:0}10%{opacity:1}70%{top:120px;opacity:1}92%{top:120px;opacity:1}100%{top:120px;opacity:0}}
+    .outside-kb{position:absolute;z-index:4;left:0;top:525px;width:255px;padding:17px;border:1px solid #2776c8;border-radius:18px;background:linear-gradient(145deg,#102b56,#09182c);text-align:center;box-shadow:0 0 40px rgba(11,87,255,.16)}.outside-kb .kmark{width:47px;height:47px;display:grid;place-items:center;border-radius:14px;background:var(--grad);margin:auto;font-size:23px}.outside-kb b{display:block;font:700 19px 'Baloo 2',sans-serif;margin-top:7px}.outside-kb p{font-size:11px;line-height:1.35;color:var(--soft);margin:4px 0 0}.outside-kb span{display:inline-block;margin:10px 2px 0;padding:4px 6px;border:1px solid #37689c;border-radius:6px;color:#bde6ff;font:8px 'Space Mono',monospace}
+    .agents{position:absolute;z-index:4;left:0;top:88px;width:255px}.agent-bus{position:absolute;z-index:3;left:272px;top:130px;height:445px;border-left:1px dashed #48bfe3}.agent-bus:after{content:"";position:absolute;left:-145px;bottom:0;width:145px;border-top:1px dashed #48bfe3}.agent-bus i{position:absolute;left:-6px;bottom:-6px;width:11px;height:11px;border-radius:50%;background:#63e8ff;box-shadow:0 0 14px #31dbff}.bus-pulse{left:-6px;top:0;animation:agentDown 4s linear infinite}.bus-pulse.b2{animation-delay:-1.35s}.bus-pulse.b3{animation-delay:-2.7s}@keyframes agentDown{0%{top:0;opacity:0}8%{opacity:1}68%{top:445px;opacity:1}92%{top:445px;opacity:1}100%{top:445px;opacity:0}}.outside{position:relative;margin-bottom:14px;padding:15px;border:1px solid var(--line);border-radius:17px;background:var(--card);display:flex;gap:11px;align-items:center}.outside:after{content:"";position:absolute;right:-18px;top:50%;width:18px;border-top:1px dashed #48bfe3}.outside i{display:grid;place-items:center;flex:0 0 39px;height:39px;border-radius:13px;background:var(--grad);font-style:normal;font-size:19px}.outside b{display:block;font:700 16px/1.05 'Baloo 2',sans-serif}.outside small{display:block;color:var(--soft);font-size:11px;line-height:1.25;margin-top:4px}.agents-title{margin:0 0 12px;color:#a9dff1}.agent-input{display:inline-block;margin-top:5px;color:var(--dim);font:9px 'Space Mono',monospace}.agent-input:before{content:'INPUT: ';color:var(--cyan)}
+    section{border-top:1px solid var(--line);padding:48px 0}.intro{text-align:center;margin:0 auto 25px}.intro h2{font:700 35px/1.1 'Baloo 2',sans-serif;margin:7px 0}.intro p{color:var(--soft);margin:0}.explain{display:grid;grid-template-columns:repeat(3,1fr);gap:15px}.explain article{padding:20px;border:1px solid var(--line);border-radius:18px;background:var(--card)}.explain .num{color:var(--blue)}.explain h3{font:700 20px 'Baloo 2',sans-serif;margin:7px 0}.explain p{font-size:13px;color:var(--soft);margin:0}.explain ul{margin:12px 0 0;padding-left:17px;color:var(--dim);font-size:12px}.explain li{margin:4px 0}footer{text-align:center;padding:31px 0 45px;color:var(--dim);font-size:12px}
+    @media(max-width:850px){.map{padding-left:0;padding-top:0}.agents{position:static;top:auto;left:auto;width:100%;display:grid;grid-template-columns:1fr;gap:10px;margin-bottom:16px}.agents-title{position:static;margin-bottom:10px}.agent-bus{display:none}.outside{margin:0}.outside:after{display:none}.outside-kb{position:static;top:auto;left:auto;width:100%;transform:none;margin-bottom:16px}.ecosystem{min-height:620px}}@media(max-width:600px){.map{min-width:0;overflow:visible}.map-wrap{overflow-x:auto;margin:0 -18px;padding:0 18px}.explain{grid-template-columns:1fr}.ecosystem{width:720px}.hero{padding-top:44px}}@media(prefers-reduced-motion:reduce){.pulse,.live i{animation:none}}
+
+    /* --- Site-standard nav / mobile menu / footer (matches index.html and about.html) --- */
+    .wrap{max-width:900px;margin:0 auto;padding:0 26px;}
+    nav{position:sticky;top:0;z-index:50;background:rgba(2,3,4,0.85);backdrop-filter:blur(10px);border-bottom:1px solid var(--line);}
+    nav .wrap{display:flex;align-items:center;justify-content:space-between;height:66px;}
+    .nav-inner-group{display:flex;align-items:center;gap:12px;}
+    .nav-name{font-family:'Baloo 2', sans-serif;font-size:17px;font-weight:700;color:var(--ink);text-decoration:none;}
+    .nav-links{display:none;gap:26px;font-size:14px;}
+    .nav-links a{text-decoration:none;color:var(--soft);transition:color .15s;}
+    .nav-links a:hover{color:var(--ink);}
+    @media(min-width:680px){.nav-links{display:flex;}}
+    .back-arrow-btn{display:flex;align-items:center;justify-content:center;width:44px;height:44px;border-radius:12px;background:var(--card);border:1px solid var(--line);color:var(--ink);text-decoration:none;flex-shrink:0;transition:border-color .15s;}
+    .back-arrow-btn:hover{border-color:var(--cyan);}
+    .back-arrow-btn svg{width:18px;height:18px;}
+    .hamburger{display:flex;align-items:center;justify-content:center;width:44px;height:44px;border-radius:12px;background:var(--card);border:1px solid var(--line);cursor:pointer;}
+    .hamburger svg{width:18px;height:18px;color:var(--ink);}
+    @media(min-width:680px){.hamburger{display:none;}}
+    .mobile-menu{position:fixed;top:66px;left:0;right:0;bottom:0;background:rgba(2,3,4,0.97);backdrop-filter:blur(10px);z-index:60;padding:30px 26px;display:flex;flex-direction:column;gap:6px;transform:translateX(-100%);opacity:0;pointer-events:none;transition:transform var(--dur) var(--ease), opacity var(--dur) var(--ease);}
+    .mobile-menu.open{transform:translateX(0);opacity:1;pointer-events:auto;}
+    .mobile-menu a{text-decoration:none;color:var(--ink);font-family:'Baloo 2', sans-serif;font-size:22px;font-weight:600;padding:16px 4px;border-bottom:1px solid var(--line);opacity:0;transform:translateX(-24px);transition:opacity var(--dur) var(--ease), transform var(--dur) var(--ease);}
+    .mobile-menu.open a{opacity:1;transform:translateX(0);}
+    .mobile-menu a:nth-child(1){transition-delay:.12s;}.mobile-menu a:nth-child(2){transition-delay:.2s;}.mobile-menu a:nth-child(3){transition-delay:.28s;}.mobile-menu a:nth-child(4){transition-delay:.36s;}.mobile-menu a:nth-child(5){transition-delay:.44s;}.mobile-menu a:nth-child(6){transition-delay:.52s;}
+    .site-footer{border-top:1px solid var(--line);padding:52px 0 40px;text-align:center;}
+    .footer-logo{font-family:'Baloo 2', sans-serif;font-weight:700;font-size:20px;margin-bottom:10px;background:var(--grad);-webkit-background-clip:text;background-clip:text;color:transparent;}
+    .footer-tag{color:var(--soft);font-size:14px;margin-bottom:26px;}
+    .social-row{display:flex;justify-content:center;gap:12px;margin-bottom:44px;}
+    .social-icon{width:44px;height:44px;border-radius:12px;border:1px solid var(--line);display:flex;align-items:center;justify-content:center;color:var(--soft);text-decoration:none;transition:border-color .15s, color .15s;}
+    .social-icon:hover{border-color:var(--cyan);color:var(--ink);}
+    .social-icon svg{width:18px;height:18px;}
+    .quick-title{font-size:13px;font-weight:600;color:var(--dim);letter-spacing:0.04em;text-transform:uppercase;margin-bottom:16px;}
+    .quick-links{display:flex;flex-wrap:wrap;justify-content:center;gap:10px 22px;margin-bottom:20px;font-size:14.5px;}
+    .quick-links a{text-decoration:none;color:var(--soft);}
+    .quick-links a:hover{color:var(--ink);}
+    .foot-note{font-size:12.5px;color:var(--dim);}
+    /* --- Contact CTA styles (matches index.html and about.html) --- */
+    .hero-ctas{display:flex;gap:14px;flex-wrap:wrap;justify-content:center;margin-bottom:20px;}
+    .btn{font-family:'Inter', sans-serif;font-size:15px;font-weight:600;padding:15px 28px;border-radius:999px;text-decoration:none;display:inline-flex;align-items:center;gap:8px;transition:transform .15s, opacity .15s, border-color .15s;}
+    .btn-primary{background:var(--grad);color:#fff;box-shadow:0 8px 24px -8px rgba(14,165,196,0.5);}
+    .btn-primary:hover{transform:translateY(-2px);}
+    .btn-ghost{background:transparent;color:var(--ink);border:1.5px solid var(--line);}
+    .btn-ghost:hover{border-color:var(--cyan);}
+    section.connect{padding-top:64px;padding-bottom:24px;text-align:center;}
+    .connect-heading{font-family:'Space Mono', monospace;font-weight:700;font-size:clamp(24px,4.5vw,34px);letter-spacing:-0.01em;margin:0 0 14px;color:var(--ink);}
+    .connect-sub{color:var(--soft);font-size:15px;margin-bottom:32px;}
+  </style>
+</head>
+<body>
+<script>document.documentElement.classList.add('js');</script>
+
+<nav>
+  <div class="wrap">
+    <div class="nav-inner-group">
+      <a href="index.html" class="back-arrow-btn" aria-label="Back to portfolio">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M19 12H5M12 19l-7-7 7-7"/></svg>
+      </a>
+      <a href="index.html" class="nav-name">Kevin Rhys Sadueste</a>
+    </div>
+    <div class="nav-links">
+      <a href="index.html#about">What I Do</a>
+      <a href="index.html#highlights">Highlights</a>
+      <a href="index.html#experience">Experience</a>
+      <a href="index.html#skills">Skills</a>
+      <a href="index.html#contact">Contact</a>
+    </div>
+    <button class="hamburger" id="menuBtn" aria-label="Open menu">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"><path d="M4 7h16M4 12h16M4 17h16"/></svg>
+    </button>
+  </div>
+</nav>
+<div class="mobile-menu" id="mobileMenu">
+  <a href="index.html">Portfolio Home</a>
+  <a href="index.html#about">What I Do</a>
+  <a href="index.html#highlights">Highlights</a>
+  <a href="index.html#experience">Experience</a>
+  <a href="index.html#skills">Skills</a>
+  <a href="index.html#contact">Contact</a>
+</div>
+
+  <main class="shell">
+    <div class="hero"><span class="eyebrow mono">AI-enabled test automation ecosystem</span><h1>Automation inside.<br><span class="accent">AI agents alongside.</span></h1><p>The framework executes tests and publishes evidence; dedicated agents keep the knowledge base current, improve test coverage, and explain failures.</p></div>
+    <div class="map-wrap"><div class="map">
+      <aside class="agents" aria-label="AI agents"><div class="agents-title mono">AI agents</div><article class="outside"><i>⌘</i><div><b>Knowledgebase Harness</b><small>Harnesses and appends new documents to the knowledge base.</small><span class="agent-input">new documents</span></div></article><article class="outside"><i>✦</i><div><b>Test Writer Agent</b><small>Writes automation from requirements and coverage insight.</small><span class="agent-input">requirements + code coverage report</span></div></article><article class="outside"><i>⚑</i><div><b>Test Failure Triage</b><small>Classifies a failed test from run evidence.</small><span class="agent-input">logs + results</span></div></article></aside><div class="agent-bus" aria-hidden="true"><i></i><span class="bus-pulse"></span><span class="bus-pulse b2"></span><span class="bus-pulse b3"></span></div><aside class="outside-kb" aria-label="Knowledge base"><div class="kmark">◉</div><b>Knowledge Base</b><p>Git-backed application context used by all three AI agents.</p><span>JIRA</span><span>DOCS</span><span>SWAGGER</span><span>SCHEMAS</span><span>CODE</span></aside>
+      <div class="ecosystem" aria-label="Test Automation Framework"><div class="eco-title mono">Test Automation Framework<b>Trigger → execute → publish</b></div><div class="path"></div><i class="pulse"></i><i class="pulse p2"></i><i class="pulse p3"></i><i class="pulse p4"></i><i class="pulse p5"></i><i class="pulse p6"></i>
+        <div class="stack teams"><div class="logo"><span class="teams-symbol">T</span></div><b>Teams Chatbot</b><small>trigger</small></div><div class="stack cicd"><div class="logo"><span class="letter">gh</span></div><b>CI/CD</b><small>trigger</small></div><div class="framework-link" aria-hidden="true"><span class="framework-pulse"></span><span class="framework-pulse p2"></span></div><div class="stack docker"><div class="logo"><span class="letter">Do</span></div><b>Docker</b><small>execute</small></div><div class="stack results"><div class="logo"><span class="letter">✉ Z</span></div><b>Email + Zephyr</b><small>publish</small></div>
+        <div class="stack-flow" aria-label="Test automation technology stack"><div class="framework-tech"><div class="mini-logo"><span class="mini-letter">Se</span></div><b>Selenium</b></div><div class="framework-tech"><div class="mini-logo"><span class="playwright-symbol">◉</span></div><b>Playwright</b></div><div class="framework-tech"><div class="mini-logo"><span class="mini-letter">Cu</span></div><b>Cucumber</b></div><div class="framework-tech"><div class="mini-logo"><span class="mini-letter">T</span></div><b>TestNG</b></div><div class="framework-tech"><div class="mini-logo"><span class="mini-letter">Mv</span></div><b>Maven</b></div><div class="framework-tech"><div class="mini-logo"><span class="mini-letter">DB</span></div><b>MySQL</b></div><div class="framework-tech"><div class="mini-logo"><span class="mini-letter">R</span></div><b>REST</b></div><div class="framework-tech"><div class="mini-logo"><span class="mini-letter">S</span></div><b>SOAP</b></div></div>
+      </div>
+    </div></div>
+    <section><div class="intro"><span class="mono accent">Description</span><h2>How the Automation Framework works.</h2><p>The three agents remain outside the execution ecosystem and connect only through the shared knowledge base.</p></div><div class="explain"><article><span class="num mono">Knowledgebase Harness</span><h3>Keep knowledge current</h3><p>When new application documents appear, the agent ingests, structures and appends them to the Git-backed knowledge base.</p><ul><li>Jira tickets and attachments</li><li>Requirements, Swagger and schemas</li><li>Metadata and application code</li></ul></article><article><span class="num mono">Test Writer Agent</span><h3>Expand automation</h3><p>Uses the requirements document, code coverage report and retrieved knowledge to create or improve automation scripts.</p><ul><li>Requirement-led Java tests</li><li>Coverage gaps prioritized</li><li>Uses framework conventions</li></ul></article><article><span class="num mono">Test Failure Triage</span><h3>Explain failures</h3><p>Examines execution evidence to distinguish application defects from data, environment and test-script issues.</p><ul><li>Application bug or defect</li><li>Data or environment issue</li><li>Test-script issue</li></ul></article></div></section>
+  </main><section id="contact" class="connect">
+  <div class="shell">
+    <h2 class="connect-heading">Want to connect?</h2>
+    <p class="connect-sub">Hiring for QA, test automation, or agentic AI in testing? Feel free to reach out.</p>
+    <div class="hero-ctas">
+      <a class="btn btn-primary" href="mailto:Kevin.sadueste@gmail.com">Contact →</a>
+      <a class="btn btn-ghost" href="index.html">Back to portfolio</a>
+    </div>
+  </div>
+</section>
+<footer class="site-footer">
+  <div class="shell">
+    <div class="footer-logo">Kevin Rhys Sadueste</div>
+    <div class="footer-tag">QA strategy and testing in the real world.</div>
+    <div class="social-row">
+      <a class="social-icon" href="mailto:Kevin.sadueste@gmail.com" aria-label="Email">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="5" width="18" height="14" rx="2"/><path d="M3 7l9 6 9-6"/></svg>
+      </a>
+      <a class="social-icon" href="https://linkedin.com/in/kevinrhys" target="_blank" rel="noopener" aria-label="LinkedIn">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="18" height="18" rx="2"/><path d="M8 11v5M8 8v.01M12 16v-5M12 11c0-1.3 1-2 2.2-2 1.2 0 1.8.9 1.8 2.4V16"/></svg>
+      </a>
+    </div>
+    <div class="quick-title">Quick Access</div>
+    <div class="quick-links">
+      <a href="index.html">Portfolio Home</a>
+      <a href="index.html#about">What I Do</a>
+      <a href="index.html#highlights">Highlights</a>
+      <a href="index.html#experience">Experience</a>
+      <a href="index.html#skills">Skills</a>
+      <a href="index.html#contact">Contact</a>
+    </div>
+    <div class="foot-note">© 2026 Kevin Rhys Sadueste</div>
+  </div>
+</footer>
+
+<script>
+  const menuBtn = document.getElementById('menuBtn');
+  const mobileMenu = document.getElementById('mobileMenu');
+  menuBtn.addEventListener('click', ()=>{
+    mobileMenu.classList.toggle('open');
+    menuBtn.innerHTML = mobileMenu.classList.contains('open')
+      ? '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"><path d="M6 6l12 12M18 6L6 18"/></svg>'
+      : '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"><path d="M4 7h16M4 12h16M4 17h16"/></svg>';
+  });
+  mobileMenu.querySelectorAll('a').forEach(a=>{
+    a.addEventListener('click', ()=>{
+      mobileMenu.classList.remove('open');
+      menuBtn.innerHTML = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"><path d="M4 7h16M4 12h16M4 17h16"/></svg>';
+    });
+  });
+</script>
+</body></html>
