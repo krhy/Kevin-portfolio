@@ -23,108 +23,91 @@
   }
 
   * { box-sizing: border-box; }
-  body {
-    margin: 0;
-    font-family: 'Work Sans', sans-serif;
-    background: var(--court);
-    color: var(--chalk);
-    min-height: 100vh;
-  }
+  body { margin: 0; font-family: 'Work Sans', sans-serif; background: var(--court); color: var(--chalk); min-height: 100vh; }
   button { font-family: inherit; cursor: pointer; }
-  input:focus { outline: 2px solid var(--court); outline-offset: 1px; }
+  input:focus, select:focus { outline: 2px solid var(--court); outline-offset: 1px; }
   button:focus-visible { outline: 2px solid var(--chalk); outline-offset: 2px; }
 
-  .header { padding: 28px 20px 20px; }
+  .header { padding: 24px 20px 0; }
   .brand { display: flex; align-items: center; gap: 8px; margin-bottom: 4px; }
-  .brand span {
-    font-family: 'Oswald', sans-serif; font-size: 13px; letter-spacing: 0.14em;
-    text-transform: uppercase; color: var(--chalk-dim);
-  }
-  .balance {
-    font-family: 'IBM Plex Mono', monospace; font-weight: 600; font-size: 52px;
-    line-height: 1; margin: 6px 0 14px; color: var(--yellow);
-  }
+  .brand span { font-family: 'Oswald', sans-serif; font-size: 13px; letter-spacing: 0.14em; text-transform: uppercase; color: var(--chalk-dim); }
+  .balance { font-family: 'IBM Plex Mono', monospace; font-weight: 600; font-size: 46px; line-height: 1; margin: 6px 0 12px; color: var(--yellow); }
   .balance.negative { color: var(--clay); }
-  .divider { border-top: 2px dashed var(--court-line); margin: 6px 0 16px; }
-  .stats { display: flex; gap: 22px; flex-wrap: wrap; }
-  .stat-value { font-family: 'IBM Plex Mono', monospace; font-size: 17px; font-weight: 600; }
-  .stat-label { font-size: 11px; color: #9DB6B2; text-transform: uppercase; letter-spacing: 0.06em; }
+  .divider { border-top: 2px dashed var(--court-line); margin: 4px 0 14px; }
+  .stats { display: flex; gap: 20px; flex-wrap: wrap; margin-bottom: 18px; }
+  .stat-value { font-family: 'IBM Plex Mono', monospace; font-size: 15px; font-weight: 600; }
+  .stat-label { font-size: 10.5px; color: #9DB6B2; text-transform: uppercase; letter-spacing: 0.06em; }
 
-  .ledger-panel {
-    background: var(--chalk); border-radius: 20px 20px 0 0; min-height: 320px;
-    padding: 20px 16px 110px; color: var(--ink);
+  .tabs { display: flex; gap: 4px; padding: 0 20px; }
+  .tab-btn {
+    flex: 1; padding: 11px 4px; background: none; border: none; border-bottom: 3px solid transparent;
+    color: var(--chalk-dim); font-family: 'Oswald', sans-serif; font-size: 12.5px; letter-spacing: 0.04em;
+    text-transform: uppercase; font-weight: 600;
   }
-  .ledger-title {
-    font-family: 'Oswald', sans-serif; font-size: 13px; letter-spacing: 0.1em;
-    text-transform: uppercase; color: var(--muted); margin-bottom: 12px; padding: 0 4px;
-  }
-  .empty-state { text-align: center; padding: 48px 20px; color: var(--muted); }
+  .tab-btn.active { color: var(--yellow); border-bottom-color: var(--yellow); }
 
-  .entry-card {
-    background: #fff; border-radius: 14px; padding: 14px 16px; margin-bottom: 10px;
-    box-shadow: 0 1px 2px rgba(16,25,23,0.06); border: 1px solid var(--border);
-  }
-  .entry-top { display: flex; justify-content: space-between; align-items: flex-start; }
-  .entry-meta { display: flex; align-items: center; gap: 6px; font-size: 12px; color: var(--muted); margin-bottom: 3px; }
-  .entry-detail { font-size: 14.5px; }
-  .entry-detail .muted { color: var(--muted-2); }
-  .entry-right { text-align: right; margin-left: 10px; }
-  .entry-delta { font-family: 'IBM Plex Mono', monospace; font-weight: 600; font-size: 15px; display: flex; align-items: center; gap: 3px; justify-content: flex-end; }
-  .entry-delta.pos { color: var(--good); }
-  .entry-delta.neg { color: var(--clay); }
-  .entry-bal { font-size: 11px; color: var(--muted-2); margin-top: 2px; }
-  .entry-actions { display: flex; gap: 14px; margin-top: 8px; padding-top: 8px; border-top: 1px solid #F0EDE2; }
+  .panel { background: var(--chalk); border-radius: 20px 20px 0 0; min-height: 320px; padding: 18px 16px 110px; color: var(--ink); }
+  .panel-title { font-family: 'Oswald', sans-serif; font-size: 13px; letter-spacing: 0.1em; text-transform: uppercase; color: var(--muted); margin-bottom: 12px; padding: 0 4px; }
+  .empty-state { text-align: center; padding: 44px 20px; color: var(--muted); font-size: 14px; }
+
+  .card { background: #fff; border-radius: 14px; padding: 14px 16px; margin-bottom: 10px; box-shadow: 0 1px 2px rgba(16,25,23,0.06); border: 1px solid var(--border); }
+  .card-top { display: flex; justify-content: space-between; align-items: flex-start; gap: 10px; }
+  .card-meta { display: flex; flex-wrap: wrap; align-items: center; gap: 4px; font-size: 12px; color: var(--muted); margin-bottom: 3px; }
+  .card-detail { font-size: 14.5px; }
+  .card-detail .muted { color: var(--muted-2); }
+  .card-right { text-align: right; flex-shrink: 0; }
+  .card-delta { font-family: 'IBM Plex Mono', monospace; font-weight: 600; font-size: 15px; display: flex; align-items: center; gap: 3px; justify-content: flex-end; }
+  .card-delta.pos { color: var(--good); }
+  .card-delta.neg { color: var(--clay); }
+  .card-amount { font-family: 'IBM Plex Mono', monospace; font-weight: 600; font-size: 15px; }
+  .status-badge { display: inline-block; font-size: 10.5px; font-weight: 600; padding: 2px 8px; border-radius: 999px; text-transform: uppercase; letter-spacing: 0.03em; margin-top: 4px; }
+  .status-done { background: #E4F1EA; color: var(--good); }
+  .status-pending { background: #FBEFE2; color: var(--clay); }
+  .status-cancelled { background: #EFEDE3; color: var(--muted); }
+  .card-actions { display: flex; gap: 14px; margin-top: 8px; padding-top: 8px; border-top: 1px solid #F0EDE2; }
   .link-btn { background: none; border: none; font-size: 12.5px; cursor: pointer; display: flex; align-items: center; gap: 4px; padding: 0; color: var(--muted); }
   .link-btn.danger { color: var(--clay); }
 
-  .fab-row { position: fixed; bottom: 20px; left: 0; right: 0; display: flex; justify-content: center; gap: 10px; }
-  .fab-primary, .fab-secondary {
-    display: flex; align-items: center; gap: 6px; border: none; border-radius: 999px;
-    padding: 13px 22px; font-weight: 600; font-size: 14.5px;
-  }
-  .fab-primary { background: var(--yellow); color: var(--ink); box-shadow: 0 4px 14px rgba(0,0,0,0.25); }
-  .fab-secondary { background: var(--court-light); color: var(--chalk); border: 1px solid var(--court-line); padding: 13px 18px; }
+  .summary-card { background: #fff; border-radius: 16px; padding: 20px; margin-bottom: 12px; border: 1px solid var(--border); }
+  .summary-row { display: flex; justify-content: space-between; align-items: baseline; padding: 10px 0; }
+  .summary-row + .summary-row { border-top: 1px solid #F0EDE2; }
+  .summary-label { font-size: 14px; color: var(--muted); }
+  .summary-value { font-family: 'IBM Plex Mono', monospace; font-size: 18px; font-weight: 600; }
+  .summary-row.total .summary-label { font-weight: 600; color: var(--ink); }
+  .summary-row.total .summary-value { font-size: 24px; }
 
-  .overlay {
-    position: fixed; inset: 0; background: rgba(16,25,23,0.45);
-    display: none; align-items: flex-end; z-index: 10;
-  }
+  .fab { position: fixed; bottom: 20px; left: 0; right: 0; display: flex; justify-content: center; }
+  .fab-primary { display: flex; align-items: center; gap: 6px; background: var(--yellow); color: var(--ink); border: none; border-radius: 999px; padding: 13px 24px; font-weight: 600; font-size: 14.5px; box-shadow: 0 4px 14px rgba(0,0,0,0.25); }
+
+  .overlay { position: fixed; inset: 0; background: rgba(16,25,23,0.45); display: none; align-items: flex-end; z-index: 10; }
   .overlay.open { display: flex; }
-  .sheet {
-    background: var(--chalk); color: var(--ink); width: 100%; border-radius: 20px 20px 0 0;
-    padding: 18px 18px 24px; max-height: 85vh; overflow-y: auto;
-  }
+  .sheet { background: var(--chalk); color: var(--ink); width: 100%; border-radius: 20px 20px 0 0; padding: 18px 18px 24px; max-height: 85vh; overflow-y: auto; }
   .sheet-head { display: flex; justify-content: space-between; align-items: center; margin-bottom: 14px; }
   .sheet-title { font-family: 'Oswald', sans-serif; font-size: 17px; text-transform: uppercase; letter-spacing: 0.04em; }
   .close-btn { background: none; border: none; color: var(--muted); }
 
-  .type-tabs { display: flex; gap: 8px; margin-bottom: 16px; }
-  .type-tab {
-    flex: 1; padding: 8px 0; border-radius: 10px; border: 1px solid #DDD8C9;
-    background: transparent; color: var(--muted); font-weight: 600; font-size: 13px;
-  }
-  .type-tab.active { background: var(--court); color: var(--chalk); border-color: var(--court); }
-
   form { display: flex; flex-direction: column; gap: 12px; }
   label.field { display: flex; flex-direction: column; gap: 5px; font-size: 13px; color: var(--muted); }
-  input[type="text"], input[type="number"], input[type="date"] {
+  input[type="text"], input[type="number"], input[type="date"], select {
     padding: 10px 12px; border-radius: 10px; border: 1px solid #DDD8C9; font-size: 15px;
     font-family: 'Work Sans', sans-serif; background: #fff; color: var(--ink); width: 100%;
   }
   .split-row { display: flex; gap: 8px; }
-  .split-btn {
-    padding: 0 12px; border-radius: 10px; border: 1px solid var(--court); background: transparent;
-    color: var(--court); font-size: 12px; font-weight: 600; white-space: nowrap;
-  }
+  .split-btn { padding: 0 12px; border-radius: 10px; border: 1px solid var(--court); background: transparent; color: var(--court); font-size: 12px; font-weight: 600; white-space: nowrap; }
   .preview-line { font-size: 13px; color: var(--muted); }
   .preview-line strong.pos { color: var(--good); }
   .preview-line strong.neg { color: var(--clay); }
   .form-error { color: var(--clay); font-size: 13px; font-weight: 600; }
   .submit-btn { width: 100%; justify-content: center; margin-top: 8px; }
 
-  .status-banner {
-    position: fixed; top: 10px; right: 12px; font-size: 11px; transition: opacity 0.3s;
-  }
+  .status-banner { position: fixed; top: 10px; right: 12px; font-size: 11px; transition: opacity 0.3s; }
+
+  .controls { display: flex; gap: 8px; margin-bottom: 14px; }
+  .controls input[type="text"] { flex: 1; padding: 8px 12px; font-size: 13.5px; }
+  .controls select { padding: 8px 10px; font-size: 13px; width: auto; }
+  .link-suggest { font-size: 12.5px; color: var(--court); background: #EAF2F1; border: 1px dashed var(--court); border-radius: 8px; padding: 8px 10px; display: flex; justify-content: space-between; align-items: center; gap: 8px; }
+  .link-suggest button { background: var(--court); color: #fff; border: none; border-radius: 6px; padding: 4px 10px; font-size: 12px; font-weight: 600; flex-shrink: 0; }
+  .mismatch-tag { font-size: 11px; color: var(--clay); margin-top: 3px; }
 </style>
 </head>
 <body>
@@ -144,67 +127,36 @@
   <div id="balance" class="balance">Loading…</div>
   <div class="divider"></div>
   <div class="stats">
+    <div><div id="statAccumulated" class="stat-value">$0</div><div class="stat-label">Accumulated</div></div>
+    <div><div id="statExpenses" class="stat-value">$0</div><div class="stat-label">Expenses</div></div>
     <div><div id="statSessions" class="stat-value">0</div><div class="stat-label">Sessions</div></div>
-    <div><div id="statCollected" class="stat-value">$0</div><div class="stat-label">Collected</div></div>
-    <div><div id="statSpent" class="stat-value">$0</div><div class="stat-label">Spent</div></div>
+  </div>
+  <div class="tabs">
+    <button class="tab-btn active" data-tab="contributions" onclick="switchTab('contributions')">Contributions</button>
+    <button class="tab-btn" data-tab="bookings" onclick="switchTab('bookings')">Bookings</button>
+    <button class="tab-btn" data-tab="expenses" onclick="switchTab('expenses')">Expenses</button>
+    <button class="tab-btn" data-tab="summary" onclick="switchTab('summary')">Summary</button>
   </div>
 </div>
 
-<div class="ledger-panel">
-  <div class="ledger-title">Ledger</div>
-  <div id="ledger"></div>
+<div class="panel">
+  <div id="panelBody"></div>
 </div>
 
-<div class="fab-row" id="fabRow">
-  <button class="fab-secondary" onclick="openForm('expense')">− Expense</button>
-  <button class="fab-primary" onclick="openForm('session')">+ Booking</button>
+<div class="fab" id="fabRow">
+  <button class="fab-primary" id="fabBtn" onclick="openForm()">+ Add</button>
 </div>
 
 <div class="overlay" id="overlay" onclick="if(event.target===this) closeForm()">
   <div class="sheet">
     <div class="sheet-head">
-      <div class="sheet-title" id="sheetTitle">New booking</div>
+      <div class="sheet-title" id="sheetTitle">New entry</div>
       <button class="close-btn" onclick="closeForm()">✕</button>
     </div>
-    <div class="type-tabs" id="typeTabs">
-      <button type="button" class="type-tab active" id="tabSession" onclick="setFormType('session')">Booking</button>
-      <button type="button" class="type-tab" id="tabExpense" onclick="setFormType('expense')">Expense</button>
-    </div>
     <form id="entryForm" onsubmit="submitForm(event)">
-      <label class="field">Date
-        <input type="date" id="fDate" />
-      </label>
-      <label class="field">Added by
-        <input type="text" id="fAddedBy" placeholder="e.g. Doreen" />
-      </label>
-      <label class="field" id="fNoteLabel">Court / note (optional)
-        <input type="text" id="fNote" placeholder="e.g. Court 3, evening slot" />
-      </label>
-
-      <div id="sessionFields">
-        <label class="field">Total court cost
-          <input type="number" step="0.01" min="0" id="fCost" />
-        </label>
-        <label class="field">Number of players
-          <input type="number" min="1" id="fPlayers" />
-        </label>
-        <label class="field">Charge per player
-          <div class="split-row">
-            <input type="number" step="0.01" min="0" id="fCharge" style="flex:1" />
-            <button type="button" class="split-btn" onclick="splitEvenly()">Split evenly</button>
-          </div>
-        </label>
-        <div class="preview-line" id="previewLine"></div>
-      </div>
-
-      <div id="expenseFields" style="display:none">
-        <label class="field">Amount
-          <input type="number" step="0.01" min="0" id="fAmount" />
-        </label>
-      </div>
-
+      <div id="formFields"></div>
       <div class="form-error" id="formError"></div>
-      <button type="submit" class="fab-primary submit-btn" id="submitBtn">Add to ledger</button>
+      <button type="submit" class="fab-primary submit-btn" id="submitBtn">Add</button>
     </form>
   </div>
 </div>
@@ -214,49 +166,54 @@
 <script>
 const API_URL = '/api/pickleball/entries';
 
-let entries = [];
-let formType = 'session';
+let data = { contributions: [], bookings: [], expenses: [] };
+let activeTab = 'contributions';
 let editingId = null;
 let confirmDeleteId = null;
+let confirmDeleteTab = null;
+let tabState = {
+  contributions: { search: '', sort: 'date_desc' },
+  bookings: { search: '', sort: 'date_desc', status: 'all' },
+  expenses: { search: '', sort: 'date_desc' },
+};
 
 function fmt(n) {
   const sign = n < 0 ? '-' : '';
   return sign + '$' + Math.abs(n).toFixed(2).replace(/\.00$/, '');
 }
 function fmtDate(d) {
+  if (!d) return '';
   const dt = new Date(d + 'T00:00:00');
   return dt.toLocaleDateString(undefined, { month: 'short', day: 'numeric' });
 }
-function uid() {
-  return Date.now().toString(36) + Math.random().toString(36).slice(2, 7);
-}
-function todayStr() {
-  return new Date().toISOString().slice(0, 10);
-}
+function uid() { return Date.now().toString(36) + Math.random().toString(36).slice(2, 7); }
+function todayStr() { return new Date().toISOString().slice(0, 10); }
+function escapeHtml(s) { const d = document.createElement('div'); d.textContent = s || ''; return d.innerHTML; }
 
-async function loadEntries() {
+async function loadData() {
   try {
     const res = await fetch(API_URL);
     if (!res.ok) throw new Error('load failed');
-    entries = await res.json();
+    const raw = await res.json();
+    // Support old flat-array format gracefully by ignoring it (test data from earlier version)
+    if (Array.isArray(raw)) {
+      data = { contributions: [], bookings: [], expenses: [] };
+    } else {
+      data = { contributions: raw.contributions || [], bookings: raw.bookings || [], expenses: raw.expenses || [] };
+    }
   } catch (e) {
-    console.error('Failed to load ledger', e);
-    entries = [];
+    console.error('Failed to load data', e);
   }
   render();
 }
 
-async function saveEntries() {
+async function saveData() {
   showStatus('Saving…');
   try {
-    const res = await fetch(API_URL, {
-      method: 'PUT',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(entries),
-    });
+    const res = await fetch(API_URL, { method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(data) });
     if (!res.ok) throw new Error('save failed');
   } catch (e) {
-    console.error('Failed to save ledger', e);
+    console.error('Failed to save data', e);
     showStatus('Save failed — check connection', true);
     return;
   }
@@ -274,227 +231,407 @@ function hideStatus() {
   setTimeout(() => { el.style.opacity = '0'; }, 600);
 }
 
-function chronological() {
-  return [...entries].sort((a, b) => a.date.localeCompare(b.date) || a.createdAt - b.createdAt);
+function summary() {
+  const accumulated = data.contributions.reduce((s, c) => s + c.extra, 0);
+  const expensesTotal = data.expenses.reduce((s, e) => s + e.totalCost, 0);
+  return { accumulated, expensesTotal, remaining: accumulated - expensesTotal };
+}
+
+function switchTab(tab) {
+  activeTab = tab;
+  document.querySelectorAll('.tab-btn').forEach(b => b.classList.toggle('active', b.dataset.tab === tab));
+  document.getElementById('fabRow').style.display = tab === 'summary' ? 'none' : 'flex';
+  const labels = { contributions: '+ Contribution', bookings: '+ Booking', expenses: '+ Expense' };
+  document.getElementById('fabBtn').textContent = labels[tab] || '+ Add';
+  render();
 }
 
 function render() {
-  const chrono = chronological();
-  let running = 0;
-  const withBalance = chrono.map(e => { running += e.delta; return { ...e, balanceAfter: running }; }).reverse();
-
-  const balance = running;
-  const collected = entries.filter(e => e.type === 'session').reduce((s, e) => s + e.collected, 0);
-  const spent = entries.filter(e => e.type === 'session').reduce((s, e) => s + e.cost, 0)
-              + entries.filter(e => e.type === 'expense').reduce((s, e) => s + e.amount, 0);
-  const sessions = entries.filter(e => e.type === 'session').length;
-
+  const s = summary();
   const balEl = document.getElementById('balance');
-  balEl.textContent = fmt(balance);
-  balEl.className = 'balance' + (balance < 0 ? ' negative' : '');
+  balEl.textContent = fmt(s.remaining);
+  balEl.className = 'balance' + (s.remaining < 0 ? ' negative' : '');
+  document.getElementById('statAccumulated').textContent = fmt(s.accumulated);
+  document.getElementById('statExpenses').textContent = fmt(s.expensesTotal);
+  document.getElementById('statSessions').textContent = data.contributions.length;
 
-  document.getElementById('statSessions').textContent = sessions;
-  document.getElementById('statCollected').textContent = fmt(collected);
-  document.getElementById('statSpent').textContent = fmt(spent);
-
-  const ledgerEl = document.getElementById('ledger');
-  if (withBalance.length === 0) {
-    ledgerEl.innerHTML = `<div class="empty-state">No bookings logged yet.<br/><span style="font-size:13px">Tap + to add your first court booking.</span></div>`;
-    return;
-  }
-
-  ledgerEl.innerHTML = withBalance.map(e => entryCardHtml(e)).join('');
+  const body = document.getElementById('panelBody');
+  if (activeTab === 'contributions') body.innerHTML = renderContributions();
+  else if (activeTab === 'bookings') body.innerHTML = renderBookings();
+  else if (activeTab === 'expenses') body.innerHTML = renderExpenses();
+  else body.innerHTML = renderSummary(s);
 }
 
-function entryCardHtml(e) {
-  const deltaClass = e.delta >= 0 ? 'pos' : 'neg';
-  const arrow = e.delta >= 0 ? '▲' : '▼';
-  const detail = e.type === 'session'
-    ? `${e.players} × ${fmt(e.charge)} <span class="muted">= ${fmt(e.collected)} collected · court ${fmt(e.cost)}</span>`
-    : `<span class="muted">Expense · ${fmt(e.amount)}</span>`;
+function sortedByDate(list) {
+  return [...list].sort((a, b) => b.date.localeCompare(a.date) || b.createdAt - a.createdAt);
+}
 
-  const actions = confirmDeleteId === e.id
-    ? `<button class="link-btn danger" onclick="doDelete('${e.id}')">Confirm delete</button>
-       <button class="link-btn" onclick="cancelDelete()">Cancel</button>`
-    : `<button class="link-btn" onclick="openEdit('${e.id}')">✎ Edit</button>
-       <button class="link-btn" onclick="askDelete('${e.id}')">🗑 Delete</button>`;
+function applyControls(list, tab, searchFields, amountField) {
+  const st = tabState[tab];
+  let out = list.filter(item => {
+    if (tab === 'bookings' && st.status !== 'all' && (item.status || 'Pending') !== st.status) return false;
+    if (!st.search) return true;
+    const q = st.search.toLowerCase();
+    return searchFields.some(f => (item[f] || '').toString().toLowerCase().includes(q));
+  });
+  out.sort((a, b) => {
+    if (st.sort === 'date_desc') return b.date.localeCompare(a.date) || b.createdAt - a.createdAt;
+    if (st.sort === 'date_asc') return a.date.localeCompare(b.date) || a.createdAt - b.createdAt;
+    if (st.sort === 'amount_desc') return b[amountField] - a[amountField];
+    if (st.sort === 'amount_asc') return a[amountField] - b[amountField];
+    return 0;
+  });
+  return out;
+}
 
+function bookingsTotalForDate(date) {
+  return data.bookings
+    .filter(b => b.date === date && b.status !== 'Cancelled')
+    .reduce((s, b) => s + b.amount, 0);
+}
+
+function controlsBar(tab, searchPlaceholder, extraSelect) {
+  const st = tabState[tab];
   return `
-    <div class="entry-card">
-      <div class="entry-top">
-        <div style="flex:1; min-width:0">
-          <div class="entry-meta">📅 ${fmtDate(e.date)} ${e.addedBy ? `<span class="muted">· added by ${escapeHtml(e.addedBy)}</span>` : ''} ${e.note ? `<span class="muted">· ${escapeHtml(e.note)}</span>` : ''}</div>
-          <div class="entry-detail">${detail}</div>
-        </div>
-        <div class="entry-right">
-          <div class="entry-delta ${deltaClass}">${arrow} ${fmt(e.delta)}</div>
-          <div class="entry-bal">bal. ${fmt(e.balanceAfter)}</div>
-        </div>
-      </div>
-      <div class="entry-actions">${actions}</div>
+    <div class="controls">
+      <input type="text" id="searchInput" placeholder="${searchPlaceholder}" value="${escapeHtml(st.search)}" oninput="setSearch('${tab}', this.value)" />
+      <select onchange="setSort('${tab}', this.value)">
+        <option value="date_desc" ${st.sort === 'date_desc' ? 'selected' : ''}>Newest first</option>
+        <option value="date_asc" ${st.sort === 'date_asc' ? 'selected' : ''}>Oldest first</option>
+        <option value="amount_desc" ${st.sort === 'amount_desc' ? 'selected' : ''}>Amount ↓</option>
+        <option value="amount_asc" ${st.sort === 'amount_asc' ? 'selected' : ''}>Amount ↑</option>
+      </select>
+      ${extraSelect || ''}
     </div>`;
 }
 
-function escapeHtml(s) {
-  const d = document.createElement('div');
-  d.textContent = s;
-  return d.innerHTML;
-}
-
-function askDelete(id) { confirmDeleteId = id; render(); }
-function cancelDelete() { confirmDeleteId = null; render(); }
-function doDelete(id) {
-  entries = entries.filter(e => e.id !== id);
-  confirmDeleteId = null;
+function setSearch(tab, value) {
+  tabState[tab].search = value;
+  const cursor = document.getElementById('searchInput')?.selectionStart;
   render();
-  saveEntries();
-}
-
-function openForm(type) {
-  formType = type;
-  editingId = null;
-  resetForm();
-  setFormType(type);
-  document.getElementById('sheetTitle').textContent = type === 'session' ? 'New booking' : 'New expense';
-  document.getElementById('overlay').classList.add('open');
-}
-
-function openEdit(id) {
-  const e = entries.find(x => x.id === id);
-  if (!e) return;
-  editingId = id;
-  formType = e.type;
-  setFormType(e.type, true);
-  document.getElementById('fDate').value = e.date;
-  document.getElementById('fAddedBy').value = e.addedBy || '';
-  document.getElementById('fNote').value = e.note || '';
-  if (e.type === 'session') {
-    document.getElementById('fCost').value = e.cost;
-    document.getElementById('fPlayers').value = e.players;
-    document.getElementById('fCharge').value = e.charge;
-  } else {
-    document.getElementById('fAmount').value = e.amount;
-  }
-  document.getElementById('sheetTitle').textContent = 'Edit ' + (e.type === 'session' ? 'booking' : 'expense');
-  document.getElementById('overlay').classList.add('open');
-  updatePreview();
-}
-
-function closeForm() {
-  document.getElementById('overlay').classList.remove('open');
-}
-
-function resetForm() {
-  document.getElementById('fDate').value = todayStr();
-  document.getElementById('fAddedBy').value = '';
-  document.getElementById('fNote').value = '';
-  document.getElementById('fCost').value = '';
-  document.getElementById('fPlayers').value = '';
-  document.getElementById('fCharge').value = '';
-  document.getElementById('fAmount').value = '';
-  document.getElementById('formError').textContent = '';
-  document.getElementById('previewLine').textContent = '';
-}
-
-function setFormType(type, isEdit) {
-  formType = type;
-  document.getElementById('tabSession').classList.toggle('active', type === 'session');
-  document.getElementById('tabExpense').classList.toggle('active', type === 'expense');
-  document.getElementById('typeTabs').style.display = isEdit ? 'none' : 'flex';
-  document.getElementById('sessionFields').style.display = type === 'session' ? 'block' : 'none';
-  document.getElementById('expenseFields').style.display = type === 'expense' ? 'block' : 'none';
-  document.getElementById('fNoteLabel').firstChild.textContent = type === 'session' ? 'Court / note (optional)' : 'What for';
-  document.getElementById('submitBtn').textContent = editingId ? 'Save changes' : 'Add to ledger';
-  document.getElementById('formError').textContent = '';
-}
-
-function splitEvenly() {
-  const cost = parseFloat(document.getElementById('fCost').value);
-  const players = parseInt(document.getElementById('fPlayers').value, 10);
-  if (cost > 0 && players > 0) {
-    document.getElementById('fCharge').value = (Math.ceil((cost / players) * 100) / 100).toFixed(2);
-    updatePreview();
+  const input = document.getElementById('searchInput');
+  if (input) {
+    input.focus();
+    if (cursor != null) input.setSelectionRange(cursor, cursor);
   }
 }
+function setSort(tab, value) { tabState[tab].sort = value; render(); }
+function setStatusFilter(value) { tabState.bookings.status = value; render(); }
 
-['fCost', 'fPlayers', 'fCharge'].forEach(id => {
-  document.addEventListener('DOMContentLoaded', () => {
-    document.getElementById(id).addEventListener('input', updatePreview);
-  });
-});
+// ---------- Contributions ----------
+function renderContributions() {
+  const list = applyControls(data.contributions, 'contributions', ['gameType', 'remarks', 'addedBy'], 'extra');
+  const controls = controlsBar('contributions', 'Search game type, remarks, added by…');
+  if (list.length === 0) return `<div class="panel-title">Game Contributions</div>${controls}<div class="empty-state">No games match. Tap + to add one.</div>`;
+  return `<div class="panel-title">Game Contributions</div>${controls}` + list.map(c => {
+    const linked = bookingsTotalForDate(c.date);
+    const mismatch = linked > 0 && Math.abs(linked - c.ccSpent) > 0.01;
+    return `
+    <div class="card">
+      <div class="card-top">
+        <div style="flex:1; min-width:0">
+          <div class="card-meta">📅 ${fmtDate(c.date)} ${c.gameType ? `<span class="muted">· ${escapeHtml(c.gameType)}</span>` : ''} ${c.addedBy ? `<span class="muted">· by ${escapeHtml(c.addedBy)}</span>` : ''}</div>
+          <div class="card-detail">${c.players} × ${fmt(c.feePerPerson)} <span class="muted">= ${fmt(c.expectedCollection)} expected · CC spent ${fmt(c.ccSpent)}</span></div>
+          ${mismatch ? `<div class="mismatch-tag">⚠ Linked bookings for this date total ${fmt(linked)}, differs from CC spent</div>` : ''}
+          ${c.remarks ? `<div class="card-detail muted" style="margin-top:3px; font-size:13px">${escapeHtml(c.remarks)}</div>` : ''}
+        </div>
+        <div class="card-right">
+          <div class="card-delta ${c.extra >= 0 ? 'pos' : 'neg'}">${c.extra >= 0 ? '▲' : '▼'} ${fmt(c.extra)}</div>
+        </div>
+      </div>
+      ${cardActions(c.id, 'contributions')}
+    </div>`;
+  }).join('');
+}
 
-function updatePreview() {
-  const cost = parseFloat(document.getElementById('fCost').value) || 0;
+function contributionFormFields(c) {
+  return `
+    <label class="field">Game Date<input type="date" id="fDate" value="${c ? c.date : todayStr()}" oninput="updateContribPreview()" /></label>
+    <div id="linkSuggest"></div>
+    <label class="field">Added by<input type="text" id="fAddedBy" placeholder="e.g. Doreen" value="${c ? escapeHtml(c.addedBy || '') : ''}" /></label>
+    <label class="field">Game type / court info<input type="text" id="fGameType" placeholder="e.g. 2 courts / 4 hrs" value="${c ? escapeHtml(c.gameType || '') : ''}" /></label>
+    <label class="field">Fee per person ($)<input type="number" step="0.01" min="0" id="fFee" value="${c ? c.feePerPerson : ''}" oninput="updateContribPreview()" /></label>
+    <label class="field">Players<input type="number" min="1" id="fPlayers" value="${c ? c.players : ''}" oninput="updateContribPreview()" /></label>
+    <label class="field">Credit card / actual spent ($)<input type="number" step="0.01" min="0" id="fCcSpent" value="${c ? c.ccSpent : ''}" oninput="updateContribPreview()" /></label>
+    <label class="field">Remarks (optional)<input type="text" id="fRemarks" placeholder="e.g. Paid via personal CC, who paid what" value="${c ? escapeHtml(c.remarks || '') : ''}" /></label>
+    <div class="preview-line" id="contribPreview"></div>
+  `;
+}
+
+function fillCcFromBookings() {
+  const date = document.getElementById('fDate').value;
+  document.getElementById('fCcSpent').value = bookingsTotalForDate(date).toFixed(2);
+  updateContribPreview();
+}
+
+function updateContribPreview() {
+  const fee = parseFloat(document.getElementById('fFee').value) || 0;
   const players = parseInt(document.getElementById('fPlayers').value, 10) || 0;
-  const charge = parseFloat(document.getElementById('fCharge').value) || 0;
-  const el = document.getElementById('previewLine');
-  if (cost && players && charge) {
-    const collected = players * charge;
-    const delta = collected - cost;
-    const cls = delta >= 0 ? 'pos' : 'neg';
-    el.innerHTML = `Collects ${fmt(collected)}, court costs ${fmt(cost)} → <strong class="${cls}">${fmt(delta)} to fund</strong>`;
+  const cc = parseFloat(document.getElementById('fCcSpent').value) || 0;
+  const el = document.getElementById('contribPreview');
+  if (fee && players) {
+    const expected = fee * players;
+    const extra = expected - cc;
+    const cls = extra >= 0 ? 'pos' : 'neg';
+    el.innerHTML = `Expected collection ${fmt(expected)}, CC spent ${fmt(cc)} → <strong class="${cls}">${fmt(extra)} extra</strong>`;
   } else {
     el.textContent = '';
   }
+
+  const date = document.getElementById('fDate').value;
+  const linkEl = document.getElementById('linkSuggest');
+  if (linkEl && date) {
+    const count = data.bookings.filter(b => b.date === date && b.status !== 'Cancelled').length;
+    const total = bookingsTotalForDate(date);
+    linkEl.innerHTML = count > 0
+      ? `<div class="link-suggest"><span>${count} booking${count > 1 ? 's' : ''} logged for this date, totaling ${fmt(total)}</span><button type="button" onclick="fillCcFromBookings()">Use this</button></div>`
+      : '';
+  }
 }
+
+function submitContribution() {
+  const date = document.getElementById('fDate').value;
+  const fee = parseFloat(document.getElementById('fFee').value);
+  const players = parseInt(document.getElementById('fPlayers').value, 10);
+  const cc = parseFloat(document.getElementById('fCcSpent').value);
+  const errEl = document.getElementById('formError');
+  if (!date) return errEl.textContent = 'Pick a game date.';
+  if (!(fee >= 0)) return errEl.textContent = 'Enter a fee per person.';
+  if (!(players > 0)) return errEl.textContent = 'Enter at least 1 player.';
+  if (!(cc >= 0)) return errEl.textContent = 'Enter the credit card / actual amount spent.';
+
+  const expectedCollection = fee * players;
+  const entry = {
+    id: editingId || uid(),
+    date,
+    addedBy: document.getElementById('fAddedBy').value.trim(),
+    gameType: document.getElementById('fGameType').value.trim(),
+    feePerPerson: fee,
+    players,
+    expectedCollection,
+    ccSpent: cc,
+    extra: expectedCollection - cc,
+    remarks: document.getElementById('fRemarks').value.trim(),
+    createdAt: editingId ? data.contributions.find(x => x.id === editingId).createdAt : Date.now(),
+  };
+  if (editingId) data.contributions = data.contributions.map(x => x.id === editingId ? entry : x);
+  else data.contributions.push(entry);
+  finishSubmit();
+}
+
+// ---------- Bookings ----------
+function renderBookings() {
+  const list = applyControls(data.bookings, 'bookings', ['bookedBy', 'description', 'comments'], 'amount');
+  const statusSelect = `
+    <select onchange="setStatusFilter(this.value)">
+      <option value="all" ${tabState.bookings.status === 'all' ? 'selected' : ''}>All statuses</option>
+      <option value="Done" ${tabState.bookings.status === 'Done' ? 'selected' : ''}>Done</option>
+      <option value="Pending" ${tabState.bookings.status === 'Pending' ? 'selected' : ''}>Pending</option>
+      <option value="Cancelled" ${tabState.bookings.status === 'Cancelled' ? 'selected' : ''}>Cancelled</option>
+    </select>`;
+  const controls = controlsBar('bookings', 'Search booked by, description…', statusSelect);
+  if (list.length === 0) return `<div class="panel-title">Bookings</div>${controls}<div class="empty-state">No bookings match. Tap + to add one.</div>`;
+  return `<div class="panel-title">Bookings</div>${controls}` + list.map(b => `
+    <div class="card">
+      <div class="card-top">
+        <div style="flex:1; min-width:0">
+          <div class="card-meta">📅 ${fmtDate(b.date)} ${b.bookedBy ? `<span class="muted">· booked by ${escapeHtml(b.bookedBy)}</span>` : ''}</div>
+          <div class="card-detail">${escapeHtml(b.description || 'Booking')}</div>
+          ${b.transactionDate ? `<div class="card-detail muted" style="font-size:12.5px; margin-top:2px">Txn: ${fmtDate(b.transactionDate)}</div>` : ''}
+          ${b.comments ? `<div class="card-detail muted" style="margin-top:3px; font-size:13px">${escapeHtml(b.comments)}</div>` : ''}
+          <span class="status-badge status-${(b.status || 'pending').toLowerCase()}">${escapeHtml(b.status || 'Pending')}</span>
+        </div>
+        <div class="card-right">
+          <div class="card-amount">${fmt(b.amount)}</div>
+        </div>
+      </div>
+      ${cardActions(b.id, 'bookings')}
+    </div>`).join('');
+}
+
+function bookingFormFields(b) {
+  return `
+    <label class="field">Game date<input type="date" id="fDate" value="${b ? b.date : todayStr()}" /></label>
+    <label class="field">Booked by<input type="text" id="fBookedBy" placeholder="e.g. Ian" value="${b ? escapeHtml(b.bookedBy || '') : ''}" /></label>
+    <label class="field">Transaction date<input type="date" id="fTxnDate" value="${b ? (b.transactionDate || '') : ''}" /></label>
+    <label class="field">Description<input type="text" id="fDescription" placeholder="e.g. PLAYTOMIC.IO booking" value="${b ? escapeHtml(b.description || '') : ''}" /></label>
+    <label class="field">Amount ($)<input type="number" step="0.01" id="fAmount" value="${b ? b.amount : ''}" /></label>
+    <label class="field">Status
+      <select id="fStatus">
+        <option value="Done" ${b && b.status === 'Done' ? 'selected' : ''}>Done</option>
+        <option value="Pending" ${!b || b.status === 'Pending' ? 'selected' : ''}>Pending</option>
+        <option value="Cancelled" ${b && b.status === 'Cancelled' ? 'selected' : ''}>Cancelled</option>
+      </select>
+    </label>
+    <label class="field">Comments (optional)<input type="text" id="fComments" value="${b ? escapeHtml(b.comments || '') : ''}" /></label>
+  `;
+}
+
+function submitBooking() {
+  const date = document.getElementById('fDate').value;
+  const amount = parseFloat(document.getElementById('fAmount').value);
+  const errEl = document.getElementById('formError');
+  if (!date) return errEl.textContent = 'Pick a game date.';
+  if (isNaN(amount)) return errEl.textContent = 'Enter an amount.';
+
+  const entry = {
+    id: editingId || uid(),
+    date,
+    bookedBy: document.getElementById('fBookedBy').value.trim(),
+    transactionDate: document.getElementById('fTxnDate').value,
+    description: document.getElementById('fDescription').value.trim(),
+    amount,
+    status: document.getElementById('fStatus').value,
+    comments: document.getElementById('fComments').value.trim(),
+    createdAt: editingId ? data.bookings.find(x => x.id === editingId).createdAt : Date.now(),
+  };
+  if (editingId) data.bookings = data.bookings.map(x => x.id === editingId ? entry : x);
+  else data.bookings.push(entry);
+  finishSubmit();
+}
+
+// ---------- Expenses ----------
+function renderExpenses() {
+  const list = applyControls(data.expenses, 'expenses', ['item', 'remarks', 'addedBy'], 'totalCost');
+  const controls = controlsBar('expenses', 'Search item, remarks…');
+  if (list.length === 0) return `<div class="panel-title">Expenses</div>${controls}<div class="empty-state">No expenses match. Tap + to add one.</div>`;
+  return `<div class="panel-title">Expenses</div>${controls}` + list.map(e => `
+    <div class="card">
+      <div class="card-top">
+        <div style="flex:1; min-width:0">
+          <div class="card-meta">📅 ${fmtDate(e.date)} ${e.addedBy ? `<span class="muted">· by ${escapeHtml(e.addedBy)}</span>` : ''}</div>
+          <div class="card-detail">${escapeHtml(e.item)} ${e.quantity ? `<span class="muted">× ${e.quantity}</span>` : ''}</div>
+          ${e.remarks ? `<div class="card-detail muted" style="margin-top:3px; font-size:13px">${escapeHtml(e.remarks)}</div>` : ''}
+        </div>
+        <div class="card-right">
+          <div class="card-delta neg">▼ ${fmt(e.totalCost)}</div>
+        </div>
+      </div>
+      ${cardActions(e.id, 'expenses')}
+    </div>`).join('');
+}
+
+function expenseFormFields(e) {
+  return `
+    <label class="field">Date<input type="date" id="fDate" value="${e ? e.date : todayStr()}" /></label>
+    <label class="field">Added by<input type="text" id="fAddedBy" placeholder="e.g. Doreen" value="${e ? escapeHtml(e.addedBy || '') : ''}" /></label>
+    <label class="field">Item<input type="text" id="fItem" placeholder="e.g. Franklin balls" value="${e ? escapeHtml(e.item || '') : ''}" /></label>
+    <label class="field">Quantity (optional)<input type="number" min="0" id="fQuantity" value="${e ? (e.quantity || '') : ''}" /></label>
+    <label class="field">Total cost ($)<input type="number" step="0.01" min="0" id="fTotalCost" value="${e ? e.totalCost : ''}" /></label>
+    <label class="field">Remarks (optional)<input type="text" id="fRemarks" value="${e ? escapeHtml(e.remarks || '') : ''}" /></label>
+  `;
+}
+
+function submitExpense() {
+  const date = document.getElementById('fDate').value;
+  const item = document.getElementById('fItem').value.trim();
+  const totalCost = parseFloat(document.getElementById('fTotalCost').value);
+  const errEl = document.getElementById('formError');
+  if (!date) return errEl.textContent = 'Pick a date.';
+  if (!item) return errEl.textContent = 'Enter what the expense was for.';
+  if (!(totalCost > 0)) return errEl.textContent = 'Enter a total cost greater than 0.';
+
+  const qtyRaw = document.getElementById('fQuantity').value;
+  const entry = {
+    id: editingId || uid(),
+    date,
+    addedBy: document.getElementById('fAddedBy').value.trim(),
+    item,
+    quantity: qtyRaw ? parseInt(qtyRaw, 10) : null,
+    totalCost,
+    remarks: document.getElementById('fRemarks').value.trim(),
+    createdAt: editingId ? data.expenses.find(x => x.id === editingId).createdAt : Date.now(),
+  };
+  if (editingId) data.expenses = data.expenses.map(x => x.id === editingId ? entry : x);
+  else data.expenses.push(entry);
+  finishSubmit();
+}
+
+// ---------- Summary ----------
+function renderSummary(s) {
+  return `
+    <div class="panel-title">Funds Summary</div>
+    <div class="summary-card">
+      <div class="summary-row"><div class="summary-label">Accumulated funds</div><div class="summary-value">${fmt(s.accumulated)}</div></div>
+      <div class="summary-row"><div class="summary-label">Expenses (aside from bookings)</div><div class="summary-value">${fmt(s.expensesTotal)}</div></div>
+      <div class="summary-row total"><div class="summary-label">Remaining funds</div><div class="summary-value" style="color:${s.remaining < 0 ? '#D97A45' : '#3E7D5C'}">${fmt(s.remaining)}</div></div>
+    </div>
+    <div style="font-size:12.5px; color:var(--muted-2); padding: 0 4px">
+      Accumulated funds = sum of "extra" across all game contributions. Bookings are logged for reference and don't affect this total on their own — their cost is captured in each contribution's "CC spent" figure.
+    </div>
+  `;
+}
+
+// ---------- Shared card actions / delete confirm ----------
+function cardActions(id, tab) {
+  if (confirmDeleteId === id && confirmDeleteTab === tab) {
+    return `<div class="card-actions">
+      <button class="link-btn danger" onclick="doDelete('${tab}','${id}')">Confirm delete</button>
+      <button class="link-btn" onclick="cancelDelete()">Cancel</button>
+    </div>`;
+  }
+  return `<div class="card-actions">
+    <button class="link-btn" onclick="openEdit('${tab}','${id}')">✎ Edit</button>
+    <button class="link-btn" onclick="askDelete('${tab}','${id}')">🗑 Delete</button>
+  </div>`;
+}
+function askDelete(tab, id) { confirmDeleteId = id; confirmDeleteTab = tab; render(); }
+function cancelDelete() { confirmDeleteId = null; confirmDeleteTab = null; render(); }
+function doDelete(tab, id) {
+  data[tab] = data[tab].filter(x => x.id !== id);
+  confirmDeleteId = null; confirmDeleteTab = null;
+  render();
+  saveData();
+}
+
+// ---------- Form open/close/submit dispatch ----------
+function openForm() {
+  editingId = null;
+  document.getElementById('formError').textContent = '';
+  const titles = { contributions: 'New game contribution', bookings: 'New booking', expenses: 'New expense' };
+  document.getElementById('sheetTitle').textContent = titles[activeTab];
+  document.getElementById('submitBtn').textContent = 'Add';
+  const fields = document.getElementById('formFields');
+  if (activeTab === 'contributions') { fields.innerHTML = contributionFormFields(null); updateContribPreview(); }
+  else if (activeTab === 'bookings') fields.innerHTML = bookingFormFields(null);
+  else fields.innerHTML = expenseFormFields(null);
+  document.getElementById('overlay').classList.add('open');
+}
+
+function openEdit(tab, id) {
+  const entry = data[tab].find(x => x.id === id);
+  if (!entry) return;
+  activeTab = tab;
+  editingId = id;
+  document.getElementById('formError').textContent = '';
+  const titles = { contributions: 'Edit game contribution', bookings: 'Edit booking', expenses: 'Edit expense' };
+  document.getElementById('sheetTitle').textContent = titles[tab];
+  document.getElementById('submitBtn').textContent = 'Save changes';
+  const fields = document.getElementById('formFields');
+  if (tab === 'contributions') { fields.innerHTML = contributionFormFields(entry); updateContribPreview(); }
+  else if (tab === 'bookings') fields.innerHTML = bookingFormFields(entry);
+  else fields.innerHTML = expenseFormFields(entry);
+  document.getElementById('overlay').classList.add('open');
+}
+
+function closeForm() { document.getElementById('overlay').classList.remove('open'); }
 
 function submitForm(ev) {
   ev.preventDefault();
-  const errEl = document.getElementById('formError');
-  errEl.textContent = '';
-
-  const date = document.getElementById('fDate').value;
-
-  if (formType === 'session') {
-    const cost = parseFloat(document.getElementById('fCost').value);
-    const players = parseInt(document.getElementById('fPlayers').value, 10);
-    const charge = parseFloat(document.getElementById('fCharge').value);
-    if (!date) return errEl.textContent = 'Pick a date.';
-    if (!(cost > 0)) return errEl.textContent = 'Enter a court cost greater than 0.';
-    if (!(players > 0)) return errEl.textContent = 'Enter at least 1 player.';
-    if (!(charge >= 0)) return errEl.textContent = 'Enter a charge per player (0 or more).';
-
-    const note = document.getElementById('fNote').value.trim();
-    const addedBy = document.getElementById('fAddedBy').value.trim();
-    const collected = players * charge;
-    const entry = {
-      id: editingId || uid(),
-      type: 'session',
-      date, note, addedBy, cost, players, charge, collected,
-      delta: collected - cost,
-      createdAt: editingId ? entries.find(x => x.id === editingId).createdAt : Date.now(),
-    };
-    upsert(entry);
-  } else {
-    const amount = parseFloat(document.getElementById('fAmount').value);
-    if (!date) return errEl.textContent = 'Pick a date.';
-    if (!(amount > 0)) return errEl.textContent = 'Enter an amount greater than 0.';
-
-    const note = document.getElementById('fNote').value.trim() || 'Expense';
-    const addedBy = document.getElementById('fAddedBy').value.trim();
-    const entry = {
-      id: editingId || uid(),
-      type: 'expense',
-      date, note, addedBy, amount,
-      delta: -amount,
-      createdAt: editingId ? entries.find(x => x.id === editingId).createdAt : Date.now(),
-    };
-    upsert(entry);
-  }
+  document.getElementById('formError').textContent = '';
+  if (activeTab === 'contributions') submitContribution();
+  else if (activeTab === 'bookings') submitBooking();
+  else if (activeTab === 'expenses') submitExpense();
 }
 
-function upsert(entry) {
-  if (editingId) {
-    entries = entries.map(x => x.id === editingId ? entry : x);
-  } else {
-    entries = [...entries, entry];
-  }
+function finishSubmit() {
   closeForm();
+  editingId = null;
   render();
-  saveEntries();
+  saveData();
 }
 
-loadEntries();
+loadData();
 </script>
 </body>
 </html>
