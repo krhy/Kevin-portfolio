@@ -446,14 +446,12 @@ function hasLinkedBookings(date) {
 // live total (so cancelling/editing/deleting a booking updates funds automatically).
 // Falls back to the manually-entered value only when no bookings are logged for that date.
 function liveCcSpent(c) {
-  if (hasLinkedBookings(c.date)) return bookingsTotalForDate(c.date);
-  // No bookings left for this date. Only trust the stored number if it was genuinely
-  // typed by hand (ccSpentAuto === false). If it came from auto-linking and those
-  // bookings are now gone, it's stale — treat as 0 rather than showing a leftover figure.
-  return c.ccSpentAuto === false ? c.ccSpent : 0;
+  // CC Spent is now always trusted as entered — bookings are shown as a helpful
+  // reference/suggestion in the form, but never silently override this number.
+  return c.ccSpent;
 }
 function liveExtra(c) {
-  return c.expectedCollection - liveCcSpent(c);
+  return c.expectedCollection - c.ccSpent;
 }
 
 function controlsBar(tab, searchPlaceholder, extraSelect) {
@@ -501,8 +499,8 @@ function renderContributions() {
         <div style="flex:1; min-width:0">
           <div class="card-meta">📅 ${fmtDate(c.date)} ${c.gameType ? `<span class="muted">· ${escapeHtml(c.gameType)}</span>` : ''} ${c.addedBy ? `<span class="muted">· by ${escapeHtml(c.addedBy)}</span>` : ''}</div>
           ${incomplete
-            ? `<div class="needs-update-banner">⚠ Needs update — add fee per person &amp; players. CC spent so far: ${fmt(ccSpent)}${linked ? ' 🔗' : ''}</div>`
-            : `<div class="card-detail">${c.players} × ${fmt(c.feePerPerson)} <span class="muted">= ${fmt(c.expectedCollection)} expected · CC spent ${fmt(ccSpent)}${linked ? ' 🔗' : ''}</span></div>`}
+            ? `<div class="needs-update-banner">⚠ Needs update — add fee per person &amp; players. CC spent so far: ${fmt(ccSpent)}</div>`
+            : `<div class="card-detail">${c.players} × ${fmt(c.feePerPerson)} <span class="muted">= ${fmt(c.expectedCollection)} expected · CC spent ${fmt(ccSpent)}</span>${linked ? '<span class="muted"> · bookings available for this date</span>' : ''}</div>`}
           ${c.remarks ? `<div class="card-detail muted" style="margin-top:3px; font-size:13px">${escapeHtml(c.remarks)}</div>` : ''}
         </div>
         <div class="card-right">
@@ -514,8 +512,7 @@ function renderContributions() {
   }).join('');
 }
 
-function contributionFormFields(c) {
-  return `
+function contributionFormFields(c) {  return `
     <label class="field">Game Date<input type="date" id="fDate" value="${c ? c.date : todayStr()}" oninput="updateContribPreview()" /></label>
     <div id="linkSuggest"></div>
     <label class="field">Added by<input type="text" id="fAddedBy" placeholder="e.g. Doreen" value="${c ? escapeHtml(c.addedBy || '') : ''}" /></label>
@@ -528,29 +525,27 @@ function contributionFormFields(c) {
   `;
 }
 
+function fillCcFromBookings() {
+  const date = document.getElementById('fDate').value;
+  document.getElementById('fCcSpent').value = bookingsTotalForDate(date).toFixed(2);
+  updateContribPreview();
+}
+
 function updateContribPreview() {
   const date = document.getElementById('fDate').value;
   const ccInput = document.getElementById('fCcSpent');
   const ccLabel = document.getElementById('fCcSpentLabel');
   const linkEl = document.getElementById('linkSuggest');
-  const linkedCount = date ? data.bookings.filter(b => b.date === date && b.status !== 'Cancelled').length : 0;
+  ccInput.removeAttribute('disabled');
+  ccLabel.firstChild.textContent = 'Credit card / actual spent ($)';
 
-  if (linkedCount > 0) {
-    const total = bookingsTotalForDate(date);
-    ccInput.value = total.toFixed(2);
-    ccInput.setAttribute('disabled', '');
-    ccLabel.firstChild.textContent = 'Credit card / actual spent ($) — auto from bookings';
-    if (linkEl) linkEl.innerHTML = `<div class="link-suggest"><span>🔗 Linked to ${linkedCount} booking${linkedCount > 1 ? 's' : ''} on this date — updates automatically as bookings change.</span></div>`;
-  } else {
-    ccInput.removeAttribute('disabled');
-    ccLabel.firstChild.textContent = 'Credit card / actual spent ($)';
-    const existing = editingId ? data.contributions.find(x => x.id === editingId) : null;
-    const wasAutoLinked = existing && existing.ccSpentAuto !== false;
-    if (wasAutoLinked) {
-      ccInput.value = '0';
-      if (linkEl) linkEl.innerHTML = `<div class="mismatch-tag">⚠ The bookings for this date were removed, so CC spent reset to $0. Enter the amount manually if you know it.</div>`;
-    } else if (linkEl) {
-      linkEl.innerHTML = date ? `<div class="preview-line">No bookings logged for this date yet — enter the amount manually, or log Bookings first to auto-link it.</div>` : '';
+  const linkedCount = date ? data.bookings.filter(b => b.date === date && b.status !== 'Cancelled').length : 0;
+  if (linkEl) {
+    if (linkedCount > 0) {
+      const total = bookingsTotalForDate(date);
+      linkEl.innerHTML = `<div class="link-suggest"><span>${linkedCount} booking${linkedCount > 1 ? 's' : ''} logged for this date, totaling ${fmt(total)}</span><button type="button" onclick="fillCcFromBookings()">Use this</button></div>`;
+    } else {
+      linkEl.innerHTML = date ? `<div class="preview-line">No bookings logged for this date yet.</div>` : '';
     }
   }
 
