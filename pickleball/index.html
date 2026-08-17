@@ -5,137 +5,223 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0" />
 <title>Pickleball Committee Fund</title>
 <style>
-  @import url('https://fonts.googleapis.com/css2?family=Oswald:wght@500;600;700&family=Work+Sans:wght@400;500;600&family=IBM+Plex+Mono:wght@500;600&display=swap');
+  @import url('https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@500;600;700&family=Inter:wght@400;500;600&family=IBM+Plex+Mono:wght@500;600;700&display=swap');
 
   :root {
-    --court: #1B4B4A;
-    --court-light: #23615F;
-    --court-line: #2E7A76;
-    --chalk: #F5F3EA;
-    --chalk-dim: #C7D9D6;
-    --yellow: #DCEE4B;
-    --clay: #D97A45;
-    --ink: #101917;
-    --muted: #5b6b68;
-    --muted-2: #8a938f;
-    --border: #E6E2D6;
-    --good: #3E7D5C;
+    --paper: #F7F5F0;
+    --surface: rgba(255,255,255,0.78);
+    --surface-solid: #FFFFFF;
+    --border: rgba(169,104,46,0.15);
+    --border-strong: rgba(169,104,46,0.32);
+    --teal: #A9682E;
+    --teal-deep: #6B4423;
+    --teal-wash: rgba(169,104,46,0.07);
+    --brown: #C98A2D;
+    --brown-deep: #8C5A28;
+    --brown-wash: rgba(140,90,40,0.09);
+    --rust: #C4442A;
+    --ink: #23223A;
+    --muted: #6E6C7E;
+    --muted-2: #B0AAA0;
+    --header-1: #3B2814;
+    --header-2: #8C5A28;
+    --on-teal: rgba(255,255,255,0.9);
+    --on-teal-muted: rgba(255,255,255,0.58);
+    --on-teal-border: rgba(255,255,255,0.18);
+    --amber-on-teal: #E7B26B;
+    --coral-on-teal: #FF9A80;
   }
 
   * { box-sizing: border-box; }
-  body { margin: 0; font-family: 'Work Sans', sans-serif; background: var(--court); color: var(--chalk); min-height: 100vh; }
-  button { font-family: inherit; cursor: pointer; }
-  input:focus, select:focus { outline: 2px solid var(--court); outline-offset: 1px; }
-  button:focus-visible { outline: 2px solid var(--chalk); outline-offset: 2px; }
-
-  .header { padding: 24px 20px 0; }
-  .brand { display: flex; align-items: center; gap: 8px; margin-bottom: 4px; }
-  .brand span { font-family: 'Oswald', sans-serif; font-size: 13px; letter-spacing: 0.14em; text-transform: uppercase; color: var(--chalk-dim); }
-  .balance { font-family: 'IBM Plex Mono', monospace; font-weight: 600; font-size: 46px; line-height: 1; margin: 6px 0 12px; color: var(--yellow); }
-  .balance.negative { color: var(--clay); }
-  .divider { border-top: 2px dashed var(--court-line); margin: 4px 0 14px; }
-  .stats { display: flex; gap: 20px; flex-wrap: wrap; margin-bottom: 18px; }
-  .stat-value { font-family: 'IBM Plex Mono', monospace; font-size: 15px; font-weight: 600; }
-  .stat-label { font-size: 10.5px; color: #9DB6B2; text-transform: uppercase; letter-spacing: 0.06em; }
-
-  .tabs { display: flex; gap: 4px; padding: 0 20px; }
-  .tab-btn {
-    flex: 1; padding: 11px 4px; background: none; border: none; border-bottom: 3px solid transparent;
-    color: var(--chalk-dim); font-family: 'Oswald', sans-serif; font-size: 12.5px; letter-spacing: 0.04em;
-    text-transform: uppercase; font-weight: 600;
+  html { scroll-behavior: smooth; }
+  body {
+    margin: 0; font-family: 'Inter', sans-serif; color: var(--ink); min-height: 100vh;
+    background:
+      radial-gradient(circle at 15% -10%, var(--teal-wash), transparent 40%),
+      radial-gradient(circle at 100% 0%, var(--brown-wash), transparent 35%),
+      var(--paper);
   }
-  .tab-btn.active { color: var(--yellow); border-bottom-color: var(--yellow); }
+  button { font-family: inherit; cursor: pointer; }
+  input:focus, select:focus { outline: 2px solid var(--teal); outline-offset: 1px; }
+  button:focus-visible { outline: 2px solid var(--teal); outline-offset: 2px; }
 
-  .panel { background: var(--chalk); border-radius: 20px 20px 0 0; min-height: 320px; padding: 18px 16px 110px; color: var(--ink); }
-  .panel-title { font-family: 'Oswald', sans-serif; font-size: 13px; letter-spacing: 0.1em; text-transform: uppercase; color: var(--muted); margin-bottom: 12px; padding: 0 4px; }
+  @keyframes pulseDot { 0%,100% { box-shadow: 0 0 0 0 rgba(47,111,107,0.45); } 50% { box-shadow: 0 0 0 6px rgba(47,111,107,0); } }
+  @keyframes fadeSlideIn { from { opacity: 0; transform: translateY(8px); } to { opacity: 1; transform: translateY(0); } }
+  @keyframes fabGlow { 0%,100% { box-shadow: 0 4px 16px rgba(180,118,59,0.28); } 50% { box-shadow: 0 4px 24px rgba(180,118,59,0.46); } }
+  @media (prefers-reduced-motion: reduce) {
+    * { animation-duration: 0.001ms !important; animation-iteration-count: 1 !important; transition-duration: 0.001ms !important; }
+  }
+
+  .header {
+    padding: 24px 20px 26px; position: relative;
+    background: linear-gradient(160deg, var(--header-1), var(--header-2));
+    border-radius: 0 0 24px 24px;
+    box-shadow: 0 10px 24px rgba(23,66,63,0.22);
+  }
+  .brand { display: flex; align-items: center; gap: 8px; margin-bottom: 10px; }
+  .brand-icon { flex-shrink: 0; }
+  .brand-text { font-family: 'Space Grotesk', sans-serif; font-size: 12.5px; letter-spacing: 0.14em; text-transform: uppercase; color: var(--on-teal-muted); font-weight: 600; }
+  .live-dot { width: 6px; height: 6px; border-radius: 50%; background: var(--amber-on-teal); animation: pulseDot 2s ease-in-out infinite; margin-left: auto; }
+  .live-label { font-family: 'Space Grotesk', sans-serif; font-size: 10.5px; letter-spacing: 0.12em; color: var(--amber-on-teal); margin-left: 6px; font-weight: 600; }
+
+  .balance-label { font-family: 'Space Grotesk', sans-serif; font-size: 10.5px; letter-spacing: 0.12em; text-transform: uppercase; color: var(--on-teal-muted); margin-bottom: 6px; font-weight: 600; }
+  .balance { font-family: 'IBM Plex Mono', monospace; font-weight: 700; font-size: 44px; line-height: 1; color: var(--amber-on-teal); text-shadow: 0 0 26px rgba(231,178,124,0.3); }
+  .balance.negative { color: var(--coral-on-teal); text-shadow: 0 0 26px rgba(255,154,128,0.3); }
+
+  .sparkline-wrap { margin: 6px 0 10px; height: 46px; }
+  .sparkline-wrap svg { width: 100%; height: 100%; display: block; overflow: visible; }
+
+  .divider { border-top: 1px dashed var(--on-teal-border); margin: 4px 0 14px; }
+  .stats { display: flex; gap: 22px; flex-wrap: wrap; margin-bottom: 18px; }
+  .stat-value { font-family: 'IBM Plex Mono', monospace; font-size: 15px; font-weight: 600; color: var(--on-teal); }
+  .stat-label { font-size: 10px; color: var(--on-teal-muted); text-transform: uppercase; letter-spacing: 0.08em; }
+
+  .tabs-wrap { position: relative; background: rgba(255,255,255,0.1); border-radius: 999px; padding: 4px; display: flex; margin-bottom: 0; }
+  .tabs { display: flex; width: 100%; position: relative; z-index: 2; }
+  .tab-btn {
+    flex: 1; padding: 10px 4px; background: none; border: none; color: var(--on-teal-muted);
+    font-family: 'Space Grotesk', sans-serif; font-size: 11.5px; letter-spacing: 0.02em;
+    text-transform: uppercase; font-weight: 600; position: relative; transition: color 0.25s;
+  }
+  .tab-btn.active { color: var(--header-1); }
+  .tab-indicator {
+    position: absolute; top: 4px; bottom: 4px; left: 4px; width: calc(25% - 4px);
+    background: #fff; border-radius: 999px; box-shadow: 0 2px 10px rgba(0,0,0,0.15);
+    transition: transform 0.32s cubic-bezier(0.4, 0, 0.2, 1); z-index: 1;
+  }
+
+  .panel { min-height: 320px; padding: 22px 16px 110px; }
+  .panel-title { font-family: 'Space Grotesk', sans-serif; font-size: 12px; letter-spacing: 0.1em; text-transform: uppercase; color: var(--muted); margin-bottom: 12px; padding: 0 4px; font-weight: 600; }
   .empty-state { text-align: center; padding: 44px 20px; color: var(--muted); font-size: 14px; }
 
-  .card { background: #fff; border-radius: 14px; padding: 14px 16px; margin-bottom: 10px; box-shadow: 0 1px 2px rgba(16,25,23,0.06); border: 1px solid var(--border); }
+  .card {
+    background: var(--surface); backdrop-filter: blur(10px); -webkit-backdrop-filter: blur(10px);
+    border: 1px solid var(--border); border-left: 3px solid var(--border-strong);
+    border-radius: 14px; padding: 14px 16px; margin-bottom: 10px;
+    box-shadow: 0 1px 3px rgba(36,29,22,0.05);
+    animation: fadeSlideIn 0.35s ease both;
+  }
+  .card.pos { border-left-color: var(--teal); }
+  .card.neg { border-left-color: var(--rust); }
   .card-top { display: flex; justify-content: space-between; align-items: flex-start; gap: 10px; }
   .card-meta { display: flex; flex-wrap: wrap; align-items: center; gap: 4px; font-size: 12px; color: var(--muted); margin-bottom: 3px; }
-  .card-detail { font-size: 14.5px; }
-  .card-detail .muted { color: var(--muted-2); }
+  .card-detail { font-size: 14px; color: var(--ink); }
+  .card-detail .muted { color: var(--muted); }
   .card-right { text-align: right; flex-shrink: 0; }
   .card-delta { font-family: 'IBM Plex Mono', monospace; font-weight: 600; font-size: 15px; display: flex; align-items: center; gap: 3px; justify-content: flex-end; }
-  .card-delta.pos { color: var(--good); }
-  .card-delta.neg { color: var(--clay); }
-  .card-amount { font-family: 'IBM Plex Mono', monospace; font-weight: 600; font-size: 15px; }
-  .status-badge { display: inline-block; font-size: 10.5px; font-weight: 600; padding: 2px 8px; border-radius: 999px; text-transform: uppercase; letter-spacing: 0.03em; margin-top: 4px; }
-  .status-done { background: #E4F1EA; color: var(--good); }
-  .status-pending { background: #FBEFE2; color: var(--clay); }
-  .status-cancelled { background: #EFEDE3; color: var(--muted); }
-  .card-actions { display: flex; gap: 14px; margin-top: 8px; padding-top: 8px; border-top: 1px solid #F0EDE2; }
-  .link-btn { background: none; border: none; font-size: 12.5px; cursor: pointer; display: flex; align-items: center; gap: 4px; padding: 0; color: var(--muted); }
-  .link-btn.danger { color: var(--clay); }
+  .card-delta.pos { color: var(--teal); }
+  .card-delta.neg { color: var(--rust); }
+  .card-amount { font-family: 'IBM Plex Mono', monospace; font-weight: 600; font-size: 15px; color: var(--ink); }
+  .status-badge { display: inline-block; font-size: 10px; font-weight: 600; padding: 2px 9px; border-radius: 999px; text-transform: uppercase; letter-spacing: 0.04em; margin-top: 5px; }
+  .status-done { background: rgba(47,111,107,0.12); color: var(--teal); }
+  .status-pending { background: rgba(180,118,59,0.14); color: var(--brown-deep); }
+  .status-cancelled { background: rgba(138,127,110,0.14); color: var(--muted); }
+  .card-actions { display: flex; gap: 14px; margin-top: 8px; padding-top: 8px; border-top: 1px solid var(--border); }
+  .link-btn { background: none; border: none; font-size: 12px; cursor: pointer; display: flex; align-items: center; gap: 4px; padding: 0; color: var(--muted); }
+  .link-btn.danger { color: var(--rust); }
 
-  .summary-card { background: #fff; border-radius: 16px; padding: 20px; margin-bottom: 12px; border: 1px solid var(--border); }
+  .summary-card {
+    background: var(--surface-solid); border: 1px solid var(--border);
+    border-radius: 16px; padding: 20px; margin-bottom: 12px;
+    box-shadow: 0 1px 3px rgba(36,29,22,0.05);
+  }
   .summary-row { display: flex; justify-content: space-between; align-items: baseline; padding: 10px 0; }
-  .summary-row + .summary-row { border-top: 1px solid #F0EDE2; }
+  .summary-row + .summary-row { border-top: 1px solid var(--border); }
   .summary-label { font-size: 14px; color: var(--muted); }
-  .summary-value { font-family: 'IBM Plex Mono', monospace; font-size: 18px; font-weight: 600; }
+  .summary-value { font-family: 'IBM Plex Mono', monospace; font-size: 18px; font-weight: 600; color: var(--ink); }
   .summary-row.total .summary-label { font-weight: 600; color: var(--ink); }
-  .summary-row.total .summary-value { font-size: 24px; }
+  .summary-row.total .summary-value { font-size: 26px; }
 
   .fab { position: fixed; bottom: 20px; left: 0; right: 0; display: flex; justify-content: center; }
-  .fab-primary { display: flex; align-items: center; gap: 6px; background: var(--yellow); color: var(--ink); border: none; border-radius: 999px; padding: 13px 24px; font-weight: 600; font-size: 14.5px; box-shadow: 0 4px 14px rgba(0,0,0,0.25); }
+  .fab-primary {
+    display: flex; align-items: center; gap: 6px; background: var(--brown); color: #fff;
+    border: none; border-radius: 999px; padding: 13px 24px; font-weight: 700; font-size: 14.5px;
+    font-family: 'Space Grotesk', sans-serif; letter-spacing: 0.02em;
+    animation: fabGlow 2.6s ease-in-out infinite;
+  }
 
-  .overlay { position: fixed; inset: 0; background: rgba(16,25,23,0.45); display: none; align-items: flex-end; z-index: 10; }
+  .overlay { position: fixed; inset: 0; background: rgba(36,29,22,0.35); backdrop-filter: blur(2px); display: none; align-items: flex-end; z-index: 10; }
   .overlay.open { display: flex; }
-  .sheet { background: var(--chalk); color: var(--ink); width: 100%; border-radius: 20px 20px 0 0; padding: 18px 18px 24px; max-height: 85vh; overflow-y: auto; }
+  .sheet {
+    background: var(--surface-solid); color: var(--ink); width: 100%; border-radius: 22px 22px 0 0;
+    padding: 10px 18px 24px; max-height: 88vh; overflow-y: auto;
+    border-top: 1px solid var(--border-strong);
+    transform: translateY(100%); transition: transform 0.38s cubic-bezier(0.34, 1.2, 0.4, 1);
+    box-shadow: 0 -8px 30px rgba(36,29,22,0.12);
+  }
+  .overlay.open .sheet { transform: translateY(0); }
+  .drag-handle { width: 36px; height: 4px; border-radius: 999px; background: var(--border-strong); margin: 4px auto 14px; }
   .sheet-head { display: flex; justify-content: space-between; align-items: center; margin-bottom: 14px; }
-  .sheet-title { font-family: 'Oswald', sans-serif; font-size: 17px; text-transform: uppercase; letter-spacing: 0.04em; }
+  .sheet-title { font-family: 'Space Grotesk', sans-serif; font-size: 16px; text-transform: uppercase; letter-spacing: 0.03em; color: var(--teal); font-weight: 700; }
   .close-btn { background: none; border: none; color: var(--muted); }
 
   form { display: flex; flex-direction: column; gap: 12px; }
-  label.field { display: flex; flex-direction: column; gap: 5px; font-size: 13px; color: var(--muted); }
+  label.field { display: flex; flex-direction: column; gap: 5px; font-size: 12.5px; color: var(--muted); }
   input[type="text"], input[type="number"], input[type="date"], select {
-    padding: 10px 12px; border-radius: 10px; border: 1px solid #DDD8C9; font-size: 15px;
-    font-family: 'Work Sans', sans-serif; background: #fff; color: var(--ink); width: 100%;
+    padding: 10px 12px; border-radius: 10px; border: 1px solid var(--border-strong); font-size: 15px;
+    font-family: 'Inter', sans-serif; background: #fff; color: var(--ink); width: 100%;
   }
   .split-row { display: flex; gap: 8px; }
-  .split-btn { padding: 0 12px; border-radius: 10px; border: 1px solid var(--court); background: transparent; color: var(--court); font-size: 12px; font-weight: 600; white-space: nowrap; }
+  .split-btn { padding: 0 12px; border-radius: 10px; border: 1px solid var(--teal); background: transparent; color: var(--teal); font-size: 12px; font-weight: 600; white-space: nowrap; }
   .preview-line { font-size: 13px; color: var(--muted); }
-  .preview-line strong.pos { color: var(--good); }
-  .preview-line strong.neg { color: var(--clay); }
-  .form-error { color: var(--clay); font-size: 13px; font-weight: 600; }
+  .preview-line strong.pos { color: var(--teal); }
+  .preview-line strong.neg { color: var(--rust); }
+  .form-error { color: var(--rust); font-size: 13px; font-weight: 600; }
   .submit-btn { width: 100%; justify-content: center; margin-top: 8px; }
 
-  .status-banner { position: fixed; top: 10px; right: 12px; font-size: 11px; transition: opacity 0.3s; }
+  .status-banner {
+    position: fixed; top: 14px; right: 14px; font-size: 11px; font-family: 'Space Grotesk', sans-serif;
+    font-weight: 600; transition: opacity 0.3s; z-index: 20;
+    background: rgba(0,0,0,0.22); padding: 4px 10px; border-radius: 999px;
+  }
 
   .controls { display: flex; gap: 8px; margin-bottom: 14px; }
   .controls input[type="text"] { flex: 1; padding: 8px 12px; font-size: 13.5px; }
   .controls select { padding: 8px 10px; font-size: 13px; width: auto; }
-  .link-suggest { font-size: 12.5px; color: var(--court); background: #EAF2F1; border: 1px dashed var(--court); border-radius: 8px; padding: 8px 10px; display: flex; justify-content: space-between; align-items: center; gap: 8px; }
-  .link-suggest button { background: var(--court); color: #fff; border: none; border-radius: 6px; padding: 4px 10px; font-size: 12px; font-weight: 600; flex-shrink: 0; }
-  .mismatch-tag { font-size: 11px; color: var(--clay); margin-top: 3px; }
+  .link-suggest {
+    font-size: 12.5px; color: var(--teal); background: var(--teal-wash);
+    border: 1px dashed var(--teal); border-radius: 8px; padding: 8px 10px;
+    display: flex; justify-content: space-between; align-items: center; gap: 8px;
+  }
+  .link-suggest button { background: var(--teal); color: #fff; border: none; border-radius: 6px; padding: 4px 10px; font-size: 12px; font-weight: 700; flex-shrink: 0; }
+  .mismatch-tag { font-size: 11px; color: var(--rust); margin-top: 3px; }
 </style>
 </head>
 <body>
 
 <div class="header">
   <div class="brand">
-    <svg width="20" height="20" viewBox="0 0 24 24" fill="none">
-      <ellipse cx="12" cy="9" rx="7" ry="8" fill="#DCEE4B" />
-      <circle cx="9.5" cy="6.5" r="0.9" fill="#1B4B4A" /><circle cx="12.5" cy="5.5" r="0.9" fill="#1B4B4A" />
-      <circle cx="15" cy="7" r="0.9" fill="#1B4B4A" /><circle cx="9" cy="9.5" r="0.9" fill="#1B4B4A" />
-      <circle cx="12" cy="9" r="0.9" fill="#1B4B4A" /><circle cx="15" cy="9.5" r="0.9" fill="#1B4B4A" />
-      <circle cx="10" cy="12" r="0.9" fill="#1B4B4A" /><circle cx="13" cy="12" r="0.9" fill="#1B4B4A" />
-      <rect x="10.7" y="16" width="2.6" height="7" rx="1.3" fill="#DCEE4B" />
+    <svg class="brand-icon" width="20" height="20" viewBox="0 0 24 24" fill="none">
+      <ellipse cx="12" cy="9" rx="7" ry="8" fill="#E7B27C" />
+      <circle cx="9.5" cy="6.5" r="0.9" fill="#3B2814" /><circle cx="12.5" cy="5.5" r="0.9" fill="#3B2814" />
+      <circle cx="15" cy="7" r="0.9" fill="#3B2814" /><circle cx="9" cy="9.5" r="0.9" fill="#3B2814" />
+      <circle cx="12" cy="9" r="0.9" fill="#3B2814" /><circle cx="15" cy="9.5" r="0.9" fill="#3B2814" />
+      <circle cx="10" cy="12" r="0.9" fill="#3B2814" /><circle cx="13" cy="12" r="0.9" fill="#3B2814" />
+      <rect x="10.7" y="16" width="2.6" height="7" rx="1.3" fill="#E7B27C" />
     </svg>
-    <span>Committee Fund</span>
+    <span class="brand-text">Committee Fund</span>
+    <div class="live-dot"></div><span class="live-label">LIVE</span>
   </div>
-  <div id="balance" class="balance">Loading…</div>
+
+  <div class="balance-label">Remaining funds</div>
+  <div id="balance" class="balance">$0</div>
+  <div class="sparkline-wrap" id="sparklineWrap"></div>
+
   <div class="divider"></div>
   <div class="stats">
     <div><div id="statAccumulated" class="stat-value">$0</div><div class="stat-label">Accumulated</div></div>
     <div><div id="statExpenses" class="stat-value">$0</div><div class="stat-label">Expenses</div></div>
     <div><div id="statSessions" class="stat-value">0</div><div class="stat-label">Sessions</div></div>
   </div>
-  <div class="tabs">
-    <button class="tab-btn active" data-tab="contributions" onclick="switchTab('contributions')">Contributions</button>
-    <button class="tab-btn" data-tab="bookings" onclick="switchTab('bookings')">Bookings</button>
-    <button class="tab-btn" data-tab="expenses" onclick="switchTab('expenses')">Expenses</button>
-    <button class="tab-btn" data-tab="summary" onclick="switchTab('summary')">Summary</button>
+
+  <div class="tabs-wrap">
+    <div class="tab-indicator" id="tabIndicator"></div>
+    <div class="tabs">
+      <button class="tab-btn active" data-tab="bookings" onclick="switchTab('bookings')">Bookings</button>
+      <button class="tab-btn" data-tab="contributions" onclick="switchTab('contributions')">Contributions</button>
+      <button class="tab-btn" data-tab="expenses" onclick="switchTab('expenses')">Expenses</button>
+      <button class="tab-btn" data-tab="summary" onclick="switchTab('summary')">Summary</button>
+    </div>
   </div>
 </div>
 
@@ -149,6 +235,7 @@
 
 <div class="overlay" id="overlay" onclick="if(event.target===this) closeForm()">
   <div class="sheet">
+    <div class="drag-handle"></div>
     <div class="sheet-head">
       <div class="sheet-title" id="sheetTitle">New entry</div>
       <button class="close-btn" onclick="closeForm()">✕</button>
@@ -165,12 +252,14 @@
 
 <script>
 const API_URL = '/api/pickleball/entries';
+const TAB_ORDER = ['bookings', 'contributions', 'expenses', 'summary'];
 
 let data = { contributions: [], bookings: [], expenses: [] };
-let activeTab = 'contributions';
+let activeTab = 'bookings';
 let editingId = null;
 let confirmDeleteId = null;
 let confirmDeleteTab = null;
+let displayedBalance = 0;
 let tabState = {
   contributions: { search: '', sort: 'date_desc' },
   bookings: { search: '', sort: 'date_desc', status: 'all' },
@@ -195,7 +284,6 @@ async function loadData() {
     const res = await fetch(API_URL);
     if (!res.ok) throw new Error('load failed');
     const raw = await res.json();
-    // Support old flat-array format gracefully by ignoring it (test data from earlier version)
     if (Array.isArray(raw)) {
       data = { contributions: [], bookings: [], expenses: [] };
     } else {
@@ -223,7 +311,7 @@ async function saveData() {
 function showStatus(text, isError) {
   const el = document.getElementById('statusBanner');
   el.textContent = text;
-  el.style.color = isError ? '#D97A45' : '#DCEE4B';
+  el.style.color = isError ? '#FF9A80' : '#E7B27C';
   el.style.opacity = '1';
 }
 function hideStatus() {
@@ -237,9 +325,68 @@ function summary() {
   return { accumulated, expensesTotal, remaining: accumulated - expensesTotal };
 }
 
+// ---------- Balance count-up animation ----------
+function animateBalance(target) {
+  const el = document.getElementById('balance');
+  const start = displayedBalance;
+  const startTime = performance.now();
+  const duration = Math.min(800, Math.max(300, Math.abs(target - start) * 4));
+  function tick(now) {
+    const t = Math.min(1, (now - startTime) / duration);
+    const eased = 1 - Math.pow(1 - t, 3);
+    const value = start + (target - start) * eased;
+    el.textContent = fmt(value);
+    el.className = 'balance' + (target < 0 ? ' negative' : '');
+    if (t < 1) requestAnimationFrame(tick);
+    else displayedBalance = target;
+  }
+  requestAnimationFrame(tick);
+}
+
+// ---------- Sparkline (fund trend over time) ----------
+function renderSparkline() {
+  const events = [
+    ...data.contributions.map(c => ({ date: c.date, createdAt: c.createdAt, delta: c.extra })),
+    ...data.expenses.map(e => ({ date: e.date, createdAt: e.createdAt, delta: -e.totalCost })),
+  ].sort((a, b) => a.date.localeCompare(b.date) || a.createdAt - b.createdAt);
+
+  const wrap = document.getElementById('sparklineWrap');
+  if (events.length < 2) { wrap.innerHTML = ''; return; }
+
+  let running = 0;
+  const points = events.map(e => (running += e.delta));
+  const w = 300, h = 44, pad = 4;
+  const min = Math.min(0, ...points), max = Math.max(0, ...points);
+  const range = (max - min) || 1;
+  const stepX = (w - pad * 2) / (points.length - 1);
+  const coords = points.map((v, i) => {
+    const x = pad + i * stepX;
+    const y = h - pad - ((v - min) / range) * (h - pad * 2);
+    return [x, y];
+  });
+  const linePath = coords.map((p, i) => (i === 0 ? 'M' : 'L') + p[0].toFixed(1) + ',' + p[1].toFixed(1)).join(' ');
+  const areaPath = linePath + ` L${coords[coords.length - 1][0].toFixed(1)},${h} L${coords[0][0].toFixed(1)},${h} Z`;
+  const trendPositive = points[points.length - 1] >= points[0];
+  const stroke = trendPositive ? '#E7B27C' : '#FF9A80';
+
+  wrap.innerHTML = `
+    <svg viewBox="0 0 ${w} ${h}" preserveAspectRatio="none">
+      <defs>
+        <linearGradient id="sparkFill" x1="0" y1="0" x2="0" y2="1">
+          <stop offset="0%" stop-color="${stroke}" stop-opacity="0.28" />
+          <stop offset="100%" stop-color="${stroke}" stop-opacity="0" />
+        </linearGradient>
+      </defs>
+      <path d="${areaPath}" fill="url(#sparkFill)" />
+      <path d="${linePath}" fill="none" stroke="${stroke}" stroke-width="2" stroke-linejoin="round" stroke-linecap="round" />
+    </svg>`;
+}
+
+// ---------- Tabs ----------
 function switchTab(tab) {
   activeTab = tab;
   document.querySelectorAll('.tab-btn').forEach(b => b.classList.toggle('active', b.dataset.tab === tab));
+  document.getElementById('tabIndicator').style.transform = `translateX(${TAB_ORDER.indexOf(tab) * 100}%)`;
   document.getElementById('fabRow').style.display = tab === 'summary' ? 'none' : 'flex';
   const labels = { contributions: '+ Contribution', bookings: '+ Booking', expenses: '+ Expense' };
   document.getElementById('fabBtn').textContent = labels[tab] || '+ Add';
@@ -248,9 +395,8 @@ function switchTab(tab) {
 
 function render() {
   const s = summary();
-  const balEl = document.getElementById('balance');
-  balEl.textContent = fmt(s.remaining);
-  balEl.className = 'balance' + (s.remaining < 0 ? ' negative' : '');
+  animateBalance(s.remaining);
+  renderSparkline();
   document.getElementById('statAccumulated').textContent = fmt(s.accumulated);
   document.getElementById('statExpenses').textContent = fmt(s.expensesTotal);
   document.getElementById('statSessions').textContent = data.contributions.length;
@@ -260,10 +406,6 @@ function render() {
   else if (activeTab === 'bookings') body.innerHTML = renderBookings();
   else if (activeTab === 'expenses') body.innerHTML = renderExpenses();
   else body.innerHTML = renderSummary(s);
-}
-
-function sortedByDate(list) {
-  return [...list].sort((a, b) => b.date.localeCompare(a.date) || b.createdAt - a.createdAt);
 }
 
 function applyControls(list, tab, searchFields, amountField) {
@@ -323,11 +465,11 @@ function renderContributions() {
   const list = applyControls(data.contributions, 'contributions', ['gameType', 'remarks', 'addedBy'], 'extra');
   const controls = controlsBar('contributions', 'Search game type, remarks, added by…');
   if (list.length === 0) return `<div class="panel-title">Game Contributions</div>${controls}<div class="empty-state">No games match. Tap + to add one.</div>`;
-  return `<div class="panel-title">Game Contributions</div>${controls}` + list.map(c => {
+  return `<div class="panel-title">Game Contributions</div>${controls}` + list.map((c, i) => {
     const linked = bookingsTotalForDate(c.date);
     const mismatch = linked > 0 && Math.abs(linked - c.ccSpent) > 0.01;
     return `
-    <div class="card">
+    <div class="card ${c.extra >= 0 ? 'pos' : 'neg'}" style="animation-delay:${Math.min(i, 8) * 40}ms">
       <div class="card-top">
         <div style="flex:1; min-width:0">
           <div class="card-meta">📅 ${fmtDate(c.date)} ${c.gameType ? `<span class="muted">· ${escapeHtml(c.gameType)}</span>` : ''} ${c.addedBy ? `<span class="muted">· by ${escapeHtml(c.addedBy)}</span>` : ''}</div>
@@ -431,8 +573,8 @@ function renderBookings() {
     </select>`;
   const controls = controlsBar('bookings', 'Search booked by, description…', statusSelect);
   if (list.length === 0) return `<div class="panel-title">Bookings</div>${controls}<div class="empty-state">No bookings match. Tap + to add one.</div>`;
-  return `<div class="panel-title">Bookings</div>${controls}` + list.map(b => `
-    <div class="card">
+  return `<div class="panel-title">Bookings</div>${controls}` + list.map((b, i) => `
+    <div class="card" style="animation-delay:${Math.min(i, 8) * 40}ms">
       <div class="card-top">
         <div style="flex:1; min-width:0">
           <div class="card-meta">📅 ${fmtDate(b.date)} ${b.bookedBy ? `<span class="muted">· booked by ${escapeHtml(b.bookedBy)}</span>` : ''}</div>
@@ -495,8 +637,8 @@ function renderExpenses() {
   const list = applyControls(data.expenses, 'expenses', ['item', 'remarks', 'addedBy'], 'totalCost');
   const controls = controlsBar('expenses', 'Search item, remarks…');
   if (list.length === 0) return `<div class="panel-title">Expenses</div>${controls}<div class="empty-state">No expenses match. Tap + to add one.</div>`;
-  return `<div class="panel-title">Expenses</div>${controls}` + list.map(e => `
-    <div class="card">
+  return `<div class="panel-title">Expenses</div>${controls}` + list.map((e, i) => `
+    <div class="card neg" style="animation-delay:${Math.min(i, 8) * 40}ms">
       <div class="card-top">
         <div style="flex:1; min-width:0">
           <div class="card-meta">📅 ${fmtDate(e.date)} ${e.addedBy ? `<span class="muted">· by ${escapeHtml(e.addedBy)}</span>` : ''}</div>
@@ -554,9 +696,9 @@ function renderSummary(s) {
     <div class="summary-card">
       <div class="summary-row"><div class="summary-label">Accumulated funds</div><div class="summary-value">${fmt(s.accumulated)}</div></div>
       <div class="summary-row"><div class="summary-label">Expenses (aside from bookings)</div><div class="summary-value">${fmt(s.expensesTotal)}</div></div>
-      <div class="summary-row total"><div class="summary-label">Remaining funds</div><div class="summary-value" style="color:${s.remaining < 0 ? '#D97A45' : '#3E7D5C'}">${fmt(s.remaining)}</div></div>
+      <div class="summary-row total"><div class="summary-label">Remaining funds</div><div class="summary-value" style="color:${s.remaining < 0 ? '#C4442A' : '#A9682E'}">${fmt(s.remaining)}</div></div>
     </div>
-    <div style="font-size:12.5px; color:var(--muted-2); padding: 0 4px">
+    <div style="font-size:12.5px; color:var(--muted); padding: 0 4px">
       Accumulated funds = sum of "extra" across all game contributions. Bookings are logged for reference and don't affect this total on their own — their cost is captured in each contribution's "CC spent" figure.
     </div>
   `;
