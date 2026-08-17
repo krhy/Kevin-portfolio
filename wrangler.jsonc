@@ -1,0 +1,15 @@
+{
+  "name": "kevin-portfolio",
+  "main": "_worker.js",
+  "compatibility_date": "2026-08-17",
+  "assets": {
+    "directory": "./",
+    "binding": "ASSETS"
+  },
+  "kv_namespaces": [
+    {
+      "binding": "PICKLEBALL_FUND",
+      "id": "939b274868f5448dad2db62257343bd1"
+    }
+  ]
+}
