@@ -174,6 +174,9 @@
       <label class="field">Date
         <input type="date" id="fDate" />
       </label>
+      <label class="field">Added by
+        <input type="text" id="fAddedBy" placeholder="e.g. Doreen" />
+      </label>
       <label class="field" id="fNoteLabel">Court / note (optional)
         <input type="text" id="fNote" placeholder="e.g. Court 3, evening slot" />
       </label>
@@ -320,7 +323,7 @@ function entryCardHtml(e) {
     <div class="entry-card">
       <div class="entry-top">
         <div style="flex:1; min-width:0">
-          <div class="entry-meta">📅 ${fmtDate(e.date)} ${e.note ? `<span class="muted">· ${escapeHtml(e.note)}</span>` : ''}</div>
+          <div class="entry-meta">📅 ${fmtDate(e.date)} ${e.addedBy ? `<span class="muted">· added by ${escapeHtml(e.addedBy)}</span>` : ''} ${e.note ? `<span class="muted">· ${escapeHtml(e.note)}</span>` : ''}</div>
           <div class="entry-detail">${detail}</div>
         </div>
         <div class="entry-right">
@@ -363,6 +366,7 @@ function openEdit(id) {
   formType = e.type;
   setFormType(e.type, true);
   document.getElementById('fDate').value = e.date;
+  document.getElementById('fAddedBy').value = e.addedBy || '';
   document.getElementById('fNote').value = e.note || '';
   if (e.type === 'session') {
     document.getElementById('fCost').value = e.cost;
@@ -382,6 +386,7 @@ function closeForm() {
 
 function resetForm() {
   document.getElementById('fDate').value = todayStr();
+  document.getElementById('fAddedBy').value = '';
   document.getElementById('fNote').value = '';
   document.getElementById('fCost').value = '';
   document.getElementById('fPlayers').value = '';
@@ -450,11 +455,12 @@ function submitForm(ev) {
     if (!(charge >= 0)) return errEl.textContent = 'Enter a charge per player (0 or more).';
 
     const note = document.getElementById('fNote').value.trim();
+    const addedBy = document.getElementById('fAddedBy').value.trim();
     const collected = players * charge;
     const entry = {
       id: editingId || uid(),
       type: 'session',
-      date, note, cost, players, charge, collected,
+      date, note, addedBy, cost, players, charge, collected,
       delta: collected - cost,
       createdAt: editingId ? entries.find(x => x.id === editingId).createdAt : Date.now(),
     };
@@ -465,10 +471,11 @@ function submitForm(ev) {
     if (!(amount > 0)) return errEl.textContent = 'Enter an amount greater than 0.';
 
     const note = document.getElementById('fNote').value.trim() || 'Expense';
+    const addedBy = document.getElementById('fAddedBy').value.trim();
     const entry = {
       id: editingId || uid(),
       type: 'expense',
-      date, note, amount,
+      date, note, addedBy, amount,
       delta: -amount,
       createdAt: editingId ? entries.find(x => x.id === editingId).createdAt : Date.now(),
     };
