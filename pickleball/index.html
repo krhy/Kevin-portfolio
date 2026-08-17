@@ -11,20 +11,20 @@
     --paper: #F7F5F0;
     --surface: rgba(255,255,255,0.78);
     --surface-solid: #FFFFFF;
-    --border: rgba(169,104,46,0.15);
-    --border-strong: rgba(169,104,46,0.32);
-    --teal: #A9682E;
-    --teal-deep: #6B4423;
-    --teal-wash: rgba(169,104,46,0.07);
+    --border: rgba(79,114,89,0.14);
+    --border-strong: rgba(79,114,89,0.30);
+    --teal: #4F7259;
+    --teal-deep: #37503F;
+    --teal-wash: rgba(79,114,89,0.07);
     --brown: #C98A2D;
     --brown-deep: #8C5A28;
-    --brown-wash: rgba(140,90,40,0.09);
+    --brown-wash: rgba(140,90,40,0.08);
     --rust: #C4442A;
     --ink: #23223A;
     --muted: #6E6C7E;
     --muted-2: #B0AAA0;
-    --header-1: #3B2814;
-    --header-2: #8C5A28;
+    --header-1: #223228;
+    --header-2: #4F7259;
     --on-teal: rgba(255,255,255,0.9);
     --on-teal-muted: rgba(255,255,255,0.58);
     --on-teal-border: rgba(255,255,255,0.18);
@@ -192,12 +192,12 @@
 <div class="header">
   <div class="brand">
     <svg class="brand-icon" width="20" height="20" viewBox="0 0 24 24" fill="none">
-      <ellipse cx="12" cy="9" rx="7" ry="8" fill="#E7B27C" />
-      <circle cx="9.5" cy="6.5" r="0.9" fill="#3B2814" /><circle cx="12.5" cy="5.5" r="0.9" fill="#3B2814" />
-      <circle cx="15" cy="7" r="0.9" fill="#3B2814" /><circle cx="9" cy="9.5" r="0.9" fill="#3B2814" />
-      <circle cx="12" cy="9" r="0.9" fill="#3B2814" /><circle cx="15" cy="9.5" r="0.9" fill="#3B2814" />
-      <circle cx="10" cy="12" r="0.9" fill="#3B2814" /><circle cx="13" cy="12" r="0.9" fill="#3B2814" />
-      <rect x="10.7" y="16" width="2.6" height="7" rx="1.3" fill="#E7B27C" />
+      <ellipse cx="12" cy="9" rx="7" ry="8" fill="#E7B26B" />
+      <circle cx="9.5" cy="6.5" r="0.9" fill="#223228" /><circle cx="12.5" cy="5.5" r="0.9" fill="#223228" />
+      <circle cx="15" cy="7" r="0.9" fill="#223228" /><circle cx="9" cy="9.5" r="0.9" fill="#223228" />
+      <circle cx="12" cy="9" r="0.9" fill="#223228" /><circle cx="15" cy="9.5" r="0.9" fill="#223228" />
+      <circle cx="10" cy="12" r="0.9" fill="#223228" /><circle cx="13" cy="12" r="0.9" fill="#223228" />
+      <rect x="10.7" y="16" width="2.6" height="7" rx="1.3" fill="#E7B26B" />
     </svg>
     <span class="brand-text">Committee Fund</span>
     <div class="live-dot"></div><span class="live-label">LIVE</span>
@@ -311,7 +311,7 @@ async function saveData() {
 function showStatus(text, isError) {
   const el = document.getElementById('statusBanner');
   el.textContent = text;
-  el.style.color = isError ? '#FF9A80' : '#E7B27C';
+  el.style.color = isError ? '#FF9A80' : '#E7B26B';
   el.style.opacity = '1';
 }
 function hideStatus() {
@@ -320,7 +320,7 @@ function hideStatus() {
 }
 
 function summary() {
-  const accumulated = data.contributions.reduce((s, c) => s + c.extra, 0);
+  const accumulated = data.contributions.reduce((s, c) => s + liveExtra(c), 0);
   const expensesTotal = data.expenses.reduce((s, e) => s + e.totalCost, 0);
   return { accumulated, expensesTotal, remaining: accumulated - expensesTotal };
 }
@@ -346,7 +346,7 @@ function animateBalance(target) {
 // ---------- Sparkline (fund trend over time) ----------
 function renderSparkline() {
   const events = [
-    ...data.contributions.map(c => ({ date: c.date, createdAt: c.createdAt, delta: c.extra })),
+    ...data.contributions.map(c => ({ date: c.date, createdAt: c.createdAt, delta: liveExtra(c) })),
     ...data.expenses.map(e => ({ date: e.date, createdAt: e.createdAt, delta: -e.totalCost })),
   ].sort((a, b) => a.date.localeCompare(b.date) || a.createdAt - b.createdAt);
 
@@ -367,7 +367,7 @@ function renderSparkline() {
   const linePath = coords.map((p, i) => (i === 0 ? 'M' : 'L') + p[0].toFixed(1) + ',' + p[1].toFixed(1)).join(' ');
   const areaPath = linePath + ` L${coords[coords.length - 1][0].toFixed(1)},${h} L${coords[0][0].toFixed(1)},${h} Z`;
   const trendPositive = points[points.length - 1] >= points[0];
-  const stroke = trendPositive ? '#E7B27C' : '#FF9A80';
+  const stroke = trendPositive ? '#E7B26B' : '#FF9A80';
 
   wrap.innerHTML = `
     <svg viewBox="0 0 ${w} ${h}" preserveAspectRatio="none">
@@ -432,6 +432,20 @@ function bookingsTotalForDate(date) {
     .reduce((s, b) => s + b.amount, 0);
 }
 
+function hasLinkedBookings(date) {
+  return data.bookings.some(b => b.date === date && b.status !== 'Cancelled');
+}
+
+// A contribution's real CC Spent: if bookings exist for its date, always use their
+// live total (so cancelling/editing/deleting a booking updates funds automatically).
+// Falls back to the manually-entered value only when no bookings are logged for that date.
+function liveCcSpent(c) {
+  return hasLinkedBookings(c.date) ? bookingsTotalForDate(c.date) : c.ccSpent;
+}
+function liveExtra(c) {
+  return c.expectedCollection - liveCcSpent(c);
+}
+
 function controlsBar(tab, searchPlaceholder, extraSelect) {
   const st = tabState[tab];
   return `
@@ -462,23 +476,24 @@ function setStatusFilter(value) { tabState.bookings.status = value; render(); }
 
 // ---------- Contributions ----------
 function renderContributions() {
-  const list = applyControls(data.contributions, 'contributions', ['gameType', 'remarks', 'addedBy'], 'extra');
+  const decorated = data.contributions.map(c => ({ ...c, extra: liveExtra(c) }));
+  const list = applyControls(decorated, 'contributions', ['gameType', 'remarks', 'addedBy'], 'extra');
   const controls = controlsBar('contributions', 'Search game type, remarks, added by…');
   if (list.length === 0) return `<div class="panel-title">Game Contributions</div>${controls}<div class="empty-state">No games match. Tap + to add one.</div>`;
   return `<div class="panel-title">Game Contributions</div>${controls}` + list.map((c, i) => {
-    const linked = bookingsTotalForDate(c.date);
-    const mismatch = linked > 0 && Math.abs(linked - c.ccSpent) > 0.01;
+    const ccSpent = liveCcSpent(c);
+    const extra = c.expectedCollection - ccSpent;
+    const linked = hasLinkedBookings(c.date);
     return `
-    <div class="card ${c.extra >= 0 ? 'pos' : 'neg'}" style="animation-delay:${Math.min(i, 8) * 40}ms">
+    <div class="card ${extra >= 0 ? 'pos' : 'neg'}" style="animation-delay:${Math.min(i, 8) * 40}ms">
       <div class="card-top">
         <div style="flex:1; min-width:0">
           <div class="card-meta">📅 ${fmtDate(c.date)} ${c.gameType ? `<span class="muted">· ${escapeHtml(c.gameType)}</span>` : ''} ${c.addedBy ? `<span class="muted">· by ${escapeHtml(c.addedBy)}</span>` : ''}</div>
-          <div class="card-detail">${c.players} × ${fmt(c.feePerPerson)} <span class="muted">= ${fmt(c.expectedCollection)} expected · CC spent ${fmt(c.ccSpent)}</span></div>
-          ${mismatch ? `<div class="mismatch-tag">⚠ Linked bookings for this date total ${fmt(linked)}, differs from CC spent</div>` : ''}
+          <div class="card-detail">${c.players} × ${fmt(c.feePerPerson)} <span class="muted">= ${fmt(c.expectedCollection)} expected · CC spent ${fmt(ccSpent)}${linked ? ' 🔗' : ''}</span></div>
           ${c.remarks ? `<div class="card-detail muted" style="margin-top:3px; font-size:13px">${escapeHtml(c.remarks)}</div>` : ''}
         </div>
         <div class="card-right">
-          <div class="card-delta ${c.extra >= 0 ? 'pos' : 'neg'}">${c.extra >= 0 ? '▲' : '▼'} ${fmt(c.extra)}</div>
+          <div class="card-delta ${extra >= 0 ? 'pos' : 'neg'}">${extra >= 0 ? '▲' : '▼'} ${fmt(extra)}</div>
         </div>
       </div>
       ${cardActions(c.id, 'contributions')}
@@ -494,22 +509,34 @@ function contributionFormFields(c) {
     <label class="field">Game type / court info<input type="text" id="fGameType" placeholder="e.g. 2 courts / 4 hrs" value="${c ? escapeHtml(c.gameType || '') : ''}" /></label>
     <label class="field">Fee per person ($)<input type="number" step="0.01" min="0" id="fFee" value="${c ? c.feePerPerson : ''}" oninput="updateContribPreview()" /></label>
     <label class="field">Players<input type="number" min="1" id="fPlayers" value="${c ? c.players : ''}" oninput="updateContribPreview()" /></label>
-    <label class="field">Credit card / actual spent ($)<input type="number" step="0.01" min="0" id="fCcSpent" value="${c ? c.ccSpent : ''}" oninput="updateContribPreview()" /></label>
+    <label class="field" id="fCcSpentLabel">Credit card / actual spent ($)<input type="number" step="0.01" min="0" id="fCcSpent" value="${c ? c.ccSpent : ''}" oninput="updateContribPreview()" /></label>
     <label class="field">Remarks (optional)<input type="text" id="fRemarks" placeholder="e.g. Paid via personal CC, who paid what" value="${c ? escapeHtml(c.remarks || '') : ''}" /></label>
     <div class="preview-line" id="contribPreview"></div>
   `;
 }
 
-function fillCcFromBookings() {
-  const date = document.getElementById('fDate').value;
-  document.getElementById('fCcSpent').value = bookingsTotalForDate(date).toFixed(2);
-  updateContribPreview();
-}
-
 function updateContribPreview() {
+  const date = document.getElementById('fDate').value;
+  const ccInput = document.getElementById('fCcSpent');
+  const ccLabel = document.getElementById('fCcSpentLabel');
+  const linkEl = document.getElementById('linkSuggest');
+  const linkedCount = date ? data.bookings.filter(b => b.date === date && b.status !== 'Cancelled').length : 0;
+
+  if (linkedCount > 0) {
+    const total = bookingsTotalForDate(date);
+    ccInput.value = total.toFixed(2);
+    ccInput.setAttribute('disabled', '');
+    ccLabel.firstChild.textContent = 'Credit card / actual spent ($) — auto from bookings';
+    if (linkEl) linkEl.innerHTML = `<div class="link-suggest"><span>🔗 Linked to ${linkedCount} booking${linkedCount > 1 ? 's' : ''} on this date — CC spent updates automatically as bookings change.</span></div>`;
+  } else {
+    ccInput.removeAttribute('disabled');
+    ccLabel.firstChild.textContent = 'Credit card / actual spent ($)';
+    if (linkEl) linkEl.innerHTML = date ? `<div class="preview-line">No bookings logged for this date yet — enter the amount manually, or log Bookings first to auto-link it.</div>` : '';
+  }
+
   const fee = parseFloat(document.getElementById('fFee').value) || 0;
   const players = parseInt(document.getElementById('fPlayers').value, 10) || 0;
-  const cc = parseFloat(document.getElementById('fCcSpent').value) || 0;
+  const cc = parseFloat(ccInput.value) || 0;
   const el = document.getElementById('contribPreview');
   if (fee && players) {
     const expected = fee * players;
@@ -518,16 +545,6 @@ function updateContribPreview() {
     el.innerHTML = `Expected collection ${fmt(expected)}, CC spent ${fmt(cc)} → <strong class="${cls}">${fmt(extra)} extra</strong>`;
   } else {
     el.textContent = '';
-  }
-
-  const date = document.getElementById('fDate').value;
-  const linkEl = document.getElementById('linkSuggest');
-  if (linkEl && date) {
-    const count = data.bookings.filter(b => b.date === date && b.status !== 'Cancelled').length;
-    const total = bookingsTotalForDate(date);
-    linkEl.innerHTML = count > 0
-      ? `<div class="link-suggest"><span>${count} booking${count > 1 ? 's' : ''} logged for this date, totaling ${fmt(total)}</span><button type="button" onclick="fillCcFromBookings()">Use this</button></div>`
-      : '';
   }
 }
 
@@ -696,7 +713,7 @@ function renderSummary(s) {
     <div class="summary-card">
       <div class="summary-row"><div class="summary-label">Accumulated funds</div><div class="summary-value">${fmt(s.accumulated)}</div></div>
       <div class="summary-row"><div class="summary-label">Expenses (aside from bookings)</div><div class="summary-value">${fmt(s.expensesTotal)}</div></div>
-      <div class="summary-row total"><div class="summary-label">Remaining funds</div><div class="summary-value" style="color:${s.remaining < 0 ? '#C4442A' : '#A9682E'}">${fmt(s.remaining)}</div></div>
+      <div class="summary-row total"><div class="summary-label">Remaining funds</div><div class="summary-value" style="color:${s.remaining < 0 ? '#C4442A' : '#37503F'}">${fmt(s.remaining)}</div></div>
     </div>
     <div style="font-size:12.5px; color:var(--muted); padding: 0 4px">
       Accumulated funds = sum of "extra" across all game contributions. Bookings are logged for reference and don't affect this total on their own — their cost is captured in each contribution's "CC spent" figure.
