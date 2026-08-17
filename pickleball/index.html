@@ -175,8 +175,8 @@
     background: rgba(0,0,0,0.22); padding: 4px 10px; border-radius: 999px;
   }
 
-  .controls { display: flex; gap: 8px; margin-bottom: 14px; }
-  .controls input[type="text"] { flex: 1; padding: 8px 12px; font-size: 13.5px; }
+  .controls { display: flex; gap: 8px; margin-bottom: 14px; flex-wrap: wrap; }
+  .controls input[type="text"] { flex: 1 1 100%; padding: 8px 12px; font-size: 13.5px; }
   .controls select { padding: 8px 10px; font-size: 13px; width: auto; }
   .link-suggest {
     font-size: 12.5px; color: var(--teal); background: var(--teal-wash);
@@ -191,6 +191,28 @@
     background: rgba(201,138,45,0.12); border: 1px dashed var(--brown);
     border-radius: 8px; padding: 6px 10px; margin-top: 2px;
   }
+
+  .date-group { margin-bottom: 20px; }
+  .date-group-header {
+    display: flex; justify-content: space-between; align-items: baseline;
+    font-family: 'Space Grotesk', sans-serif; font-size: 13px; font-weight: 700; color: var(--ink);
+    padding: 0 2px 7px; border-bottom: 1px solid var(--border); margin-bottom: 10px;
+  }
+  .date-group-header .muted { font-size: 11.5px; font-weight: 500; color: var(--muted); }
+  .tile-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(230px, 1fr)); gap: 10px; }
+  .booking-tile {
+    background: var(--surface); backdrop-filter: blur(10px); -webkit-backdrop-filter: blur(10px);
+    border: 1px solid var(--border); border-left: 3px solid var(--border-strong);
+    border-radius: 12px; padding: 10px 12px; animation: fadeSlideIn 0.3s ease both;
+  }
+  .tile-top { display: flex; justify-content: space-between; align-items: center; gap: 8px; margin-bottom: 5px; }
+  .tile-amount { font-family: 'IBM Plex Mono', monospace; font-weight: 600; font-size: 14px; color: var(--ink); flex-shrink: 0; }
+  .tile-desc {
+    font-size: 12.5px; color: var(--ink); overflow: hidden; text-overflow: ellipsis;
+    white-space: nowrap; margin-bottom: 2px;
+  }
+  .tile-meta { font-size: 11px; color: var(--muted); }
+  .tile-actions { display: flex; gap: 12px; margin-top: 7px; padding-top: 6px; border-top: 1px solid var(--border); }
 </style>
 </head>
 <body>
@@ -268,7 +290,7 @@ let confirmDeleteTab = null;
 let displayedBalance = 0;
 let tabState = {
   contributions: { search: '', sort: 'date_desc' },
-  bookings: { search: '', sort: 'date_desc', status: 'all' },
+  bookings: { search: '', sort: 'date_desc', status: 'all', dateFilter: 'all' },
   expenses: { search: '', sort: 'date_desc' },
 };
 
@@ -486,6 +508,7 @@ function setSearch(tab, value) {
 }
 function setSort(tab, value) { tabState[tab].sort = value; render(); }
 function setStatusFilter(value) { tabState.bookings.status = value; render(); }
+function setDateFilter(value) { tabState.bookings.dateFilter = value; render(); }
 
 // ---------- Contributions ----------
 function renderContributions() {
@@ -604,6 +627,11 @@ function submitContribution() {
 // ---------- Bookings ----------
 function renderBookings() {
   const list = applyControls(data.bookings, 'bookings', ['bookedBy', 'description', 'comments'], 'amount');
+  const filtered = tabState.bookings.dateFilter === 'all'
+    ? list
+    : list.filter(b => b.date === tabState.bookings.dateFilter);
+
+  const allDates = [...new Set(data.bookings.map(b => b.date))].sort((a, b) => b.localeCompare(a));
   const statusSelect = `
     <select onchange="setStatusFilter(this.value)">
       <option value="all" ${tabState.bookings.status === 'all' ? 'selected' : ''}>All statuses</option>
@@ -611,24 +639,58 @@ function renderBookings() {
       <option value="Pending" ${tabState.bookings.status === 'Pending' ? 'selected' : ''}>Pending</option>
       <option value="Cancelled" ${tabState.bookings.status === 'Cancelled' ? 'selected' : ''}>Cancelled</option>
     </select>`;
-  const controls = controlsBar('bookings', 'Search booked by, description…', statusSelect);
-  if (list.length === 0) return `<div class="panel-title">Bookings</div>${controls}<div class="empty-state">No bookings match. Tap + to add one.</div>`;
-  return `<div class="panel-title">Bookings</div>${controls}` + list.map((b, i) => `
-    <div class="card" style="animation-delay:${Math.min(i, 8) * 40}ms">
-      <div class="card-top">
-        <div style="flex:1; min-width:0">
-          <div class="card-meta">📅 ${fmtDate(b.date)} ${b.bookedBy ? `<span class="muted">· booked by ${escapeHtml(b.bookedBy)}</span>` : ''}</div>
-          <div class="card-detail">${escapeHtml(b.description || 'Booking')}</div>
-          ${b.transactionDate ? `<div class="card-detail muted" style="font-size:12.5px; margin-top:2px">Txn: ${fmtDate(b.transactionDate)}</div>` : ''}
-          ${b.comments ? `<div class="card-detail muted" style="margin-top:3px; font-size:13px">${escapeHtml(b.comments)}</div>` : ''}
-          <span class="status-badge status-${(b.status || 'pending').toLowerCase()}">${escapeHtml(b.status || 'Pending')}</span>
+  const dateSelect = `
+    <select onchange="setDateFilter(this.value)">
+      <option value="all" ${tabState.bookings.dateFilter === 'all' ? 'selected' : ''}>All dates</option>
+      ${allDates.map(dt => `<option value="${dt}" ${tabState.bookings.dateFilter === dt ? 'selected' : ''}>${fmtDate(dt)}</option>`).join('')}
+    </select>`;
+  const controls = controlsBar('bookings', 'Search booked by, description…', statusSelect + dateSelect);
+
+  if (filtered.length === 0) return `<div class="panel-title">Bookings</div>${controls}<div class="empty-state">No bookings match. Tap + to add one.</div>`;
+
+  // Group into date buckets, preserving the current sort's ordering of dates
+  const order = [];
+  const buckets = new Map();
+  filtered.forEach(b => {
+    if (!buckets.has(b.date)) { buckets.set(b.date, []); order.push(b.date); }
+    buckets.get(b.date).push(b);
+  });
+
+  const groupsHtml = order.map(dt => {
+    const items = buckets.get(dt);
+    const total = items.reduce((s, b) => s + b.amount, 0);
+    const tiles = items.map((b, i) => bookingTileHtml(b, i)).join('');
+    return `
+      <div class="date-group">
+        <div class="date-group-header">
+          <span>📅 ${fmtDate(dt)}</span>
+          <span class="muted">${items.length} booking${items.length > 1 ? 's' : ''} · ${fmt(total)}</span>
         </div>
-        <div class="card-right">
-          <div class="card-amount">${fmt(b.amount)}</div>
-        </div>
+        <div class="tile-grid">${tiles}</div>
+      </div>`;
+  }).join('');
+
+  return `<div class="panel-title">Bookings</div>${controls}${groupsHtml}`;
+}
+
+function bookingTileHtml(b, i) {
+  const confirming = confirmDeleteId === b.id && confirmDeleteTab === 'bookings';
+  const actions = confirming
+    ? `<button class="link-btn danger" onclick="doDelete('bookings','${b.id}')">Confirm delete</button>
+       <button class="link-btn" onclick="cancelDelete()">Cancel</button>`
+    : `<button class="link-btn" onclick="openEdit('bookings','${b.id}')">✎ Edit</button>
+       <button class="link-btn" onclick="askDelete('bookings','${b.id}')">🗑 Delete</button>`;
+  return `
+    <div class="booking-tile" style="animation-delay:${Math.min(i, 8) * 30}ms">
+      <div class="tile-top">
+        <span class="status-badge status-${(b.status || 'pending').toLowerCase()}">${escapeHtml(b.status || 'Pending')}</span>
+        <span class="tile-amount">${fmt(b.amount)}</span>
       </div>
-      ${cardActions(b.id, 'bookings')}
-    </div>`).join('');
+      <div class="tile-desc" title="${escapeHtml(b.description || '')}">${escapeHtml(b.description || 'Booking')}</div>
+      <div class="tile-meta">${b.bookedBy ? `Booked by ${escapeHtml(b.bookedBy)} · ` : ''}Txn ${fmtDate(b.transactionDate)}</div>
+      ${b.comments ? `<div class="tile-meta" style="margin-top:2px">${escapeHtml(b.comments)}</div>` : ''}
+      <div class="tile-actions">${actions}</div>
+    </div>`;
 }
 
 function bookingFormFields(b) {
