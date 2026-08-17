@@ -326,7 +326,12 @@ function hideStatus() {
 }
 
 function summary() {
-  const accumulated = data.contributions.reduce((s, c) => s + liveExtra(c), 0);
+  // Contributions still flagged "needs update" (no fee/players entered yet) don't
+  // count toward the fund total — their cost is shown on the card as a reminder,
+  // but only counts once the entry is completed.
+  const accumulated = data.contributions.reduce(
+    (s, c) => s + (contributionNeedsUpdate(c) ? 0 : liveExtra(c)), 0
+  );
   const expensesTotal = data.expenses.reduce((s, e) => s + e.totalCost, 0);
   return { accumulated, expensesTotal, remaining: accumulated - expensesTotal };
 }
@@ -352,7 +357,7 @@ function animateBalance(target) {
 // ---------- Sparkline (fund trend over time) ----------
 function renderSparkline() {
   const events = [
-    ...data.contributions.map(c => ({ date: c.date, createdAt: c.createdAt, delta: liveExtra(c) })),
+    ...data.contributions.filter(c => !contributionNeedsUpdate(c)).map(c => ({ date: c.date, createdAt: c.createdAt, delta: liveExtra(c) })),
     ...data.expenses.map(e => ({ date: e.date, createdAt: e.createdAt, delta: -e.totalCost })),
   ].sort((a, b) => a.date.localeCompare(b.date) || a.createdAt - b.createdAt);
 
@@ -504,7 +509,9 @@ function renderContributions() {
           ${c.remarks ? `<div class="card-detail muted" style="margin-top:3px; font-size:13px">${escapeHtml(c.remarks)}</div>` : ''}
         </div>
         <div class="card-right">
-          <div class="card-delta ${extra >= 0 ? 'pos' : 'neg'}">${extra >= 0 ? '▲' : '▼'} ${fmt(extra)}</div>
+          ${incomplete
+            ? `<div class="card-delta" style="color:var(--brown-deep)">Not counted yet</div>`
+            : `<div class="card-delta ${extra >= 0 ? 'pos' : 'neg'}">${extra >= 0 ? '▲' : '▼'} ${fmt(extra)}</div>`}
         </div>
       </div>
       ${cardActions(c.id, 'contributions')}
