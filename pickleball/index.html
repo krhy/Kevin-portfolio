@@ -662,8 +662,6 @@ function submitBooking() {
   };
   if (editingId) data.bookings = data.bookings.map(x => x.id === editingId ? entry : x);
   else data.bookings.push(entry);
-  ensureContributionDraft(date);
-  cleanupEmptyDrafts();
   finishSubmit();
 }
 
@@ -792,7 +790,6 @@ function askDelete(tab, id) { confirmDeleteId = id; confirmDeleteTab = tab; rend
 function cancelDelete() { confirmDeleteId = null; confirmDeleteTab = null; render(); }
 function doDelete(tab, id) {
   data[tab] = data[tab].filter(x => x.id !== id);
-  if (tab === 'bookings') cleanupEmptyDrafts();
   confirmDeleteId = null; confirmDeleteTab = null;
   render();
   saveData();
