@@ -185,6 +185,12 @@
   }
   .link-suggest button { background: var(--teal); color: #fff; border: none; border-radius: 6px; padding: 4px 10px; font-size: 12px; font-weight: 700; flex-shrink: 0; }
   .mismatch-tag { font-size: 11px; color: var(--rust); margin-top: 3px; }
+  .card.needs-update { border-left-color: var(--brown); background: rgba(201,138,45,0.05); }
+  .needs-update-banner {
+    font-size: 13px; font-weight: 600; color: var(--brown-deep);
+    background: rgba(201,138,45,0.12); border: 1px dashed var(--brown);
+    border-radius: 8px; padding: 6px 10px; margin-top: 2px;
+  }
 </style>
 </head>
 <body>
@@ -440,7 +446,11 @@ function hasLinkedBookings(date) {
 // live total (so cancelling/editing/deleting a booking updates funds automatically).
 // Falls back to the manually-entered value only when no bookings are logged for that date.
 function liveCcSpent(c) {
-  return hasLinkedBookings(c.date) ? bookingsTotalForDate(c.date) : c.ccSpent;
+  if (hasLinkedBookings(c.date)) return bookingsTotalForDate(c.date);
+  // No bookings left for this date. Only trust the stored number if it was genuinely
+  // typed by hand (ccSpentAuto === false). If it came from auto-linking and those
+  // bookings are now gone, it's stale — treat as 0 rather than showing a leftover figure.
+  return c.ccSpentAuto === false ? c.ccSpent : 0;
 }
 function liveExtra(c) {
   return c.expectedCollection - liveCcSpent(c);
@@ -484,12 +494,15 @@ function renderContributions() {
     const ccSpent = liveCcSpent(c);
     const extra = c.expectedCollection - ccSpent;
     const linked = hasLinkedBookings(c.date);
+    const incomplete = contributionNeedsUpdate(c);
     return `
-    <div class="card ${extra >= 0 ? 'pos' : 'neg'}" style="animation-delay:${Math.min(i, 8) * 40}ms">
+    <div class="card ${incomplete ? 'needs-update' : (extra >= 0 ? 'pos' : 'neg')}" style="animation-delay:${Math.min(i, 8) * 40}ms">
       <div class="card-top">
         <div style="flex:1; min-width:0">
           <div class="card-meta">📅 ${fmtDate(c.date)} ${c.gameType ? `<span class="muted">· ${escapeHtml(c.gameType)}</span>` : ''} ${c.addedBy ? `<span class="muted">· by ${escapeHtml(c.addedBy)}</span>` : ''}</div>
-          <div class="card-detail">${c.players} × ${fmt(c.feePerPerson)} <span class="muted">= ${fmt(c.expectedCollection)} expected · CC spent ${fmt(ccSpent)}${linked ? ' 🔗' : ''}</span></div>
+          ${incomplete
+            ? `<div class="needs-update-banner">⚠ Needs update — add fee per person &amp; players. CC spent so far: ${fmt(ccSpent)}${linked ? ' 🔗' : ''}</div>`
+            : `<div class="card-detail">${c.players} × ${fmt(c.feePerPerson)} <span class="muted">= ${fmt(c.expectedCollection)} expected · CC spent ${fmt(ccSpent)}${linked ? ' 🔗' : ''}</span></div>`}
           ${c.remarks ? `<div class="card-detail muted" style="margin-top:3px; font-size:13px">${escapeHtml(c.remarks)}</div>` : ''}
         </div>
         <div class="card-right">
@@ -527,11 +540,18 @@ function updateContribPreview() {
     ccInput.value = total.toFixed(2);
     ccInput.setAttribute('disabled', '');
     ccLabel.firstChild.textContent = 'Credit card / actual spent ($) — auto from bookings';
-    if (linkEl) linkEl.innerHTML = `<div class="link-suggest"><span>🔗 Linked to ${linkedCount} booking${linkedCount > 1 ? 's' : ''} on this date — CC spent updates automatically as bookings change.</span></div>`;
+    if (linkEl) linkEl.innerHTML = `<div class="link-suggest"><span>🔗 Linked to ${linkedCount} booking${linkedCount > 1 ? 's' : ''} on this date — updates automatically as bookings change.</span></div>`;
   } else {
     ccInput.removeAttribute('disabled');
     ccLabel.firstChild.textContent = 'Credit card / actual spent ($)';
-    if (linkEl) linkEl.innerHTML = date ? `<div class="preview-line">No bookings logged for this date yet — enter the amount manually, or log Bookings first to auto-link it.</div>` : '';
+    const existing = editingId ? data.contributions.find(x => x.id === editingId) : null;
+    const wasAutoLinked = existing && existing.ccSpentAuto !== false;
+    if (wasAutoLinked) {
+      ccInput.value = '0';
+      if (linkEl) linkEl.innerHTML = `<div class="mismatch-tag">⚠ The bookings for this date were removed, so CC spent reset to $0. Enter the amount manually if you know it.</div>`;
+    } else if (linkEl) {
+      linkEl.innerHTML = date ? `<div class="preview-line">No bookings logged for this date yet — enter the amount manually, or log Bookings first to auto-link it.</div>` : '';
+    }
   }
 
   const fee = parseFloat(document.getElementById('fFee').value) || 0;
@@ -569,6 +589,7 @@ function submitContribution() {
     players,
     expectedCollection,
     ccSpent: cc,
+    ccSpentAuto: hasLinkedBookings(date),
     extra: expectedCollection - cc,
     remarks: document.getElementById('fRemarks').value.trim(),
     createdAt: editingId ? data.contributions.find(x => x.id === editingId).createdAt : Date.now(),
@@ -646,7 +667,45 @@ function submitBooking() {
   };
   if (editingId) data.bookings = data.bookings.map(x => x.id === editingId ? entry : x);
   else data.bookings.push(entry);
+  ensureContributionDraft(date);
+  cleanupEmptyDrafts();
   finishSubmit();
+}
+
+// If a booking is logged for a date with no Game Contribution yet, auto-create a
+// placeholder so the money is tracked immediately — flagged incomplete until
+// someone fills in fee-per-person and players.
+function ensureContributionDraft(date) {
+  if (data.contributions.some(c => c.date === date)) return;
+  const ccSpent = bookingsTotalForDate(date);
+  data.contributions.push({
+    id: uid(),
+    date,
+    addedBy: '',
+    gameType: '',
+    feePerPerson: 0,
+    players: 0,
+    expectedCollection: 0,
+    ccSpent,
+    ccSpentAuto: true,
+    extra: -ccSpent,
+    remarks: '',
+    createdAt: Date.now(),
+  });
+}
+
+function contributionNeedsUpdate(c) {
+  return !c.players || c.players <= 0;
+}
+
+// If a still-incomplete draft contribution (never got its fee/players filled in) loses
+// all its linked bookings — because one was edited, cancelled, or deleted — there's
+// nothing left backing it. Remove the empty draft rather than leaving a phantom entry.
+// Completed contributions (players already set) are never touched by this.
+function cleanupEmptyDrafts() {
+  data.contributions = data.contributions.filter(
+    c => !(contributionNeedsUpdate(c) && !hasLinkedBookings(c.date))
+  );
 }
 
 // ---------- Expenses ----------
@@ -738,6 +797,7 @@ function askDelete(tab, id) { confirmDeleteId = id; confirmDeleteTab = tab; rend
 function cancelDelete() { confirmDeleteId = null; confirmDeleteTab = null; render(); }
 function doDelete(tab, id) {
   data[tab] = data[tab].filter(x => x.id !== id);
+  if (tab === 'bookings') cleanupEmptyDrafts();
   confirmDeleteId = null; confirmDeleteTab = null;
   render();
   saveData();
