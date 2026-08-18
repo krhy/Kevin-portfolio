@@ -289,9 +289,9 @@ let confirmDeleteId = null;
 let confirmDeleteTab = null;
 let displayedBalance = 0;
 let tabState = {
-  contributions: { search: '', sort: 'date_desc' },
+  contributions: { search: '', sort: 'date_desc', dateFilter: 'all' },
   bookings: { search: '', sort: 'date_desc', status: 'all', dateFilter: 'all' },
-  expenses: { search: '', sort: 'date_desc' },
+  expenses: { search: '', sort: 'date_desc', dateFilter: 'all' },
 };
 
 function fmt(n) {
@@ -508,38 +508,80 @@ function setSearch(tab, value) {
 }
 function setSort(tab, value) { tabState[tab].sort = value; render(); }
 function setStatusFilter(value) { tabState.bookings.status = value; render(); }
-function setDateFilter(value) { tabState.bookings.dateFilter = value; render(); }
+function setDateFilter(tab, value) { tabState[tab].dateFilter = value; render(); }
+
+function dateFilterSelect(tab, allEntries) {
+  const dates = [...new Set(allEntries.map(x => x.date))].sort((a, b) => b.localeCompare(a));
+  return `
+    <select onchange="setDateFilter('${tab}', this.value)">
+      <option value="all" ${tabState[tab].dateFilter === 'all' ? 'selected' : ''}>All dates</option>
+      ${dates.map(dt => `<option value="${dt}" ${tabState[tab].dateFilter === dt ? 'selected' : ''}>${fmtDate(dt)}</option>`).join('')}
+    </select>`;
+}
+
+// Groups a filtered/sorted list into date buckets, preserving the current sort's date ordering.
+function groupByDate(list) {
+  const order = [];
+  const buckets = new Map();
+  list.forEach(item => {
+    if (!buckets.has(item.date)) { buckets.set(item.date, []); order.push(item.date); }
+    buckets.get(item.date).push(item);
+  });
+  return order.map(dt => ({ date: dt, items: buckets.get(dt) }));
+}
 
 // ---------- Contributions ----------
 function renderContributions() {
   const decorated = data.contributions.map(c => ({ ...c, extra: liveExtra(c) }));
   const list = applyControls(decorated, 'contributions', ['gameType', 'remarks', 'addedBy'], 'extra');
-  const controls = controlsBar('contributions', 'Search game type, remarks, added by…');
-  if (list.length === 0) return `<div class="panel-title">Game Contributions</div>${controls}<div class="empty-state">No games match. Tap + to add one.</div>`;
-  return `<div class="panel-title">Game Contributions</div>${controls}` + list.map((c, i) => {
-    const ccSpent = liveCcSpent(c);
-    const extra = c.expectedCollection - ccSpent;
-    const linked = hasLinkedBookings(c.date);
-    const incomplete = contributionNeedsUpdate(c);
+  const filtered = tabState.contributions.dateFilter === 'all'
+    ? list
+    : list.filter(c => c.date === tabState.contributions.dateFilter);
+  const controls = controlsBar('contributions', 'Search game type, remarks, added by…', dateFilterSelect('contributions', data.contributions));
+
+  if (filtered.length === 0) return `<div class="panel-title">Game Contributions</div>${controls}<div class="empty-state">No games match. Tap + to add one.</div>`;
+
+  const groupsHtml = groupByDate(filtered).map(({ date, items }) => {
+    const countedTotal = items.reduce((s, c) => s + (contributionNeedsUpdate(c) ? 0 : (c.expectedCollection - liveCcSpent(c))), 0);
+    const tiles = items.map((c, i) => contributionTileHtml(c, i)).join('');
     return `
-    <div class="card ${incomplete ? 'needs-update' : (extra >= 0 ? 'pos' : 'neg')}" style="animation-delay:${Math.min(i, 8) * 40}ms">
-      <div class="card-top">
-        <div style="flex:1; min-width:0">
-          <div class="card-meta">📅 ${fmtDate(c.date)} ${c.gameType ? `<span class="muted">· ${escapeHtml(c.gameType)}</span>` : ''} ${c.addedBy ? `<span class="muted">· by ${escapeHtml(c.addedBy)}</span>` : ''}</div>
-          ${incomplete
-            ? `<div class="needs-update-banner">⚠ Needs update — add fee per person &amp; players. CC spent so far: ${fmt(ccSpent)}</div>`
-            : `<div class="card-detail">${c.players} × ${fmt(c.feePerPerson)} <span class="muted">= ${fmt(c.expectedCollection)} expected · CC spent ${fmt(ccSpent)}</span>${linked ? '<span class="muted"> · bookings available for this date</span>' : ''}</div>`}
-          ${c.remarks ? `<div class="card-detail muted" style="margin-top:3px; font-size:13px">${escapeHtml(c.remarks)}</div>` : ''}
+      <div class="date-group">
+        <div class="date-group-header">
+          <span>📅 ${fmtDate(date)}</span>
+          <span class="muted">${items.length} session${items.length > 1 ? 's' : ''} · ${fmt(countedTotal)}</span>
         </div>
-        <div class="card-right">
-          ${incomplete
-            ? `<div class="card-delta" style="color:var(--brown-deep)">Not counted yet</div>`
-            : `<div class="card-delta ${extra >= 0 ? 'pos' : 'neg'}">${extra >= 0 ? '▲' : '▼'} ${fmt(extra)}</div>`}
-        </div>
-      </div>
-      ${cardActions(c.id, 'contributions')}
-    </div>`;
+        <div class="tile-grid">${tiles}</div>
+      </div>`;
   }).join('');
+
+  return `<div class="panel-title">Game Contributions</div>${controls}${groupsHtml}`;
+}
+
+function contributionTileHtml(c, i) {
+  const ccSpent = liveCcSpent(c);
+  const extra = c.expectedCollection - ccSpent;
+  const linked = hasLinkedBookings(c.date);
+  const incomplete = contributionNeedsUpdate(c);
+  const confirming = confirmDeleteId === c.id && confirmDeleteTab === 'contributions';
+  const actions = confirming
+    ? `<button class="link-btn danger" onclick="doDelete('contributions','${c.id}')">Confirm delete</button>
+       <button class="link-btn" onclick="cancelDelete()">Cancel</button>`
+    : `<button class="link-btn" onclick="openEdit('contributions','${c.id}')">✎ Edit</button>
+       <button class="link-btn" onclick="askDelete('contributions','${c.id}')">🗑 Delete</button>`;
+  return `
+    <div class="booking-tile ${incomplete ? 'needs-update' : ''}" style="animation-delay:${Math.min(i, 8) * 30}ms">
+      <div class="tile-top">
+        <span class="tile-meta">${c.gameType ? escapeHtml(c.gameType) : (c.addedBy ? 'by ' + escapeHtml(c.addedBy) : '')}</span>
+        ${incomplete
+          ? `<span class="tile-amount" style="color:var(--brown-deep)">Not counted yet</span>`
+          : `<span class="tile-amount" style="color:${extra >= 0 ? 'var(--teal)' : 'var(--rust)'}">${extra >= 0 ? '▲' : '▼'} ${fmt(extra)}</span>`}
+      </div>
+      ${incomplete
+        ? `<div class="needs-update-banner">⚠ Needs update — add fee &amp; players. CC spent so far: ${fmt(ccSpent)}</div>`
+        : `<div class="tile-desc" style="white-space:normal">${c.players} × ${fmt(c.feePerPerson)} = ${fmt(c.expectedCollection)} expected · CC spent ${fmt(ccSpent)}${linked ? ' · bookings available' : ''}</div>`}
+      ${c.remarks ? `<div class="tile-meta" style="margin-top:4px; white-space:normal">${escapeHtml(c.remarks)}</div>` : ''}
+      <div class="tile-actions">${actions}</div>
+    </div>`;
 }
 
 function contributionFormFields(c) {  return `
@@ -631,7 +673,6 @@ function renderBookings() {
     ? list
     : list.filter(b => b.date === tabState.bookings.dateFilter);
 
-  const allDates = [...new Set(data.bookings.map(b => b.date))].sort((a, b) => b.localeCompare(a));
   const statusSelect = `
     <select onchange="setStatusFilter(this.value)">
       <option value="all" ${tabState.bookings.status === 'all' ? 'selected' : ''}>All statuses</option>
@@ -639,31 +680,17 @@ function renderBookings() {
       <option value="Pending" ${tabState.bookings.status === 'Pending' ? 'selected' : ''}>Pending</option>
       <option value="Cancelled" ${tabState.bookings.status === 'Cancelled' ? 'selected' : ''}>Cancelled</option>
     </select>`;
-  const dateSelect = `
-    <select onchange="setDateFilter(this.value)">
-      <option value="all" ${tabState.bookings.dateFilter === 'all' ? 'selected' : ''}>All dates</option>
-      ${allDates.map(dt => `<option value="${dt}" ${tabState.bookings.dateFilter === dt ? 'selected' : ''}>${fmtDate(dt)}</option>`).join('')}
-    </select>`;
-  const controls = controlsBar('bookings', 'Search booked by, description…', statusSelect + dateSelect);
+  const controls = controlsBar('bookings', 'Search booked by, description…', statusSelect + dateFilterSelect('bookings', data.bookings));
 
   if (filtered.length === 0) return `<div class="panel-title">Bookings</div>${controls}<div class="empty-state">No bookings match. Tap + to add one.</div>`;
 
-  // Group into date buckets, preserving the current sort's ordering of dates
-  const order = [];
-  const buckets = new Map();
-  filtered.forEach(b => {
-    if (!buckets.has(b.date)) { buckets.set(b.date, []); order.push(b.date); }
-    buckets.get(b.date).push(b);
-  });
-
-  const groupsHtml = order.map(dt => {
-    const items = buckets.get(dt);
+  const groupsHtml = groupByDate(filtered).map(({ date, items }) => {
     const total = items.reduce((s, b) => s + b.amount, 0);
     const tiles = items.map((b, i) => bookingTileHtml(b, i)).join('');
     return `
       <div class="date-group">
         <div class="date-group-header">
-          <span>📅 ${fmtDate(dt)}</span>
+          <span>📅 ${fmtDate(date)}</span>
           <span class="muted">${items.length} booking${items.length > 1 ? 's' : ''} · ${fmt(total)}</span>
         </div>
         <div class="tile-grid">${tiles}</div>
@@ -773,22 +800,46 @@ function cleanupEmptyDrafts() {
 // ---------- Expenses ----------
 function renderExpenses() {
   const list = applyControls(data.expenses, 'expenses', ['item', 'remarks', 'addedBy'], 'totalCost');
-  const controls = controlsBar('expenses', 'Search item, remarks…');
-  if (list.length === 0) return `<div class="panel-title">Expenses</div>${controls}<div class="empty-state">No expenses match. Tap + to add one.</div>`;
-  return `<div class="panel-title">Expenses</div>${controls}` + list.map((e, i) => `
-    <div class="card neg" style="animation-delay:${Math.min(i, 8) * 40}ms">
-      <div class="card-top">
-        <div style="flex:1; min-width:0">
-          <div class="card-meta">📅 ${fmtDate(e.date)} ${e.addedBy ? `<span class="muted">· by ${escapeHtml(e.addedBy)}</span>` : ''}</div>
-          <div class="card-detail">${escapeHtml(e.item)} ${e.quantity ? `<span class="muted">× ${e.quantity}</span>` : ''}</div>
-          ${e.remarks ? `<div class="card-detail muted" style="margin-top:3px; font-size:13px">${escapeHtml(e.remarks)}</div>` : ''}
+  const filtered = tabState.expenses.dateFilter === 'all'
+    ? list
+    : list.filter(e => e.date === tabState.expenses.dateFilter);
+  const controls = controlsBar('expenses', 'Search item, remarks…', dateFilterSelect('expenses', data.expenses));
+
+  if (filtered.length === 0) return `<div class="panel-title">Expenses</div>${controls}<div class="empty-state">No expenses match. Tap + to add one.</div>`;
+
+  const groupsHtml = groupByDate(filtered).map(({ date, items }) => {
+    const total = items.reduce((s, e) => s + e.totalCost, 0);
+    const tiles = items.map((e, i) => expenseTileHtml(e, i)).join('');
+    return `
+      <div class="date-group">
+        <div class="date-group-header">
+          <span>📅 ${fmtDate(date)}</span>
+          <span class="muted">${items.length} item${items.length > 1 ? 's' : ''} · ${fmt(total)}</span>
         </div>
-        <div class="card-right">
-          <div class="card-delta neg">▼ ${fmt(e.totalCost)}</div>
-        </div>
+        <div class="tile-grid">${tiles}</div>
+      </div>`;
+  }).join('');
+
+  return `<div class="panel-title">Expenses</div>${controls}${groupsHtml}`;
+}
+
+function expenseTileHtml(e, i) {
+  const confirming = confirmDeleteId === e.id && confirmDeleteTab === 'expenses';
+  const actions = confirming
+    ? `<button class="link-btn danger" onclick="doDelete('expenses','${e.id}')">Confirm delete</button>
+       <button class="link-btn" onclick="cancelDelete()">Cancel</button>`
+    : `<button class="link-btn" onclick="openEdit('expenses','${e.id}')">✎ Edit</button>
+       <button class="link-btn" onclick="askDelete('expenses','${e.id}')">🗑 Delete</button>`;
+  return `
+    <div class="booking-tile" style="animation-delay:${Math.min(i, 8) * 30}ms">
+      <div class="tile-top">
+        <span class="tile-meta">${e.addedBy ? 'by ' + escapeHtml(e.addedBy) : ''}</span>
+        <span class="tile-amount" style="color:var(--rust)">▼ ${fmt(e.totalCost)}</span>
       </div>
-      ${cardActions(e.id, 'expenses')}
-    </div>`).join('');
+      <div class="tile-desc">${escapeHtml(e.item)}${e.quantity ? ` × ${e.quantity}` : ''}</div>
+      ${e.remarks ? `<div class="tile-meta" style="margin-top:4px; white-space:normal">${escapeHtml(e.remarks)}</div>` : ''}
+      <div class="tile-actions">${actions}</div>
+    </div>`;
 }
 
 function expenseFormFields(e) {
