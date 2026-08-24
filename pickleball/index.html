@@ -320,6 +320,16 @@ async function loadData() {
   } catch (e) {
     console.error('Failed to load data', e);
   }
+
+  // Backfill: catch any booking dates that don't have a matching contribution yet
+  // (covers bookings that existed before this feature, or any other edge case).
+  // ensureContributionDraft is a no-op for dates that already have a contribution,
+  // so this never creates duplicates.
+  const beforeCount = data.contributions.length;
+  [...new Set(data.bookings.map(b => b.date))].forEach(date => ensureContributionDraft(date));
+  cleanupEmptyDrafts();
+  if (data.contributions.length !== beforeCount) saveData();
+
   render();
 }
 
@@ -758,6 +768,8 @@ function submitBooking() {
   };
   if (editingId) data.bookings = data.bookings.map(x => x.id === editingId ? entry : x);
   else data.bookings.push(entry);
+  ensureContributionDraft(date);
+  cleanupEmptyDrafts();
   finishSubmit();
 }
 
@@ -910,6 +922,7 @@ function askDelete(tab, id) { confirmDeleteId = id; confirmDeleteTab = tab; rend
 function cancelDelete() { confirmDeleteId = null; confirmDeleteTab = null; render(); }
 function doDelete(tab, id) {
   data[tab] = data[tab].filter(x => x.id !== id);
+  if (tab === 'bookings') cleanupEmptyDrafts();
   confirmDeleteId = null; confirmDeleteTab = null;
   render();
   saveData();
