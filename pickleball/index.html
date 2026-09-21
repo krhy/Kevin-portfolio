@@ -321,10 +321,6 @@ async function loadData() {
     console.error('Failed to load data', e);
   }
 
-  // Backfill: catch any booking dates that don't have a matching contribution yet
-  // (covers bookings that existed before this feature, or any other edge case).
-  // ensureContributionDraft is a no-op for dates that already have a contribution,
-  // so this never creates duplicates.
   const beforeCount = data.contributions.length;
   [...new Set(data.bookings.map(b => b.date))].forEach(date => ensureContributionDraft(date));
   cleanupEmptyDrafts();
@@ -358,9 +354,6 @@ function hideStatus() {
 }
 
 function summary() {
-  // Contributions still flagged "needs update" (no fee/players entered yet) don't
-  // count toward the fund total — their cost is shown on the card as a reminder,
-  // but only counts once the entry is completed.
   const accumulated = data.contributions.reduce(
     (s, c) => s + (contributionNeedsUpdate(c) ? 0 : liveExtra(c)), 0
   );
@@ -368,7 +361,6 @@ function summary() {
   return { accumulated, expensesTotal, remaining: accumulated - expensesTotal };
 }
 
-// ---------- Balance count-up animation ----------
 function animateBalance(target) {
   const el = document.getElementById('balance');
   const start = displayedBalance;
@@ -386,7 +378,6 @@ function animateBalance(target) {
   requestAnimationFrame(tick);
 }
 
-// ---------- Sparkline (fund trend over time) ----------
 function renderSparkline() {
   const events = [
     ...data.contributions.filter(c => !contributionNeedsUpdate(c)).map(c => ({ date: c.date, createdAt: c.createdAt, delta: liveExtra(c) })),
@@ -425,7 +416,6 @@ function renderSparkline() {
     </svg>`;
 }
 
-// ---------- Tabs ----------
 function switchTab(tab) {
   activeTab = tab;
   document.querySelectorAll('.tab-btn').forEach(b => b.classList.toggle('active', b.dataset.tab === tab));
@@ -479,12 +469,7 @@ function hasLinkedBookings(date) {
   return data.bookings.some(b => b.date === date && b.status !== 'Cancelled');
 }
 
-// A contribution's real CC Spent: if bookings exist for its date, always use their
-// live total (so cancelling/editing/deleting a booking updates funds automatically).
-// Falls back to the manually-entered value only when no bookings are logged for that date.
 function liveCcSpent(c) {
-  // CC Spent is now always trusted as entered — bookings are shown as a helpful
-  // reference/suggestion in the form, but never silently override this number.
   return c.ccSpent;
 }
 function liveExtra(c) {
@@ -529,7 +514,6 @@ function dateFilterSelect(tab, allEntries) {
     </select>`;
 }
 
-// Groups a filtered/sorted list into date buckets, preserving the current sort's date ordering.
 function groupByDate(list) {
   const order = [];
   const buckets = new Map();
@@ -540,7 +524,6 @@ function groupByDate(list) {
   return order.map(dt => ({ date: dt, items: buckets.get(dt) }));
 }
 
-// ---------- Contributions ----------
 function renderContributions() {
   const decorated = data.contributions.map(c => ({ ...c, extra: liveExtra(c) }));
   const list = applyControls(decorated, 'contributions', ['gameType', 'remarks', 'addedBy'], 'extra');
@@ -584,11 +567,11 @@ function contributionTileHtml(c, i) {
         <span class="tile-meta">${c.gameType ? escapeHtml(c.gameType) : (c.addedBy ? 'by ' + escapeHtml(c.addedBy) : '')}</span>
         ${incomplete
           ? `<span class="tile-amount" style="color:var(--brown-deep)">Not counted yet</span>`
-          : `<span class="tile-amount" style="color:${extra >= 0 ? 'var(--teal)' : 'var(--rust)'}">${extra >= 0 ? '▲' : '▼'} ${fmt(extra)}</span>`}
+          : `<span class="tile-amount" style="color:${extra >= 0 ? 'var(--teal)' : 'var(--rust)'}">${extra >= 0 ? '▲' : '▼'}${fmt(extra)}</span>`}
       </div>
       ${incomplete
         ? `<div class="needs-update-banner">⚠ Needs update — add fee &amp; players. CC spent so far: ${fmt(ccSpent)}</div>`
-        : `<div class="tile-desc" style="white-space:normal">${c.players} × ${fmt(c.feePerPerson)} = ${fmt(c.expectedCollection)} expected · CC spent ${fmt(ccSpent)}${linked ? ' · bookings available' : ''}</div>`}
+        : `<div class="tile-desc" style="white-space:normal">${c.players} × ${fmt(c.feePerPerson)} =${fmt(c.expectedCollection)} expected · CC spent ${fmt(ccSpent)}${linked ? ' · bookings available' : ''}</div>`}
       ${c.remarks ? `<div class="tile-meta" style="margin-top:4px; white-space:normal">${escapeHtml(c.remarks)}</div>` : ''}
       <div class="tile-actions">${actions}</div>
     </div>`;
@@ -676,7 +659,6 @@ function submitContribution() {
   finishSubmit();
 }
 
-// ---------- Bookings ----------
 function renderBookings() {
   const list = applyControls(data.bookings, 'bookings', ['bookedBy', 'description', 'comments'], 'amount');
   const filtered = tabState.bookings.dateFilter === 'all'
@@ -773,9 +755,6 @@ function submitBooking() {
   finishSubmit();
 }
 
-// If a booking is logged for a date with no Game Contribution yet, auto-create a
-// placeholder so the money is tracked immediately — flagged incomplete until
-// someone fills in fee-per-person and players.
 function ensureContributionDraft(date) {
   if (data.contributions.some(c => c.date === date)) return;
   const ccSpent = bookingsTotalForDate(date);
@@ -799,17 +778,12 @@ function contributionNeedsUpdate(c) {
   return !c.players || c.players <= 0;
 }
 
-// If a still-incomplete draft contribution (never got its fee/players filled in) loses
-// all its linked bookings — because one was edited, cancelled, or deleted — there's
-// nothing left backing it. Remove the empty draft rather than leaving a phantom entry.
-// Completed contributions (players already set) are never touched by this.
 function cleanupEmptyDrafts() {
   data.contributions = data.contributions.filter(
     c => !(contributionNeedsUpdate(c) && !hasLinkedBookings(c.date))
   );
 }
 
-// ---------- Expenses ----------
 function renderExpenses() {
   const list = applyControls(data.expenses, 'expenses', ['item', 'remarks', 'addedBy'], 'totalCost');
   const filtered = tabState.expenses.dateFilter === 'all'
@@ -890,7 +864,6 @@ function submitExpense() {
   finishSubmit();
 }
 
-// ---------- Summary ----------
 function renderSummary(s) {
   return `
     <div class="panel-title">Funds Summary</div>
@@ -905,7 +878,6 @@ function renderSummary(s) {
   `;
 }
 
-// ---------- Shared card actions / delete confirm ----------
 function cardActions(id, tab) {
   if (confirmDeleteId === id && confirmDeleteTab === tab) {
     return `<div class="card-actions">
@@ -928,7 +900,6 @@ function doDelete(tab, id) {
   saveData();
 }
 
-// ---------- Form open/close/submit dispatch ----------
 function openForm() {
   editingId = null;
   document.getElementById('formError').textContent = '';
