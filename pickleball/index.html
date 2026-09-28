@@ -64,7 +64,15 @@
   .live-dot { width: 6px; height: 6px; border-radius: 50%; background: var(--amber-on-teal); animation: pulseDot 2s ease-in-out infinite; margin-left: auto; }
   .live-label { font-family: 'Space Grotesk', sans-serif; font-size: 10.5px; letter-spacing: 0.12em; color: var(--amber-on-teal); margin-left: 6px; font-weight: 600; }
 
-  .balance-label { font-family: 'Space Grotesk', sans-serif; font-size: 10.5px; letter-spacing: 0.12em; text-transform: uppercase; color: var(--on-teal-muted); margin-bottom: 6px; font-weight: 600; }
+  .header-top-row { display: flex; justify-content: space-between; align-items: center; margin-bottom: 6px; }
+  .balance-label { font-family: 'Space Grotesk', sans-serif; font-size: 10.5px; letter-spacing: 0.12em; text-transform: uppercase; color: var(--on-teal-muted); font-weight: 600; }
+  .auth-btn {
+    background: rgba(255,255,255,0.15); border: 1px solid var(--on-teal-border); color: var(--on-teal);
+    padding: 5px 12px; border-radius: 999px; font-size: 11px; font-family: 'Space Grotesk', sans-serif;
+    font-weight: 600; cursor: pointer; transition: background 0.2s;
+  }
+  .auth-btn.unlocked { background: rgba(231,178,124,0.3); border-color: var(--amber-on-teal); color: var(--amber-on-teal); }
+
   .balance { font-family: 'IBM Plex Mono', monospace; font-weight: 700; font-size: 44px; line-height: 1; color: var(--amber-on-teal); text-shadow: 0 0 26px rgba(231,178,124,0.3); }
   .balance.negative { color: var(--coral-on-teal); text-shadow: 0 0 26px rgba(255,154,128,0.3); }
 
@@ -231,7 +239,10 @@
     <div class="live-dot"></div><span class="live-label">LIVE</span>
   </div>
 
-  <div class="balance-label">Remaining funds</div>
+  <div class="header-top-row">
+    <div class="balance-label" style="margin-bottom:0;">Remaining funds</div>
+    <button class="auth-btn" id="authBtn" onclick="toggleAuth()">🔒 Unlock Editing</button>
+  </div>
   <div id="balance" class="balance">$0</div>
   <div class="sparkline-wrap" id="sparklineWrap"></div>
 
@@ -257,7 +268,7 @@
   <div id="panelBody"></div>
 </div>
 
-<div class="fab" id="fabRow">
+<div class="fab" id="fabRow" style="display:none;">
   <button class="fab-primary" id="fabBtn" onclick="openForm()">+ Add</button>
 </div>
 
@@ -288,6 +299,8 @@ let editingId = null;
 let confirmDeleteId = null;
 let confirmDeleteTab = null;
 let displayedBalance = 0;
+let isAuthorized = false; // Starts locked as read-only for public viewers
+
 let tabState = {
   contributions: { search: '', sort: 'date_desc', dateFilter: 'all' },
   bookings: { search: '', sort: 'date_desc', status: 'all', dateFilter: 'all' },
@@ -307,6 +320,26 @@ function uid() { return Date.now().toString(36) + Math.random().toString(36).sli
 function todayStr() { return new Date().toISOString().slice(0, 10); }
 function escapeHtml(s) { const d = document.createElement('div'); d.textContent = s || ''; return d.innerHTML; }
 
+function toggleAuth() {
+  if (isAuthorized) {
+    if (confirm("Lock editing mode back to read-only?")) {
+      isAuthorized = false;
+      closeForm();
+      render();
+      showStatus("Locked to read-only view");
+    }
+  } else {
+    const pwd = prompt("Enter the committee password to unlock editing:");
+    if (pwd === "HimikolSG") { // Change password here if desired
+      isAuthorized = true;
+      render();
+      showStatus("Editing mode unlocked!");
+    } else if (pwd !== null) {
+      alert("Incorrect password.");
+    }
+  }
+}
+
 async function loadData() {
   try {
     const res = await fetch(API_URL);
@@ -324,12 +357,13 @@ async function loadData() {
   const beforeCount = data.contributions.length;
   [...new Set(data.bookings.map(b => b.date))].forEach(date => ensureContributionDraft(date));
   cleanupEmptyDrafts();
-  if (data.contributions.length !== beforeCount) saveData();
+  if (data.contributions.length !== beforeCount && isAuthorized) saveData();
 
   render();
 }
 
 async function saveData() {
+  if (!isAuthorized) return;
   showStatus('Saving…');
   try {
     const res = await fetch(API_URL, { method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(data) });
@@ -420,7 +454,7 @@ function switchTab(tab) {
   activeTab = tab;
   document.querySelectorAll('.tab-btn').forEach(b => b.classList.toggle('active', b.dataset.tab === tab));
   document.getElementById('tabIndicator').style.transform = `translateX(${TAB_ORDER.indexOf(tab) * 100}%)`;
-  document.getElementById('fabRow').style.display = tab === 'summary' ? 'none' : 'flex';
+  document.getElementById('fabRow').style.display = (tab === 'summary' || !isAuthorized) ? 'none' : 'flex';
   const labels = { contributions: '+ Contribution', bookings: '+ Booking', expenses: '+ Expense' };
   document.getElementById('fabBtn').textContent = labels[tab] || '+ Add';
   render();
@@ -433,6 +467,13 @@ function render() {
   document.getElementById('statAccumulated').textContent = fmt(s.accumulated);
   document.getElementById('statExpenses').textContent = fmt(s.expensesTotal);
   document.getElementById('statSessions').textContent = data.contributions.length;
+
+  const authBtn = document.getElementById('authBtn');
+  if (authBtn) {
+    authBtn.textContent = isAuthorized ? '🔓 Unlocked (Lock)' : '🔒 Unlock Editing';
+    authBtn.className = 'auth-btn' + (isAuthorized ? ' unlocked' : '');
+  }
+  document.getElementById('fabRow').style.display = (activeTab === 'summary' || !isAuthorized) ? 'none' : 'flex';
 
   const body = document.getElementById('panelBody');
   if (activeTab === 'contributions') body.innerHTML = renderContributions();
@@ -469,12 +510,8 @@ function hasLinkedBookings(date) {
   return data.bookings.some(b => b.date === date && b.status !== 'Cancelled');
 }
 
-function liveCcSpent(c) {
-  return c.ccSpent;
-}
-function liveExtra(c) {
-  return c.expectedCollection - c.ccSpent;
-}
+function liveCcSpent(c) { return c.ccSpent; }
+function liveExtra(c) { return c.expectedCollection - c.ccSpent; }
 
 function controlsBar(tab, searchPlaceholder, extraSelect) {
   const st = tabState[tab];
@@ -532,7 +569,7 @@ function renderContributions() {
     : list.filter(c => c.date === tabState.contributions.dateFilter);
   const controls = controlsBar('contributions', 'Search game type, remarks, added by…', dateFilterSelect('contributions', data.contributions));
 
-  if (filtered.length === 0) return `<div class="panel-title">Game Contributions</div>${controls}<div class="empty-state">No games match. Tap + to add one.</div>`;
+  if (filtered.length === 0) return `<div class="panel-title">Game Contributions</div>${controls}<div class="empty-state">No games match.</div>`;
 
   const groupsHtml = groupByDate(filtered).map(({ date, items }) => {
     const countedTotal = items.reduce((s, c) => s + (contributionNeedsUpdate(c) ? 0 : (c.expectedCollection - liveCcSpent(c))), 0);
@@ -555,12 +592,15 @@ function contributionTileHtml(c, i) {
   const extra = c.expectedCollection - ccSpent;
   const linked = hasLinkedBookings(c.date);
   const incomplete = contributionNeedsUpdate(c);
-  const confirming = confirmDeleteId === c.id && confirmDeleteTab === 'contributions';
-  const actions = confirming
-    ? `<button class="link-btn danger" onclick="doDelete('contributions','${c.id}')">Confirm delete</button>
-       <button class="link-btn" onclick="cancelDelete()">Cancel</button>`
-    : `<button class="link-btn" onclick="openEdit('contributions','${c.id}')">✎ Edit</button>
-       <button class="link-btn" onclick="askDelete('contributions','${c.id}')">🗑 Delete</button>`;
+  
+  let actions = '';
+  if (isAuthorized) {
+    const confirming = confirmDeleteId === c.id && confirmDeleteTab === 'contributions';
+    actions = confirming
+      ? `<div class="tile-actions"><button class="link-btn danger" onclick="doDelete('contributions','${c.id}')">Confirm delete</button><button class="link-btn" onclick="cancelDelete()">Cancel</button></div>`
+      : `<div class="tile-actions"><button class="link-btn" onclick="openEdit('contributions','${c.id}')">✎ Edit</button><button class="link-btn" onclick="askDelete('contributions','${c.id}')">🗑 Delete</button></div>`;
+  }
+
   return `
     <div class="booking-tile ${incomplete ? 'needs-update' : ''}" style="animation-delay:${Math.min(i, 8) * 30}ms">
       <div class="tile-top">
@@ -570,14 +610,15 @@ function contributionTileHtml(c, i) {
           : `<span class="tile-amount" style="color:${extra >= 0 ? 'var(--teal)' : 'var(--rust)'}">${extra >= 0 ? '▲' : '▼'}${fmt(extra)}</span>`}
       </div>
       ${incomplete
-        ? `<div class="needs-update-banner">⚠ Needs update — add fee &amp; players. CC spent so far: ${fmt(ccSpent)}</div>`
-        : `<div class="tile-desc" style="white-space:normal">${c.players} × ${fmt(c.feePerPerson)} =${fmt(c.expectedCollection)} expected · CC spent ${fmt(ccSpent)}${linked ? ' · bookings available' : ''}</div>`}
+        ? `<div class="needs-update-banner">⚠ Needs update — add fee &amp; players. CC spent: ${fmt(ccSpent)}</div>`
+        : `<div class="tile-desc" style="white-space:normal">${c.players} × ${fmt(c.feePerPerson)} =${fmt(c.expectedCollection)} expected · CC spent ${fmt(ccSpent)}</div>`}
       ${c.remarks ? `<div class="tile-meta" style="margin-top:4px; white-space:normal">${escapeHtml(c.remarks)}</div>` : ''}
-      <div class="tile-actions">${actions}</div>
+      ${actions}
     </div>`;
 }
 
-function contributionFormFields(c) {  return `
+function contributionFormFields(c) {
+  return `
     <label class="field">Game Date<input type="date" id="fDate" value="${c ? c.date : todayStr()}" oninput="updateContribPreview()" /></label>
     <div id="linkSuggest"></div>
     <label class="field">Added by<input type="text" id="fAddedBy" placeholder="e.g. Doreen" value="${c ? escapeHtml(c.addedBy || '') : ''}" /></label>
@@ -585,7 +626,7 @@ function contributionFormFields(c) {  return `
     <label class="field">Fee per person ($)<input type="number" step="0.01" min="0" id="fFee" value="${c ? c.feePerPerson : ''}" oninput="updateContribPreview()" /></label>
     <label class="field">Players<input type="number" min="1" id="fPlayers" value="${c ? c.players : ''}" oninput="updateContribPreview()" /></label>
     <label class="field" id="fCcSpentLabel">Credit card / actual spent ($)<input type="number" step="0.01" min="0" id="fCcSpent" value="${c ? c.ccSpent : ''}" oninput="updateContribPreview()" /></label>
-    <label class="field">Remarks (optional)<input type="text" id="fRemarks" placeholder="e.g. Paid via personal CC, who paid what" value="${c ? escapeHtml(c.remarks || '') : ''}" /></label>
+    <label class="field">Remarks (optional)<input type="text" id="fRemarks" placeholder="e.g. Paid via personal CC" value="${c ? escapeHtml(c.remarks || '') : ''}" /></label>
     <div class="preview-line" id="contribPreview"></div>
   `;
 }
@@ -674,7 +715,7 @@ function renderBookings() {
     </select>`;
   const controls = controlsBar('bookings', 'Search booked by, description…', statusSelect + dateFilterSelect('bookings', data.bookings));
 
-  if (filtered.length === 0) return `<div class="panel-title">Bookings</div>${controls}<div class="empty-state">No bookings match. Tap + to add one.</div>`;
+  if (filtered.length === 0) return `<div class="panel-title">Bookings</div>${controls}<div class="empty-state">No bookings match.</div>`;
 
   const groupsHtml = groupByDate(filtered).map(({ date, items }) => {
     const total = items.reduce((s, b) => s + b.amount, 0);
@@ -693,12 +734,14 @@ function renderBookings() {
 }
 
 function bookingTileHtml(b, i) {
-  const confirming = confirmDeleteId === b.id && confirmDeleteTab === 'bookings';
-  const actions = confirming
-    ? `<button class="link-btn danger" onclick="doDelete('bookings','${b.id}')">Confirm delete</button>
-       <button class="link-btn" onclick="cancelDelete()">Cancel</button>`
-    : `<button class="link-btn" onclick="openEdit('bookings','${b.id}')">✎ Edit</button>
-       <button class="link-btn" onclick="askDelete('bookings','${b.id}')">🗑 Delete</button>`;
+  let actions = '';
+  if (isAuthorized) {
+    const confirming = confirmDeleteId === b.id && confirmDeleteTab === 'bookings';
+    actions = confirming
+      ? `<div class="tile-actions"><button class="link-btn danger" onclick="doDelete('bookings','${b.id}')">Confirm delete</button><button class="link-btn" onclick="cancelDelete()">Cancel</button></div>`
+      : `<div class="tile-actions"><button class="link-btn" onclick="openEdit('bookings','${b.id}')">✎ Edit</button><button class="link-btn" onclick="askDelete('bookings','${b.id}')">🗑 Delete</button></div>`;
+  }
+
   return `
     <div class="booking-tile" style="animation-delay:${Math.min(i, 8) * 30}ms">
       <div class="tile-top">
@@ -708,7 +751,7 @@ function bookingTileHtml(b, i) {
       <div class="tile-desc" title="${escapeHtml(b.description || '')}">${escapeHtml(b.description || 'Booking')}</div>
       <div class="tile-meta">${b.bookedBy ? `Booked by ${escapeHtml(b.bookedBy)} · ` : ''}Txn ${fmtDate(b.transactionDate)}</div>
       ${b.comments ? `<div class="tile-meta" style="margin-top:2px">${escapeHtml(b.comments)}</div>` : ''}
-      <div class="tile-actions">${actions}</div>
+      ${actions}
     </div>`;
 }
 
@@ -791,7 +834,7 @@ function renderExpenses() {
     : list.filter(e => e.date === tabState.expenses.dateFilter);
   const controls = controlsBar('expenses', 'Search item, remarks…', dateFilterSelect('expenses', data.expenses));
 
-  if (filtered.length === 0) return `<div class="panel-title">Expenses</div>${controls}<div class="empty-state">No expenses match. Tap + to add one.</div>`;
+  if (filtered.length === 0) return `<div class="panel-title">Expenses</div>${controls}<div class="empty-state">No expenses match.</div>`;
 
   const groupsHtml = groupByDate(filtered).map(({ date, items }) => {
     const total = items.reduce((s, e) => s + e.totalCost, 0);
@@ -810,12 +853,14 @@ function renderExpenses() {
 }
 
 function expenseTileHtml(e, i) {
-  const confirming = confirmDeleteId === e.id && confirmDeleteTab === 'expenses';
-  const actions = confirming
-    ? `<button class="link-btn danger" onclick="doDelete('expenses','${e.id}')">Confirm delete</button>
-       <button class="link-btn" onclick="cancelDelete()">Cancel</button>`
-    : `<button class="link-btn" onclick="openEdit('expenses','${e.id}')">✎ Edit</button>
-       <button class="link-btn" onclick="askDelete('expenses','${e.id}')">🗑 Delete</button>`;
+  let actions = '';
+  if (isAuthorized) {
+    const confirming = confirmDeleteId === e.id && confirmDeleteTab === 'expenses';
+    actions = confirming
+      ? `<div class="tile-actions"><button class="link-btn danger" onclick="doDelete('expenses','${e.id}')">Confirm delete</button><button class="link-btn" onclick="cancelDelete()">Cancel</button></div>`
+      : `<div class="tile-actions"><button class="link-btn" onclick="openEdit('expenses','${e.id}')">✎ Edit</button><button class="link-btn" onclick="askDelete('expenses','${e.id}')">🗑 Delete</button></div>`;
+  }
+
   return `
     <div class="booking-tile" style="animation-delay:${Math.min(i, 8) * 30}ms">
       <div class="tile-top">
@@ -824,7 +869,7 @@ function expenseTileHtml(e, i) {
       </div>
       <div class="tile-desc">${escapeHtml(e.item)}${e.quantity ? ` × ${e.quantity}` : ''}</div>
       ${e.remarks ? `<div class="tile-meta" style="margin-top:4px; white-space:normal">${escapeHtml(e.remarks)}</div>` : ''}
-      <div class="tile-actions">${actions}</div>
+      ${actions}
     </div>`;
 }
 
@@ -878,21 +923,10 @@ function renderSummary(s) {
   `;
 }
 
-function cardActions(id, tab) {
-  if (confirmDeleteId === id && confirmDeleteTab === tab) {
-    return `<div class="card-actions">
-      <button class="link-btn danger" onclick="doDelete('${tab}','${id}')">Confirm delete</button>
-      <button class="link-btn" onclick="cancelDelete()">Cancel</button>
-    </div>`;
-  }
-  return `<div class="card-actions">
-    <button class="link-btn" onclick="openEdit('${tab}','${id}')">✎ Edit</button>
-    <button class="link-btn" onclick="askDelete('${tab}','${id}')">🗑 Delete</button>
-  </div>`;
-}
-function askDelete(tab, id) { confirmDeleteId = id; confirmDeleteTab = tab; render(); }
+function askDelete(tab, id) { if (!isAuthorized) return; confirmDeleteId = id; confirmDeleteTab = tab; render(); }
 function cancelDelete() { confirmDeleteId = null; confirmDeleteTab = null; render(); }
 function doDelete(tab, id) {
+  if (!isAuthorized) return;
   data[tab] = data[tab].filter(x => x.id !== id);
   if (tab === 'bookings') cleanupEmptyDrafts();
   confirmDeleteId = null; confirmDeleteTab = null;
@@ -901,6 +935,7 @@ function doDelete(tab, id) {
 }
 
 function openForm() {
+  if (!isAuthorized) return;
   editingId = null;
   document.getElementById('formError').textContent = '';
   const titles = { contributions: 'New game contribution', bookings: 'New booking', expenses: 'New expense' };
@@ -914,6 +949,7 @@ function openForm() {
 }
 
 function openEdit(tab, id) {
+  if (!isAuthorized) return;
   const entry = data[tab].find(x => x.id === id);
   if (!entry) return;
   activeTab = tab;
@@ -933,6 +969,7 @@ function closeForm() { document.getElementById('overlay').classList.remove('open
 
 function submitForm(ev) {
   ev.preventDefault();
+  if (!isAuthorized) return;
   document.getElementById('formError').textContent = '';
   if (activeTab === 'contributions') submitContribution();
   else if (activeTab === 'bookings') submitBooking();
