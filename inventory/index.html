@@ -3,129 +3,146 @@
 <head>
 <meta charset="UTF-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-<title>Inventory & Sales Tracker</title>
+<title>Inventory & Sales Intelligence</title>
 <style>
-  @import url('https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@500;600;700&family=Inter:wght@400;500;600&family=IBM+Plex+Mono:wght@500;600;700&display=swap');
+  @import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@500;600;700&family=Inter:wght@400;500;600&family=JetBrains+Mono:wght@500;600;700&display=swap');
 
   :root {
-    --paper: #F7F5F0;
-    --surface: rgba(255,255,255,0.78);
+    --paper: #F4F7FB;
+    --surface: rgba(255, 255, 255, 0.85);
     --surface-solid: #FFFFFF;
-    --border: rgba(79,114,89,0.14);
-    --border-strong: rgba(79,114,89,0.30);
-    --teal: #4F7259;
-    --teal-deep: #37503F;
-    --teal-wash: rgba(79,114,89,0.07);
-    --brown: #C98A2D;
-    --brown-deep: #8C5A28;
-    --brown-wash: rgba(140,90,40,0.08);
-    --rust: #C4442A;
-    --ink: #23223A;
-    --muted: #6E6C7E;
-    --header-1: #223228;
-    --header-2: #4F7259;
-    --on-teal: rgba(255,255,255,0.9);
-    --on-teal-muted: rgba(255,255,255,0.58);
-    --on-teal-border: rgba(255,255,255,0.18);
-    --amber-on-teal: #E7B26B;
+    --border: rgba(99, 102, 241, 0.12);
+    --border-strong: rgba(99, 102, 241, 0.28);
+    
+    --primary: #4F46E5;       /* Electric Indigo */
+    --primary-glow: rgba(79, 70, 229, 0.15);
+    --teal: #0EA5E9;          /* Cyber Cyan */
+    --teal-wash: rgba(14, 165, 233, 0.06);
+    --success: #10B981;       /* Emerald Profit */
+    --rust: #EF4444;          /* Alert Crimson */
+    
+    --ink: #0F172A;
+    --muted: #64748B;
+    
+    --header-bg-1: #0F172A;
+    --header-bg-2: #1E293B;
+    --on-header: #F8FAFC;
+    --on-header-muted: #94A3B8;
+    --accent-glow: #38BDF8;
   }
 
   * { box-sizing: border-box; }
   body {
     margin: 0; font-family: 'Inter', sans-serif; color: var(--ink); min-height: 100vh;
     background:
-      radial-gradient(circle at 15% -10%, var(--teal-wash), transparent 40%),
-      radial-gradient(circle at 100% 0%, var(--brown-wash), transparent 35%),
+      radial-gradient(circle at 10% 0%, rgba(14, 165, 233, 0.08), transparent 45%),
+      radial-gradient(circle at 90% 10%, rgba(79, 70, 229, 0.06), transparent 40%),
       var(--paper);
   }
   button { font-family: inherit; cursor: pointer; }
-  input:focus, select:focus { outline: 2px solid var(--teal); outline-offset: 1px; }
+  input:focus, select:focus { outline: 2px solid var(--primary); outline-offset: 1px; }
 
-  @keyframes pulseDot { 0%,100% { box-shadow: 0 0 0 0 rgba(231,178,124,0.45); } 50% { box-shadow: 0 0 0 6px rgba(231,178,124,0); } }
-  @keyframes fadeSlideIn { from { opacity: 0; transform: translateY(8px); } to { opacity: 1; transform: translateY(0); } }
+  @keyframes pulseGlow { 0%,100% { box-shadow: 0 0 0 0 rgba(56,189,248,0.4); } 50% { box-shadow: 0 0 0 8px rgba(56,189,248,0); } }
+  @keyframes fadeSlideIn { from { opacity: 0; transform: translateY(6px); } to { opacity: 1; transform: translateY(0); } }
 
   .header {
-    padding: 24px 20px 26px; position: relative;
-    background: linear-gradient(160deg, var(--header-1), var(--header-2));
-    border-radius: 0 0 24px 24px;
-    box-shadow: 0 10px 24px rgba(23,66,63,0.22);
+    padding: 26px 20px 28px; position: relative;
+    background: linear-gradient(135deg, var(--header-bg-1), var(--header-bg-2));
+    border-radius: 0 0 28px 28px;
+    box-shadow: 0 12px 30px rgba(15, 23, 42, 0.15);
+    border-bottom: 1px solid rgba(255,255,255,0.08);
   }
-  .brand { display: flex; align-items: center; gap: 8px; margin-bottom: 10px; }
-  .brand-text { font-family: 'Space Grotesk', sans-serif; font-size: 12.5px; letter-spacing: 0.14em; text-transform: uppercase; color: var(--on-teal-muted); font-weight: 600; }
-  .live-dot { width: 6px; height: 6px; border-radius: 50%; background: var(--amber-on-teal); animation: pulseDot 2s ease-in-out infinite; margin-left: auto; }
-  .live-label { font-family: 'Space Grotesk', sans-serif; font-size: 10.5px; letter-spacing: 0.12em; color: var(--amber-on-teal); margin-left: 6px; font-weight: 600; }
+  .brand { display: flex; align-items: center; gap: 8px; margin-bottom: 12px; }
+  .brand-text { font-family: 'Plus Jakarta Sans', sans-serif; font-size: 11.5px; letter-spacing: 0.16em; text-transform: uppercase; color: var(--on-header-muted); font-weight: 700; }
+  .live-dot { width: 6px; height: 6px; border-radius: 50%; background: var(--accent-glow); animation: pulseGlow 2s ease-in-out infinite; margin-left: auto; }
+  .live-label { font-family: 'Plus Jakarta Sans', sans-serif; font-size: 10px; letter-spacing: 0.14em; color: var(--accent-glow); margin-left: 6px; font-weight: 700; }
 
-  .header-top-row { display: flex; justify-content: space-between; align-items: center; margin-bottom: 6px; }
-  .balance-label { font-family: 'Space Grotesk', sans-serif; font-size: 10.5px; letter-spacing: 0.12em; text-transform: uppercase; color: var(--on-teal-muted); font-weight: 600; }
+  .header-top-row { display: flex; justify-content: space-between; align-items: center; margin-bottom: 4px; }
+  .balance-label { font-family: 'Plus Jakarta Sans', sans-serif; font-size: 10.5px; letter-spacing: 0.14em; text-transform: uppercase; color: var(--on-header-muted); font-weight: 700; }
   .auth-btn {
-    background: rgba(255,255,255,0.15); border: 1px solid var(--on-teal-border); color: var(--on-teal);
-    padding: 5px 12px; border-radius: 999px; font-size: 11px; font-family: 'Space Grotesk', sans-serif;
-    font-weight: 600; cursor: pointer; transition: background 0.2s;
+    background: rgba(255,255,255,0.08); border: 1px solid rgba(255,255,255,0.15); color: var(--on-header);
+    padding: 6px 14px; border-radius: 999px; font-size: 11px; font-family: 'Plus Jakarta Sans', sans-serif;
+    font-weight: 600; cursor: pointer; transition: all 0.2s; backdrop-filter: blur(4px);
   }
-  .auth-btn.unlocked { background: rgba(231,178,124,0.3); border-color: var(--amber-on-teal); color: var(--amber-on-teal); }
+  .auth-btn:hover { background: rgba(255,255,255,0.15); }
+  .auth-btn.unlocked { background: rgba(56, 189, 248, 0.2); border-color: var(--accent-glow); color: var(--accent-glow); }
 
-  .balance { font-family: 'IBM Plex Mono', monospace; font-weight: 700; font-size: 36px; line-height: 1; color: var(--amber-on-teal); }
+  .balance { font-family: 'JetBrains Mono', monospace; font-weight: 700; font-size: 38px; line-height: 1; color: var(--accent-glow); letter-spacing: -0.02em; }
 
-  .stats { display: flex; gap: 18px; flex-wrap: wrap; margin-top: 14px; }
-  .stat-value { font-family: 'IBM Plex Mono', monospace; font-size: 14px; font-weight: 600; color: var(--on-teal); }
-  .stat-label { font-size: 9.5px; color: var(--on-teal-muted); text-transform: uppercase; letter-spacing: 0.08em; }
+  .stats { display: flex; gap: 20px; flex-wrap: wrap; margin-top: 16px; }
+  .stat-value { font-family: 'JetBrains Mono', monospace; font-size: 14px; font-weight: 600; color: var(--on-header); }
+  .stat-label { font-size: 9.5px; color: var(--on-header-muted); text-transform: uppercase; letter-spacing: 0.1em; }
 
-  .panel { padding: 22px 16px 110px; max-width: 900px; margin: 0 auto; }
-  .panel-title { font-family: 'Space Grotesk', sans-serif; font-size: 12px; letter-spacing: 0.1em; text-transform: uppercase; color: var(--muted); margin-bottom: 12px; font-weight: 600; }
+  .panel { padding: 24px 16px 110px; max-width: 920px; margin: 0 auto; }
+  .panel-title { font-family: 'Plus Jakarta Sans', sans-serif; font-size: 11.5px; letter-spacing: 0.14em; text-transform: uppercase; color: var(--muted); margin-bottom: 12px; font-weight: 700; }
   
-  .controls { display: flex; gap: 8px; margin-bottom: 14px; flex-wrap: wrap; }
-  .controls input[type="text"] { flex: 1 1 200px; padding: 8px 12px; font-size: 13.5px; border-radius: 10px; border: 1px solid var(--border-strong); background: #fff;}
-  .controls select { padding: 8px 10px; font-size: 13px; border-radius: 10px; border: 1px solid var(--border-strong); background: #fff;}
+  .controls { display: flex; gap: 10px; margin-bottom: 16px; flex-wrap: wrap; }
+  .controls input[type="text"] { flex: 1 1 200px; padding: 10px 14px; font-size: 13.5px; border-radius: 12px; border: 1px solid var(--border-strong); background: var(--surface-solid); box-shadow: 0 2px 4px rgba(0,0,0,0.01); }
+  .controls select { padding: 10px 12px; font-size: 13px; border-radius: 12px; border: 1px solid var(--border-strong); background: var(--surface-solid); }
 
-  .tile-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(270px, 1fr)); gap: 12px; }
+  .tile-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); gap: 14px; }
   .item-card {
-    background: var(--surface); backdrop-filter: blur(10px);
+    background: var(--surface); backdrop-filter: blur(12px);
     border: 1px solid var(--border); border-left: 3px solid var(--teal);
-    border-radius: 12px; padding: 12px 14px; animation: fadeSlideIn 0.3s ease both;
+    border-radius: 16px; padding: 14px 16px; animation: fadeSlideIn 0.3s ease both;
+    box-shadow: 0 4px 20px rgba(15, 23, 42, 0.04);
+    transition: transform 0.2s, box-shadow 0.2s;
   }
+  .item-card:hover { transform: translateY(-2px); box-shadow: 0 8px 24px rgba(15, 23, 42, 0.07); }
   .item-card.low-stock { border-left-color: var(--rust); }
-  .item-top { display: flex; justify-content: space-between; align-items: flex-start; gap: 8px; margin-bottom: 6px; }
-  .item-name { font-weight: 600; font-size: 14.5px; color: var(--ink); }
-  .item-qty { font-family: 'IBM Plex Mono', monospace; font-weight: 700; font-size: 14px; color: var(--teal); background: var(--teal-wash); padding: 2px 6px; border-radius: 6px; }
   
-  .financial-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 6px; margin: 8px 0; background: rgba(0,0,0,0.02); padding: 8px; border-radius: 8px; font-size: 12px; }
-  .fin-label { color: var(--muted); font-size: 10px; text-transform: uppercase; }
-  .fin-val { font-family: 'IBM Plex Mono', monospace; font-weight: 600; color: var(--ink); }
-  .fin-val.profit { color: #2E7D32; }
+  .item-top { display: flex; justify-content: space-between; align-items: flex-start; gap: 8px; margin-bottom: 6px; }
+  .item-name { font-family: 'Plus Jakarta Sans', sans-serif; font-weight: 600; font-size: 15px; color: var(--ink); }
+  .item-qty { font-family: 'JetBrains Mono', monospace; font-weight: 700; font-size: 13px; color: var(--primary); background: var(--primary-glow); padding: 3px 8px; border-radius: 8px; }
+  
+  .financial-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 8px; margin: 10px 0; background: rgba(241, 245, 249, 0.7); padding: 10px; border-radius: 10px; font-size: 12px; border: 1px solid rgba(226, 232, 240, 0.8); }
+  .fin-label { color: var(--muted); font-size: 9.5px; text-transform: uppercase; letter-spacing: 0.08em; font-weight: 600; }
+  .fin-val { font-family: 'JetBrains Mono', monospace; font-weight: 600; color: var(--ink); }
+  .fin-val.profit { color: var(--success); }
 
   .item-meta { font-size: 11.5px; color: var(--muted); margin-bottom: 2px; }
-  .item-actions { display: flex; justify-content: space-between; align-items: center; margin-top: 8px; padding-top: 6px; border-top: 1px solid var(--border); }
+  .item-actions { display: flex; justify-content: space-between; align-items: center; margin-top: 10px; padding-top: 8px; border-top: 1px solid var(--border); }
   .action-group { display: flex; gap: 10px; }
-  .link-btn { background: none; border: none; font-size: 12px; cursor: pointer; color: var(--muted); padding: 0; }
+  .link-btn { background: none; border: none; font-size: 12px; cursor: pointer; color: var(--muted); padding: 0; font-weight: 500; transition: color 0.15s; }
+  .link-btn:hover { color: var(--primary); }
   .link-btn.danger { color: var(--rust); }
-  .link-btn.sell { color: var(--brown); font-weight: 600; }
+  .link-btn.sell { color: var(--primary); font-weight: 600; }
 
-  .fab { position: fixed; bottom: 20px; left: 0; right: 0; display: flex; justify-content: center; z-index: 5; }
+  .fab { position: fixed; bottom: 24px; left: 0; right: 0; display: flex; justify-content: center; z-index: 5; pointer-events: none; }
   .fab-primary {
-    display: flex; align-items: center; gap: 6px; background: var(--brown); color: #fff;
-    border: none; border-radius: 999px; padding: 13px 24px; font-weight: 700; font-size: 14.5px;
-    font-family: 'Space Grotesk', sans-serif; box-shadow: 0 4px 16px rgba(180,118,59,0.28);
+    pointer-events: auto; display: flex; align-items: center; gap: 8px; background: var(--primary); color: #fff;
+    border: none; border-radius: 999px; padding: 14px 28px; font-weight: 700; font-size: 14px;
+    font-family: 'Plus Jakarta Sans', sans-serif; box-shadow: 0 8px 24px rgba(79, 70, 229, 0.35);
+    transition: transform 0.2s, background 0.2s;
   }
+  .fab-primary:hover { background: #4338CA; transform: scale(1.02); }
 
-  .overlay { position: fixed; inset: 0; background: rgba(36,29,22,0.35); backdrop-filter: blur(2px); display: none; align-items: flex-end; z-index: 10; }
+  .overlay { position: fixed; inset: 0; background: rgba(15, 23, 42, 0.4); backdrop-filter: blur(4px); display: none; align-items: flex-end; z-index: 10; }
   .overlay.open { display: flex; }
   .sheet {
-    background: var(--surface-solid); color: var(--ink); width: 100%; border-radius: 22px 22px 0 0;
-    padding: 10px 18px 24px; max-height: 88vh; overflow-y: auto; border-top: 1px solid var(--border-strong);
+    background: var(--surface-solid); color: var(--ink); width: 100%; border-radius: 24px 24px 0 0;
+    padding: 12px 20px 28px; max-height: 88vh; overflow-y: auto; border-top: 1px solid var(--border-strong);
+    box-shadow: 0 -10px 40px rgba(15, 23, 42, 0.15);
   }
-  .drag-handle { width: 36px; height: 4px; border-radius: 999px; background: var(--border-strong); margin: 4px auto 14px; }
-  .sheet-head { display: flex; justify-content: space-between; align-items: center; margin-bottom: 14px; }
-  .sheet-title { font-family: 'Space Grotesk', sans-serif; font-size: 16px; text-transform: uppercase; color: var(--teal); font-weight: 700; }
-  .close-btn { background: none; border: none; color: var(--muted); font-size: 16px; }
+  .drag-handle { width: 36px; height: 4px; border-radius: 999px; background: #CBD5E1; margin: 4px auto 16px; }
+  .sheet-head { display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px; }
+  .sheet-title { font-family: 'Plus Jakarta Sans', sans-serif; font-size: 16px; text-transform: uppercase; color: var(--primary); font-weight: 700; letter-spacing: 0.05em; }
+  .close-btn { background: none; border: none; color: var(--muted); font-size: 16px; cursor: pointer; }
 
-  form { display: flex; flex-direction: column; gap: 12px; }
-  label.field { display: flex; flex-direction: column; gap: 5px; font-size: 12.5px; color: var(--muted); }
+  form { display: flex; flex-direction: column; gap: 14px; }
+  label.field { display: flex; flex-direction: column; gap: 6px; font-size: 12px; color: var(--muted); font-weight: 600; letter-spacing: 0.04em; }
   input[type="text"], input[type="number"], select {
-    padding: 10px 12px; border-radius: 10px; border: 1px solid var(--border-strong); font-size: 15px; background: #fff; width: 100%;
+    padding: 11px 14px; border-radius: 12px; border: 1px solid var(--border-strong); font-size: 14.5px; background: #fff; width: 100%; color: var(--ink);
   }
-  .form-row { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+  .form-row { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
   .form-error { color: var(--rust); font-size: 13px; font-weight: 600; }
-  .status-banner { position: fixed; top: 14px; right: 14px; font-size: 11px; font-family: 'Space Grotesk', sans-serif; font-weight: 600; transition: opacity 0.3s; z-index: 20; background: rgba(0,0,0,0.22); color: #E7B26B; padding: 4px 10px; border-radius: 999px; }
+  
+  .status-banner { 
+    position: fixed; top: 16px; right: 16px; font-size: 11px; font-family: 'Plus Jakarta Sans', sans-serif; 
+    font-weight: 700; letter-spacing: 0.08em; transition: opacity 0.3s; z-index: 20; 
+    background: rgba(15, 23, 42, 0.85); backdrop-filter: blur(6px); color: var(--accent-glow); 
+    padding: 6px 14px; border-radius: 999px; box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+  }
 </style>
 </head>
 <body>
@@ -133,7 +150,7 @@
 <div class="header">
   <div class="brand">
     <span class="brand-text">Inventory & Sales Intelligence</span>
-    <div class="live-dot"></div><span class="live-label">LIVE</span>
+    <div class="live-dot"></div><span class="live-label">LIVE SYSTEM</span>
   </div>
 
   <div class="header-top-row">
@@ -152,7 +169,7 @@
 <div class="panel">
   <div class="panel-title">Stock & Products</div>
   <div class="controls">
-    <input type="text" id="searchInput" placeholder="Search products..." oninput="setSearch(this.value)" />
+    <input type="text" id="searchInput" placeholder="Search products or locations..." oninput="setSearch(this.value)" />
     <select id="categoryFilter" onchange="setCategoryFilter(this.value)">
       <option value="all">All Categories</option>
     </select>
@@ -174,7 +191,7 @@
     <form id="itemForm" onsubmit="submitForm(event)">
       <div id="formFields"></div>
       <div class="form-error" id="formError"></div>
-      <button type="submit" class="fab-primary" style="width:100%; justify-content:center; margin-top:8px;">Save Product</button>
+      <button type="submit" class="fab-primary" style="width:100%; justify-content:center; margin-top:4px;">Save Product</button>
     </form>
   </div>
 </div>
@@ -184,7 +201,7 @@
 <script>
 const API_URL = '/api/inventory/items';
 let items = [];
-let isAuthorized = false; // Starts locked as read-only
+let isAuthorized = false;
 let searchQuery = '';
 let categoryFilter = 'all';
 let editingId = null;
@@ -204,7 +221,7 @@ function toggleAuth() {
     }
   } else {
     const pwd = prompt("Enter password to unlock inventory editing:");
-    if (pwd === "inventory123") { // <-- Change password here if needed
+    if (pwd === "inventory123") {
       isAuthorized = true;
       render();
       showStatus("Editing mode unlocked!");
@@ -226,7 +243,7 @@ async function loadData() {
 
 async function saveData() {
   if (!isAuthorized) return;
-  showStatus('Saving…');
+  showStatus('Syncing…');
   try {
     await fetch(API_URL, {
       method: 'PUT',
@@ -235,7 +252,7 @@ async function saveData() {
     });
     hideStatus();
   } catch (e) {
-    showStatus('Save failed', true);
+    showStatus('Sync failed', true);
   }
 }
 
@@ -251,7 +268,6 @@ function hideStatus() {
 function setSearch(val) { searchQuery = val; render(); }
 function setCategoryFilter(val) { categoryFilter = val; render(); }
 
-// Quick record sale function when unlocked
 function recordSale(id) {
   if (!isAuthorized) return;
   items = items.map(i => {
@@ -291,7 +307,6 @@ function render() {
     return (item.name || '').toLowerCase().includes(q) || (item.location || '').toLowerCase().includes(q);
   });
 
-  // Calculations
   let totalRev = 0;
   let totalProfit = 0;
   let totalStockCount = 0;
@@ -316,7 +331,7 @@ function render() {
 
   const grid = document.getElementById('inventoryGrid');
   if (filtered.length === 0) {
-    grid.innerHTML = `<div style="grid-column: 1/-1; text-align:center; padding: 30px; color:var(--muted);">No products found.</div>`;
+    grid.innerHTML = `<div style="grid-column: 1/-1; text-align:center; padding: 40px; color:var(--muted);">No products found.</div>`;
     return;
   }
 
@@ -390,8 +405,8 @@ function openForm() {
   document.getElementById('sheetTitle').textContent = 'Add New Product';
   document.getElementById('formError').textContent = '';
   document.getElementById('formFields').innerHTML = `
-    <label class="field">Product Name<input type="text" id="fName" placeholder="e.g. Premium T-Shirt" required /></label>
-    <label class="field">Category<input type="text" id="fCategory" placeholder="e.g. Apparel" /></label>
+    <label class="field">Product Name<input type="text" id="fName" placeholder="e.g. Next-Gen Sensor" required /></label>
+    <label class="field">Category<input type="text" id="fCategory" placeholder="e.g. Hardware" /></label>
     <div class="form-row">
       <label class="field">Cost Price ($)<input type="number" id="fCost" step="0.01" min="0" value="0.00" required /></label>
       <label class="field">Selling Price ($)<input type="number" id="fPrice" step="0.01" min="0" value="0.00" required /></label>
@@ -401,7 +416,7 @@ function openForm() {
       <label class="field">Low Stock Alert Min<input type="number" id="fMin" min="0" value="2" /></label>
     </div>
     <label class="field">Units Already Sold (Optional)<input type="number" id="fSold" min="0" value="0" /></label>
-    <label class="field">Storage Location<input type="text" id="fLocation" placeholder="e.g. Shelf B3" /></label>
+    <label class="field">Storage Location<input type="text" id="fLocation" placeholder="e.g. Sector 7G" /></label>
   `;
   document.getElementById('overlay').classList.add('open');
 }
@@ -446,8 +461,6 @@ function submitForm(e) {
     document.getElementById('formError').textContent = 'Please fill out all required numeric fields properly.';
     return;
   }
-
-  const existing = editingId ? items.find(i => i.id === editingId) : null;
 
   const payload = {
     id: editingId || (Date.now().toString(36) + Math.random().toString(36).slice(2, 5)),
