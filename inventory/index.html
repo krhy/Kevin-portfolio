@@ -120,13 +120,35 @@
     font-family: 'Plus Jakarta Sans', sans-serif; box-shadow: 0 8px 24px rgba(79, 70, 229, 0.35);
   }
 
-  .overlay { position: fixed; inset: 0; background: rgba(15, 23, 42, 0.4); backdrop-filter: blur(4px); display: none; align-items: flex-end; z-index: 10; }
-  .overlay.open { display: flex; }
-  .sheet {
-    background: var(--surface-solid); color: var(--ink); width: 100%; border-radius: 24px 24px 0 0;
-    padding: 12px 20px 28px; max-height: 88vh; overflow-y: auto; border-top: 1px solid var(--border-strong);
+  /* Updated overlay styles for centered popups */
+  .overlay { 
+    position: fixed; 
+    inset: 0; 
+    background: rgba(15, 23, 42, 0.5); 
+    backdrop-filter: blur(4px); 
+    display: none; 
+    align-items: center; 
+    justify-content: center; 
+    padding: 16px;
+    z-index: 10; 
   }
-  .drag-handle { width: 36px; height: 4px; border-radius: 999px; background: #CBD5E1; margin: 4px auto 16px; }
+  .overlay.open { display: flex; }
+  
+  .sheet {
+    background: var(--surface-solid); 
+    color: var(--ink); 
+    width: 100%; 
+    max-width: 480px;
+    border-radius: 20px; 
+    padding: 20px 20px 24px; 
+    max-height: 85vh; 
+    overflow-y: auto; 
+    border: 1px solid var(--border-strong);
+    box-shadow: 0 20px 40px rgba(15, 23, 42, 0.2);
+  }
+  
+  .drag-handle { display: none; } /* Removed since it's now centered */
+  
   .sheet-head { display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px; }
   .sheet-title { font-family: 'Plus Jakarta Sans', sans-serif; font-size: 16px; text-transform: uppercase; color: var(--primary); font-weight: 700; }
   .close-btn { background: none; border: none; color: var(--muted); font-size: 16px; cursor: pointer; }
@@ -201,7 +223,6 @@
 <!-- Password Auth Overlay -->
 <div class="overlay" id="authOverlay" onclick="if(event.target===this) closeAuthForm()">
   <div class="sheet">
-    <div class="drag-handle"></div>
     <div class="sheet-head">
       <div class="sheet-title">Unlock Editing</div>
       <button class="close-btn" onclick="closeAuthForm()">✕</button>
@@ -217,7 +238,6 @@
 <!-- Form Overlay (Add/Edit Product) -->
 <div class="overlay" id="overlay" onclick="if(event.target===this) closeForm()">
   <div class="sheet">
-    <div class="drag-handle"></div>
     <div class="sheet-head">
       <div class="sheet-title" id="sheetTitle">New Product</div>
       <button class="close-btn" onclick="closeForm()">✕</button>
@@ -233,7 +253,6 @@
 <!-- Record Sale Overlay -->
 <div class="overlay" id="saleOverlay" onclick="if(event.target===this) closeSaleForm()">
   <div class="sheet">
-    <div class="drag-handle"></div>
     <div class="sheet-head">
       <div class="sheet-title" id="saleSheetTitle">Record Sale</div>
       <button class="close-btn" onclick="closeSaleForm()">✕</button>
@@ -253,7 +272,6 @@
 <!-- Restock Overlay -->
 <div class="overlay" id="restockOverlay" onclick="if(event.target===this) closeRestockForm()">
   <div class="sheet">
-    <div class="drag-handle"></div>
     <div class="sheet-head">
       <div class="sheet-title" id="restockSheetTitle">Add Stock</div>
       <button class="close-btn" onclick="closeRestockForm()">✕</button>
@@ -274,7 +292,6 @@
 <!-- Add Standalone Fees Overlay -->
 <div class="overlay" id="feesOverlay" onclick="if(event.target===this) closeFeesForm()">
   <div class="sheet">
-    <div class="drag-handle"></div>
     <div class="sheet-head">
       <div class="sheet-title" id="feesSheetTitle">Add Standalone Fees</div>
       <button class="close-btn" onclick="closeFeesForm()">✕</button>
@@ -291,8 +308,7 @@
 
 <!-- Sales History Detail Overlay -->
 <div class="overlay" id="detailOverlay" onclick="if(event.target===this) closeDetail()">
-  <div class="sheet">
-    <div class="drag-handle"></div>
+  <div class="sheet" style="max-width: 600px;">
     <div class="sheet-head">
       <div class="sheet-title" id="detailSheetTitle">Sales Log</div>
       <button class="close-btn" onclick="closeDetail()">✕</button>
@@ -310,7 +326,7 @@ let searchQuery = '';
 let categoryFilter = 'all';
 let editingId = null;
 let confirmDeleteId = null;
-let displayedBalance = 0; // Tracks the current animated value for the net profit display[cite: 5]
+let displayedBalance = 0; 
 
 function fmt(num) {
   const val = parseFloat(num) || 0;
@@ -318,7 +334,6 @@ function fmt(num) {
   return val < 0 ? '-₱' + formatted : '₱' + formatted;
 }
 
-// Number counting animation integrated using the provided logic structure[cite: 5]
 function animateBalance(target) {
   const el = document.getElementById('totalProfitDisplay');
   if (!el) return;
@@ -780,7 +795,6 @@ function render() {
 
   const netCashFlow = totalSales - totalCapital;
 
-  // Trigger smooth number counting animation for net profit[cite: 5]
   animateBalance(totalProfit);
   
   document.getElementById('statSales').textContent = fmt(totalSales);
