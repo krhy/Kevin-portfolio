@@ -140,7 +140,7 @@
   .summary-row.total .summary-label { font-weight: 600; color: var(--ink); }
   .summary-row.total .summary-value { font-size: 26px; }
 
-  .fab { position: fixed; bottom: 20px; left: 0; right: 0; display: flex; justify-content: center; }
+  .fab { position: fixed; bottom: 20px; left: 0; right: 0; display: flex; justify-content: center; z-index: 5; }
   .fab-primary {
     display: flex; align-items: center; gap: 6px; background: var(--brown); color: #fff;
     border: none; border-radius: 999px; padding: 13px 24px; font-weight: 700; font-size: 14.5px;
@@ -158,6 +158,16 @@
     box-shadow: 0 -8px 30px rgba(36,29,22,0.12);
   }
   .overlay.open .sheet { transform: translateY(0); }
+  
+  /* Centered Auth Overlay Modal for Messenger compatibility */
+  .overlay#authOverlay { align-items: center; justify-content: center; padding: 20px; }
+  .overlay#authOverlay .sheet {
+    max-width: 360px; border-radius: 22px; transform: scale(0.95); opacity: 0;
+    transition: transform 0.25s cubic-bezier(0.34, 1.2, 0.4, 1), opacity 0.25s ease;
+    box-shadow: 0 10px 30px rgba(36,29,22,0.2);
+  }
+  .overlay#authOverlay.open .sheet { transform: scale(1); opacity: 1; }
+
   .drag-handle { width: 36px; height: 4px; border-radius: 999px; background: var(--border-strong); margin: 4px auto 14px; }
   .sheet-head { display: flex; justify-content: space-between; align-items: center; margin-bottom: 14px; }
   .sheet-title { font-family: 'Space Grotesk', sans-serif; font-size: 16px; text-transform: uppercase; letter-spacing: 0.03em; color: var(--teal); font-weight: 700; }
@@ -165,7 +175,7 @@
 
   form { display: flex; flex-direction: column; gap: 12px; }
   label.field { display: flex; flex-direction: column; gap: 5px; font-size: 12.5px; color: var(--muted); }
-  input[type="text"], input[type="number"], input[type="date"], select {
+  input[type="text"], input[type="number"], input[type="date"], input[type="password"], select {
     padding: 10px 12px; border-radius: 10px; border: 1px solid var(--border-strong); font-size: 15px;
     font-family: 'Inter', sans-serif; background: #fff; color: var(--ink); width: 100%;
   }
@@ -272,6 +282,7 @@
   <button class="fab-primary" id="fabBtn" onclick="openForm()">+ Add</button>
 </div>
 
+<!-- Main Entry/Edit Overlay -->
 <div class="overlay" id="overlay" onclick="if(event.target===this) closeForm()">
   <div class="sheet">
     <div class="drag-handle"></div>
@@ -284,6 +295,17 @@
       <div class="form-error" id="formError"></div>
       <button type="submit" class="fab-primary submit-btn" id="submitBtn">Add</button>
     </form>
+  </div>
+</div>
+
+<!-- Centered Unlock/Lock Auth Modal for Messenger -->
+<div class="overlay" id="authOverlay" onclick="if(event.target===this) closeAuthModal()">
+  <div class="sheet">
+    <div class="sheet-head">
+      <div class="sheet-title" id="authModalTitle">Unlock Editing</div>
+      <button class="close-btn" onclick="closeAuthModal()">✕</button>
+    </div>
+    <div id="authModalContent"></div>
   </div>
 </div>
 
@@ -322,22 +344,68 @@ function escapeHtml(s) { const d = document.createElement('div'); d.textContent 
 
 function toggleAuth() {
   if (isAuthorized) {
-    if (confirm("Lock editing mode back to read-only?")) {
-      isAuthorized = false;
-      closeForm();
-      render();
-      showStatus("Locked to read-only view");
-    }
+    showAuthConfirmModal();
   } else {
-    const pwd = prompt("Enter the committee password to unlock editing:");
-    if (pwd === "KaHimi2025!!") { // Change password here if desired
-      isAuthorized = true;
-      render();
-      showStatus("Editing mode unlocked!");
-    } else if (pwd !== null) {
-      alert("Incorrect password.");
-    }
+    showAuthPasswordModal();
   }
+}
+
+function showAuthPasswordModal() {
+  const overlay = document.getElementById('authOverlay');
+  const title = document.getElementById('authModalTitle');
+  const content = document.getElementById('authModalContent');
+  title.textContent = 'Unlock Editing';
+  content.innerHTML = `
+    <div style="font-size: 13px; color: var(--muted); margin-bottom: 8px;">Enter the committee password to unlock editing:</div>
+    <input type="password" id="authPasswordInput" placeholder="Password" style="margin-bottom: 10px;" onkeydown="if(event.key==='Enter') submitAuthPassword()" />
+    <div id="authError" style="color: var(--rust); font-size: 12px; margin-bottom: 10px; display: none;">Incorrect password.</div>
+    <button type="button" class="fab-primary submit-btn" onclick="submitAuthPassword()">Unlock</button>
+  `;
+  overlay.classList.add('open');
+  setTimeout(() => {
+    const input = document.getElementById('authPasswordInput');
+    if (input) input.focus();
+  }, 100);
+}
+
+function showAuthConfirmModal() {
+  const overlay = document.getElementById('authOverlay');
+  const title = document.getElementById('authModalTitle');
+  const content = document.getElementById('authModalContent');
+  title.textContent = 'Lock Editing';
+  content.innerHTML = `
+    <div style="font-size: 14px; color: var(--ink); margin-bottom: 16px;">Lock editing mode back to read-only?</div>
+    <div style="display: flex; gap: 10px;">
+      <button type="button" class="fab-primary submit-btn" style="background: var(--muted); flex: 1; animation: none;" onclick="closeAuthModal()">Cancel</button>
+      <button type="button" class="fab-primary submit-btn" style="background: var(--rust); flex: 1; animation: none;" onclick="confirmLockAuth()">Lock</button>
+    </div>
+  `;
+  overlay.classList.add('open');
+}
+
+function closeAuthModal() {
+  document.getElementById('authOverlay').classList.remove('open');
+}
+
+function submitAuthPassword() {
+  const pwd = document.getElementById('authPasswordInput').value;
+  if (pwd === "KaHimi2025!!") {
+    isAuthorized = true;
+    closeAuthModal();
+    render();
+    showStatus("Editing mode unlocked!");
+  } else {
+    const err = document.getElementById('authError');
+    if (err) err.style.display = 'block';
+  }
+}
+
+function confirmLockAuth() {
+  isAuthorized = false;
+  closeAuthModal();
+  closeForm();
+  render();
+  showStatus("Locked to read-only view");
 }
 
 async function loadData() {
