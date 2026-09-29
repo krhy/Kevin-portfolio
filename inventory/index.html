@@ -294,11 +294,30 @@ let searchQuery = '';
 let categoryFilter = 'all';
 let editingId = null;
 let confirmDeleteId = null;
+let displayedBalance = 0; // Tracks the current animated value for the net profit display[cite: 5]
 
 function fmt(num) {
   const val = parseFloat(num) || 0;
   const formatted = Math.abs(val).toLocaleString('en-PH', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
   return val < 0 ? '-₱' + formatted : '₱' + formatted;
+}
+
+// Number counting animation integrated using the provided logic structure[cite: 5]
+function animateBalance(target) {
+  const el = document.getElementById('totalProfitDisplay');
+  if (!el) return;
+  const start = displayedBalance;
+  const startTime = performance.now();
+  const duration = Math.min(800, Math.max(300, Math.abs(target - start) * 4));
+  function tick(now) {
+    const t = Math.min(1, (now - startTime) / duration);
+    const eased = 1 - Math.pow(1 - t, 3);
+    const value = start + (target - start) * eased;
+    el.textContent = fmt(value);
+    if (t < 1) requestAnimationFrame(tick);
+    else displayedBalance = target;
+  }
+  requestAnimationFrame(tick);
 }
 
 function formatDate(timestamp) {
@@ -732,7 +751,9 @@ function render() {
 
   const netCashFlow = totalSales - totalCapital;
 
-  document.getElementById('totalProfitDisplay').textContent = fmt(totalProfit);
+  // Trigger smooth number counting animation for net profit[cite: 5]
+  animateBalance(totalProfit);
+  
   document.getElementById('statSales').textContent = fmt(totalSales);
   document.getElementById('statTotalCapital').textContent = fmt(totalCapital);
   document.getElementById('statCashFlow').textContent = fmt(netCashFlow);
