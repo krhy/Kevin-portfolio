@@ -294,14 +294,7 @@ let searchQuery = '';
 let categoryFilter = 'all';
 let editingId = null;
 let confirmDeleteId = null;
-
-// Track animated values for all 4 top indicators independently
-let displayedMetrics = {
-  profit: 0,
-  sales: 0,
-  capital: 0,
-  cashFlow: 0
-};
+let displayedBalance = 0; // Tracks the current animated value for the net profit display[cite: 5]
 
 function fmt(num) {
   const val = parseFloat(num) || 0;
@@ -309,31 +302,20 @@ function fmt(num) {
   return val < 0 ? '-₱' + formatted : '₱' + formatted;
 }
 
-// Universal counting animation engine for any target metric element
-function animateMetric(elementId, targetValue, isSigned = false) {
-  const el = document.getElementById(elementId);
+// Number counting animation integrated using the provided logic structure[cite: 5]
+function animateBalance(target) {
+  const el = document.getElementById('totalProfitDisplay');
   if (!el) return;
-  const start = displayedMetrics[elementId];
+  const start = displayedBalance;
   const startTime = performance.now();
-  const duration = Math.min(800, Math.max(300, Math.abs(targetValue - start) * 4));
-  
+  const duration = Math.min(800, Math.max(300, Math.abs(target - start) * 4));
   function tick(now) {
     const t = Math.min(1, (now - startTime) / duration);
     const eased = 1 - Math.pow(1 - t, 3);
-    const value = start + (targetValue - start) * eased;
-    
-    if (isSigned) {
-      const formatted = Math.abs(value).toLocaleString('en-PH', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
-      el.textContent = value < 0 ? '-₱' + formatted : '₱' + formatted;
-    } else {
-      el.textContent = fmt(value);
-    }
-
-    if (t < 1) {
-      requestAnimationFrame(tick);
-    } else {
-      displayedMetrics[elementId] = targetValue;
-    }
+    const value = start + (target - start) * eased;
+    el.textContent = fmt(value);
+    if (t < 1) requestAnimationFrame(tick);
+    else displayedBalance = target;
   }
   requestAnimationFrame(tick);
 }
@@ -769,11 +751,12 @@ function render() {
 
   const netCashFlow = totalSales - totalCapital;
 
-  // Trigger smooth number counting animations for all key metrics
-  animateMetric('totalProfitDisplay', totalProfit);
-  animateMetric('statSales', totalSales);
-  animateMetric('statTotalCapital', totalCapital);
-  animateMetric('statCashFlow', netCashFlow, true); // Supports potential negative formatting
+  // Trigger smooth number counting animation for net profit[cite: 5]
+  animateBalance(totalProfit);
+  
+  document.getElementById('statSales').textContent = fmt(totalSales);
+  document.getElementById('statTotalCapital').textContent = fmt(totalCapital);
+  document.getElementById('statCashFlow').textContent = fmt(netCashFlow);
 
   const grid = document.getElementById('inventoryGrid');
   if (filtered.length === 0) {
