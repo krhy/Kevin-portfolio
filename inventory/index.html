@@ -162,7 +162,7 @@
   <div class="stats">
     <div><div id="statRevenue" class="stat-value">$0.00</div><div class="stat-label">Total Revenue</div></div>
     <div><div id="statUnitsSold" class="stat-value">0</div><div class="stat-label">Units Sold</div></div>
-    <div><div id="statStock" class="stat-value">0</div><div class="stat-label">In Stock</div></div>
+    <div><div id="statInventoryCapital" class="stat-value">$0.00</div><div class="stat-label">Inventory Capital</div></div>
   </div>
 </div>
 
@@ -193,6 +193,26 @@
       <div id="formFields"></div>
       <div class="form-error" id="formError"></div>
       <button type="submit" class="fab-primary" style="width:100%; justify-content:center; margin-top:4px;">Save Product</button>
+    </form>
+  </div>
+</div>
+
+<!-- Record Sale Overlay -->
+<div class="overlay" id="saleOverlay" onclick="if(event.target===this) closeSaleForm()">
+  <div class="sheet">
+    <div class="drag-handle"></div>
+    <div class="sheet-head">
+      <div class="sheet-title" id="saleSheetTitle">Record Sale</div>
+      <button class="close-btn" onclick="closeSaleForm()">✕</button>
+    </div>
+    <form id="saleForm" onsubmit="submitSale(event)">
+      <input type="hidden" id="saleItemId" />
+      <div class="form-row">
+        <label class="field">Quantity Sold<input type="number" id="saleQty" min="1" value="1" required /></label>
+        <label class="field">Total Sale Price ($)<input type="number" id="salePrice" step="0.01" min="0" placeholder="e.g. 150.00" required /></label>
+      </div>
+      <div class="form-error" id="saleFormError"></div>
+      <button type="submit" class="fab-primary" style="width:100%; justify-content:center; margin-top:4px;">Confirm Sale</button>
     </form>
   </div>
 </div>
@@ -236,6 +256,7 @@ function toggleAuth() {
     if (confirm("Lock inventory editing back to read-only?")) {
       isAuthorized = false;
       closeForm();
+      closeSaleForm();
       closeDetail();
       render();
       showStatus("Locked to read-only view");
@@ -289,23 +310,66 @@ function hideStatus() {
 function setSearch(val) { searchQuery = val; render(); }
 function setCategoryFilter(val) { categoryFilter = val; render(); }
 
-function recordSale(id) {
+function openSaleForm(id) {
   if (!isAuthorized) return;
+  const item = items.find(i => i.id === id);
+  if (!item) return;
+
+  if ((item.quantity || 0) <= 0) {
+    alert("Cannot sell: Item is out of stock!");
+    return;
+  }
+
+  document.getElementById('saleItemId').value = id;
+  document.getElementById('saleSheetTitle').textContent = `Record Sale — ${item.name}`;
+  document.getElementById('saleQty').value = 1;
+  document.getElementById('saleQty').max = item.quantity;
+  document.getElementById('salePrice').value = '';
+  document.getElementById('saleFormError').textContent = '';
+  document.getElementById('saleOverlay').classList.add('open');
+}
+
+function closeSaleForm() {
+  document.getElementById('saleOverlay').classList.remove('open');
+}
+
+function submitSale(e) {
+  e.preventDefault();
+  if (!isAuthorized) return;
+
+  const id = document.getElementById('saleItemId').value;
+  const qtySold = parseInt(document.getElementById('saleQty').value, 10);
+  const totalSalePrice = parseFloat(document.getElementById('salePrice').value);
+
+  const item = items.find(i => i.id === id);
+  if (!item) return;
+
+  if (isNaN(qtySold) || qtySold <= 0) {
+    document.getElementById('saleFormError').textContent = 'Please enter a valid quantity sold.';
+    return;
+  }
+  if (qtySold > (item.quantity || 0)) {
+    document.getElementById('saleFormError').textContent = `Cannot sell ${qtySold} units. Only ${item.quantity} left in stock!`;
+    return;
+  }
+  if (isNaN(totalSalePrice) || totalSalePrice < 0) {
+    document.getElementById('saleFormError').textContent = 'Please enter a valid total sale price.';
+    return;
+  }
+
   items = items.map(i => {
     if (i.id === id) {
-      if ((i.quantity || 0) <= 0) {
-        alert("Cannot sell: Item is out of stock!");
-        return i;
-      }
       const salesLog = i.sales || [];
       return {
         ...i,
-        quantity: i.quantity - 1,
-        sales: [...salesLog, { date: Date.now(), price: i.sellingPrice }]
+        quantity: i.quantity - qtySold,
+        sales: [...salesLog, { date: Date.now(), qty: qtySold, price: totalSalePrice }]
       };
     }
     return i;
   });
+
+  closeSaleForm();
   render();
   saveData();
 }
@@ -317,15 +381,27 @@ function openDetail(id) {
   document.getElementById('detailSheetTitle').textContent = `${item.name} — Sales Log`;
   const sales = item.sales || [];
   
-  const totalRev = sales.reduce((acc, s) => acc + (parseFloat(s.price) || 0), 0);
+  let totalRev = 0;
+  let totalUnitsSold = 0;
+  sales.forEach(s => {
+    totalRev += (parseFloat(s.price) || 0);
+    totalUnitsSold += (parseInt(s.qty, 10) || 1); // backward compatibility for old 1-unit logs
+  });
+
   const baseCost = parseFloat(item.costPrice) || 0;
   const addFees = parseFloat(item.additionalFees) || 0;
   const totalCostPerUnit = baseCost + addFees;
-  const totalProfit = sales.reduce((acc, s) => acc + ((parseFloat(s.price) || 0) - totalCostPerUnit), 0);
+  const totalProfit = totalRev - (totalUnitsSold * totalCostPerUnit);
+  
+  let avgSellingPrice = totalUnitsSold > 0 ? (totalRev / totalUnitsSold) : 0;
+  let profitMargin = 0;
+  if (avgSellingPrice > 0) {
+    profitMargin = ((avgSellingPrice - totalCostPerUnit) / avgSellingPrice) * 100;
+  }
 
   let tableHtml = '';
   if (sales.length === 0) {
-    tableHtml = `<div style="text-align:center; padding: 30px; color:var(--muted);">No sales recorded for this product yet.</div>`;
+    tableHtml = `<div style="text-align:center; padding: 30px; color:var(--muted);">No sales recorded for this product yet. Click "Record Sale" to add transactions.</div>`;
   } else {
     tableHtml = `
       <table class="sales-log-table">
@@ -333,17 +409,22 @@ function openDetail(id) {
           <tr>
             <th>#</th>
             <th>Date & Time</th>
-            <th>Revenue</th>
+            <th>Qty</th>
+            <th>Total Price</th>
           </tr>
         </thead>
         <tbody>
-          ${sales.slice().reverse().map((s, idx) => `
-            <tr>
-              <td>${sales.length - idx}</td>
-              <td class="date-col">${formatDate(s.date)}</td>
-              <td style="color:var(--success); font-weight:600;">+${fmt(s.price)}</td>
-            </tr>
-          `).join('')}
+          ${sales.slice().reverse().map((s, idx) => {
+            const q = s.qty || 1;
+            return `
+              <tr>
+                <td>${sales.length - idx}</td>
+                <td class="date-col">${formatDate(s.date)}</td>
+                <td>${q}</td>
+                <td style="color:var(--success); font-weight:600;">+${fmt(s.price)}</td>
+              </tr>
+            `;
+          }).join('')}
         </tbody>
       </table>
     `;
@@ -352,12 +433,16 @@ function openDetail(id) {
   document.getElementById('detailContent').innerHTML = `
     <div style="margin-bottom: 14px; font-size: 13px; color:var(--muted);">
       Category: <strong>${escapeHtml(item.category || 'General')}</strong> | Location: <strong>${escapeHtml(item.location || 'N/A')}</strong><br>
-      Base Cost: ${fmt(baseCost)} | Manpower/Fees: ${fmt(addFees)} | <strong>Total Landed Cost: ${fmt(totalCostPerUnit)}</strong>
+      Base Cost: ${fmt(baseCost)} | Manpower/Fees: ${fmt(addFees)} | <strong>Total Cost: ${fmt(totalCostPerUnit)} / unit</strong>
     </div>
     <div class="financial-grid" style="margin-bottom: 16px;">
       <div>
+        <div class="fin-label">Avg. Margin</div>
+        <div class="fin-val" style="color:var(--primary);">${totalUnitsSold > 0 ? profitMargin.toFixed(1) + '%' : 'N/A'}</div>
+      </div>
+      <div>
         <div class="fin-label">Total Units Sold</div>
-        <div class="fin-val">${sales.length}</div>
+        <div class="fin-val">${totalUnitsSold}</div>
       </div>
       <div>
         <div class="fin-label">Total Revenue</div>
@@ -366,10 +451,6 @@ function openDetail(id) {
       <div>
         <div class="fin-label">Net Profit</div>
         <div class="fin-val profit">+${fmt(totalProfit)}</div>
-      </div>
-      <div>
-        <div class="fin-label">Current Stock</div>
-        <div class="fin-val">${item.quantity} left</div>
       </div>
     </div>
     <div class="panel-title" style="margin-top:16px;">Transaction History</div>
@@ -404,7 +485,7 @@ function render() {
 
   let totalRev = 0;
   let totalProfit = 0;
-  let totalStockCount = 0;
+  let totalInventoryCapital = 0;
   let totalSoldUnits = 0;
 
   items.forEach(i => {
@@ -414,20 +495,21 @@ function render() {
     const addFees = parseFloat(i.additionalFees) || 0;
     const totalCostPerUnit = baseCost + addFees;
 
-    totalStockCount += qty;
-    totalSoldUnits += sales.length;
+    totalInventoryCapital += (qty * totalCostPerUnit);
 
     sales.forEach(s => {
+      const q = parseInt(s.qty, 10) || 1;
       const price = parseFloat(s.price) || 0;
+      totalSoldUnits += q;
       totalRev += price;
-      totalProfit += (price - totalCostPerUnit);
+      totalProfit += (price - (q * totalCostPerUnit));
     });
   });
 
   document.getElementById('totalProfitDisplay').textContent = fmt(totalProfit);
   document.getElementById('statRevenue').textContent = fmt(totalRev);
   document.getElementById('statUnitsSold').textContent = totalSoldUnits;
-  document.getElementById('statStock').textContent = totalStockCount;
+  document.getElementById('statInventoryCapital').textContent = fmt(totalInventoryCapital);
 
   const grid = document.getElementById('inventoryGrid');
   if (filtered.length === 0) {
@@ -438,11 +520,12 @@ function render() {
   grid.innerHTML = filtered.map((item, idx) => {
     const qty = parseInt(item.quantity) || 0;
     const sales = item.sales || [];
-    const sold = sales.length;
+    let soldCount = 0;
+    sales.forEach(s => soldCount += (parseInt(s.qty, 10) || 1));
+
     const baseCost = parseFloat(item.costPrice) || 0;
     const addFees = parseFloat(item.additionalFees) || 0;
     const totalCost = baseCost + addFees;
-    const price = parseFloat(item.sellingPrice) || 0;
     const min = parseInt(item.minThreshold) || 2;
     const isLow = qty <= min;
 
@@ -453,7 +536,7 @@ function render() {
         ? `<div class="item-actions"><button class="link-btn danger" onclick="doDelete('${item.id}')">Confirm delete</button><button class="link-btn" onclick="cancelDelete()">Cancel</button></div>`
         : `<div class="item-actions">
              <div class="action-group">
-               <button class="link-btn sell" onclick="recordSale('${item.id}')">🛒 Record Sale (-1)</button>
+               <button class="link-btn sell" onclick="openSaleForm('${item.id}')">🛒 Record Sale</button>
              </div>
              <div class="action-group">
                <button class="link-btn" onclick="openEdit('${item.id}')">✎ Edit</button>
@@ -472,12 +555,12 @@ function render() {
         
         <div class="financial-grid">
           <div>
-            <div class="fin-label">Total Cost / Sell</div>
-            <div class="fin-val">${fmt(totalCost)} / ${fmt(price)}</div>
+            <div class="fin-label">Total Cost</div>
+            <div class="fin-val">${fmt(totalCost)} per unit</div>
           </div>
           <div>
             <div class="fin-label">Units Sold</div>
-            <div class="fin-val"><button class="link-btn history" onclick="openDetail('${item.id}')">${sold} sold 📊</button></div>
+            <div class="fin-val"><button class="link-btn history" onclick="openDetail('${item.id}')">${soldCount} sold 📊</button></div>
           </div>
         </div>
 
@@ -506,13 +589,10 @@ function openForm() {
       <label class="field">Add. Fees / Manpower ($)<input type="number" id="fFees" step="0.01" min="0" value="0.00" /></label>
     </div>
     <div class="form-row">
-      <label class="field">Selling Price ($)<input type="number" id="fPrice" step="0.01" min="0" value="0.00" required /></label>
       <label class="field">Initial Stock Quantity<input type="number" id="fQty" min="0" value="10" required /></label>
-    </div>
-    <div class="form-row">
       <label class="field">Low Stock Alert Min<input type="number" id="fMin" min="0" value="2" /></label>
-      <label class="field">Storage Location<input type="text" id="fLocation" placeholder="e.g. Sector 7G" /></label>
     </div>
+    <label class="field">Storage Location<input type="text" id="fLocation" placeholder="e.g. Sector 7G" /></label>
   `;
   document.getElementById('overlay').classList.add('open');
 }
@@ -532,13 +612,10 @@ function openEdit(id) {
       <label class="field">Add. Fees / Manpower ($)<input type="number" id="fFees" step="0.01" min="0" value="${item.additionalFees || 0}" /></label>
     </div>
     <div class="form-row">
-      <label class="field">Selling Price ($)<input type="number" id="fPrice" step="0.01" min="0" value="${item.sellingPrice || 0}" required /></label>
       <label class="field">Current Stock Quantity<input type="number" id="fQty" min="0" value="${item.quantity}" required /></label>
-    </div>
-    <div class="form-row">
       <label class="field">Low Stock Alert Min<input type="number" id="fMin" min="0" value="${item.minThreshold || 2}" /></label>
-      <label class="field">Storage Location<input type="text" id="fLocation" value="${escapeHtml(item.location || '')}" /></label>
     </div>
+    <label class="field">Storage Location<input type="text" id="fLocation" value="${escapeHtml(item.location || '')}" /></label>
   `;
   document.getElementById('overlay').classList.add('open');
 }
@@ -553,9 +630,8 @@ function submitForm(e) {
   const quantity = parseInt(document.getElementById('fQty').value, 10);
   const costPrice = parseFloat(document.getElementById('fCost').value);
   const additionalFees = parseFloat(document.getElementById('fFees').value) || 0;
-  const sellingPrice = parseFloat(document.getElementById('fPrice').value);
 
-  if (!name || isNaN(quantity) || isNaN(costPrice) || isNaN(sellingPrice)) {
+  if (!name || isNaN(quantity) || isNaN(costPrice)) {
     document.getElementById('formError').textContent = 'Please fill out all required numeric fields properly.';
     return;
   }
@@ -569,7 +645,6 @@ function submitForm(e) {
     quantity,
     costPrice,
     additionalFees,
-    sellingPrice,
     sales: existing ? (existing.sales || []) : [],
     minThreshold: parseInt(document.getElementById('fMin').value, 10) || 2,
     location: document.getElementById('fLocation').value.trim(),
