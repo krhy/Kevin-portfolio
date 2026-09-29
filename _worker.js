@@ -1,10 +1,12 @@
+import { handleInventoryApi } from "./inventory-api.js";
+
 const PICKLEBALL_KV_KEY = "pickleball:entries";
 
 async function handlePickleballApi(request, env) {
   const url = new URL(request.url);
 
   if (url.pathname !== "/api/pickleball/entries") {
-    return null; // not our route
+    return null; 
   }
 
   const corsHeaders = {
@@ -17,11 +19,11 @@ async function handlePickleballApi(request, env) {
     return new Response(data || "[]", { headers: corsHeaders });
   }
 
-  if (request.method === "PUT") {
+  if (request.method === "PUT" || request.method === "POST") {
     let body;
     try {
       body = await request.text();
-      JSON.parse(body); // validate before storing
+      JSON.parse(body); 
     } catch {
       return new Response(JSON.stringify({ error: "Invalid JSON" }), {
         status: 400,
@@ -44,8 +46,12 @@ export default {
       if (apiResponse) return apiResponse;
     }
 
-    // Everything else (index.html, about.html, system.html, pickleball/index.html,
-    // the resume PDF, the logo image) is served as-is from the repo's static files.
+    if (url.pathname.startsWith("/api/inventory/")) {
+      const apiResponse = await handleInventoryApi(request, env);
+      if (apiResponse) return apiResponse;
+    }
+
+    // Everything else serves static files
     return env.ASSETS.fetch(request);
   },
 };
