@@ -99,11 +99,12 @@
 
   .item-meta { font-size: 11.5px; color: var(--muted); margin-bottom: 2px; }
   .item-actions { display: flex; justify-content: space-between; align-items: center; margin-top: 10px; padding-top: 8px; border-top: 1px solid var(--border); }
-  .action-group { display: flex; gap: 10px; }
-  .link-btn { background: none; border: none; font-size: 12px; cursor: pointer; color: var(--muted); padding: 0; font-weight: 500; transition: color 0.15s; }
+  .action-group { display: flex; gap: 8px; flex-wrap: wrap; }
+  .link-btn { background: none; border: none; font-size: 11.5px; cursor: pointer; color: var(--muted); padding: 0; font-weight: 500; transition: color 0.15s; }
   .link-btn:hover { color: var(--primary); }
   .link-btn.danger { color: var(--rust); }
   .link-btn.sell { color: var(--primary); font-weight: 600; }
+  .link-btn.restock { color: var(--success); font-weight: 600; }
   .link-btn.history { color: var(--teal); font-weight: 600; }
 
   .fab { position: fixed; bottom: 24px; left: 0; right: 0; display: flex; justify-content: center; z-index: 5; pointer-events: none; }
@@ -217,6 +218,23 @@
   </div>
 </div>
 
+<!-- Restock Overlay -->
+<div class="overlay" id="restockOverlay" onclick="if(event.target===this) closeRestockForm()">
+  <div class="sheet">
+    <div class="drag-handle"></div>
+    <div class="sheet-head">
+      <div class="sheet-title" id="restockSheetTitle">Add Stock</div>
+      <button class="close-btn" onclick="closeRestockForm()">✕</button>
+    </div>
+    <form id="restockForm" onsubmit="submitRestock(event)">
+      <input type="hidden" id="restockItemId" />
+      <label class="field">Quantity to Add (Restock)<input type="number" id="restockQty" min="1" value="10" required /></label>
+      <div class="form-error" id="restockFormError"></div>
+      <button type="submit" class="fab-primary" style="width:100%; justify-content:center; margin-top:4px;">Update Stock</button>
+    </form>
+  </div>
+</div>
+
 <!-- Sales History Detail Overlay -->
 <div class="overlay" id="detailOverlay" onclick="if(event.target===this) closeDetail()">
   <div class="sheet">
@@ -257,6 +275,7 @@ function toggleAuth() {
       isAuthorized = false;
       closeForm();
       closeSaleForm();
+      closeRestockForm();
       closeDetail();
       render();
       showStatus("Locked to read-only view");
@@ -374,6 +393,49 @@ function submitSale(e) {
   saveData();
 }
 
+function openRestockForm(id) {
+  if (!isAuthorized) return;
+  const item = items.find(i => i.id === id);
+  if (!item) return;
+
+  document.getElementById('restockItemId').value = id;
+  document.getElementById('restockSheetTitle').textContent = `Restock — ${item.name}`;
+  document.getElementById('restockQty').value = 10;
+  document.getElementById('restockFormError').textContent = '';
+  document.getElementById('restockOverlay').classList.add('open');
+}
+
+function closeRestockForm() {
+  document.getElementById('restockOverlay').classList.remove('open');
+}
+
+function submitRestock(e) {
+  e.preventDefault();
+  if (!isAuthorized) return;
+
+  const id = document.getElementById('restockItemId').value;
+  const qtyAdded = parseInt(document.getElementById('restockQty').value, 10);
+
+  if (isNaN(qtyAdded) || qtyAdded <= 0) {
+    document.getElementById('restockFormError').textContent = 'Please enter a valid quantity to add.';
+    return;
+  }
+
+  items = items.map(i => {
+    if (i.id === id) {
+      return {
+        ...i,
+        quantity: (i.quantity || 0) + qtyAdded
+      };
+    }
+    return i;
+  });
+
+  closeRestockForm();
+  render();
+  saveData();
+}
+
 function openDetail(id) {
   const item = items.find(i => i.id === id);
   if (!item) return;
@@ -385,7 +447,7 @@ function openDetail(id) {
   let totalUnitsSold = 0;
   sales.forEach(s => {
     totalRev += (parseFloat(s.price) || 0);
-    totalUnitsSold += (parseInt(s.qty, 10) || 1); // backward compatibility for old 1-unit logs
+    totalUnitsSold += (parseInt(s.qty, 10) || 1);
   });
 
   const baseCost = parseFloat(item.costPrice) || 0;
@@ -401,7 +463,7 @@ function openDetail(id) {
 
   let tableHtml = '';
   if (sales.length === 0) {
-    tableHtml = `<div style="text-align:center; padding: 30px; color:var(--muted);">No sales recorded for this product yet. Click "Record Sale" to add transactions.</div>`;
+    tableHtml = `<div style="text-align:center; padding: 30px; color:var(--muted);">No sales recorded for this product yet. Click "Record Sale" to add bulk transactions.</div>`;
   } else {
     tableHtml = `
       <table class="sales-log-table">
@@ -537,6 +599,7 @@ function render() {
         : `<div class="item-actions">
              <div class="action-group">
                <button class="link-btn sell" onclick="openSaleForm('${item.id}')">🛒 Record Sale</button>
+               <button class="link-btn restock" onclick="openRestockForm('${item.id}')">+ Restock</button>
              </div>
              <div class="action-group">
                <button class="link-btn" onclick="openEdit('${item.id}')">✎ Edit</button>
