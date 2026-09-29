@@ -161,8 +161,9 @@
   <div id="totalProfitDisplay" class="balance">₱0.00</div>
 
   <div class="stats">
-    <div><div id="statRevenue" class="stat-value">₱0.00</div><div class="stat-label">Total Revenue</div></div>
-    <div><div id="statInventoryCapital" class="stat-value">₱0.00</div><div class="stat-label">Inventory Capital</div></div>
+    <div><div id="statSales" class="stat-value">₱0.00</div><div class="stat-label">Total Sales</div></div>
+    <div><div id="statAddFees" class="stat-value">₱0.00</div><div class="stat-label">Total Additional Fees</div></div>
+    <div><div id="statTotalCapital" class="stat-value">₱0.00</div><div class="stat-label">Total Capital</div></div>
   </div>
 </div>
 
@@ -230,7 +231,7 @@
       <label class="field">Quantity to Add (Restock)<input type="number" id="restockQty" min="1" placeholder="" required /></label>
       <div class="form-row">
         <label class="field">New Base Cost Price (₱)<input type="number" id="restockCost" step="0.01" min="0" placeholder="e.g. 100.00" required /></label>
-        <label class="field">New Add. Fees / Manpower (₱)<input type="number" id="restockFees" step="0.01" min="0" placeholder="" required /></label>
+        <label class="field">Add. Manpower Fees (₱)<input type="number" id="restockFees" step="0.01" min="0" placeholder="Total or flat fee for restock" required /></label>
       </div>
       <div class="form-error" id="restockFormError"></div>
       <button type="submit" class="fab-primary" style="width:100%; justify-content:center; margin-top:4px;">Confirm Restock</button>
@@ -434,32 +435,33 @@ function submitRestock(e) {
     if (i.id === id) {
       const oldQty = parseInt(i.quantity) || 0;
       const oldBaseCost = parseFloat(i.costPrice) || 0;
-      const oldAddFees = parseFloat(i.additionalFees) || 0;
+      const oldAddFeesPerUnit = parseFloat(i.additionalFees) || 0;
 
-      const oldTotalVal = oldQty * (oldBaseCost + oldAddFees);
-      const newBatchVal = qtyAdded * (newBaseCost + newAddFees);
+      const oldTotalVal = oldQty * (oldBaseCost + oldAddFeesPerUnit);
+      const newBatchVal = qtyAdded * (newBaseCost + (newAddFees / qtyAdded));
       const updatedTotalQty = oldQty + qtyAdded;
 
-      let weightedBaseCost = newBaseCost;
-      let weightedAddFees = newAddFees;
+      let blendedBaseCost = newBaseCost;
+      let blendedAddFeesPerUnit = newAddFees / qtyAdded;
 
       if (updatedTotalQty > 0) {
-        const totalCombinedVal = oldTotalVal + newBatchVal;
+        const totalCombinedVal = oldTotalVal + (qtyAdded * newBaseCost) + newAddFees;
         const blendedUnitCost = totalCombinedVal / updatedTotalQty;
-        weightedBaseCost = blendedUnitCost;
-        weightedAddFees = 0; 
+        blendedBaseCost = blendedUnitCost;
+        blendedAddFeesPerUnit = 0; // integrated into blended base cost or tracked clean
       }
 
-      const prevTotalAddFees = parseFloat(i.totalHistoricalAddFees || (oldQty * oldAddFees)) || 0;
-      const newTotalAddFees = prevTotalAddFees + (qtyAdded * newAddFees);
-      const prevTotalCost = parseFloat(i.totalHistoricalCost || (oldQty * (oldBaseCost + oldAddFees))) || 0;
-      const newTotalCost = prevTotalCost + newBatchVal;
+      const prevTotalAddFees = parseFloat(i.totalHistoricalAddFees || (oldQty * oldAddFeesPerUnit)) || 0;
+      const newTotalAddFees = prevTotalAddFees + newAddFees;
+
+      const prevTotalCost = parseFloat(i.totalHistoricalCost || (oldQty * (oldBaseCost + oldAddFeesPerUnit))) || 0;
+      const newTotalCost = prevTotalCost + (qtyAdded * newBaseCost) + newAddFees;
 
       return {
         ...i,
         quantity: updatedTotalQty,
-        costPrice: weightedBaseCost,
-        additionalFees: weightedAddFees,
+        costPrice: blendedBaseCost,
+        additionalFees: blendedAddFeesPerUnit,
         totalHistoricalCost: newTotalCost,
         totalHistoricalAddFees: newTotalAddFees
       };
@@ -533,7 +535,7 @@ function openDetail(id) {
   document.getElementById('detailContent').innerHTML = `
     <div style="margin-bottom: 14px; font-size: 13px; color:var(--muted);">
       Category: <strong>${escapeHtml(item.category || 'General')}</strong> | Location: <strong>${escapeHtml(item.location || 'N/A')}</strong><br>
-      <strong>Current Total Cost: ${fmt(currentUnitCost)} / unit</strong>
+      <strong>Current Combined Cost: ${fmt(currentUnitCost)} / unit</strong>
     </div>
     <div class="financial-grid" style="margin-bottom: 16px;">
       <div>
@@ -545,7 +547,7 @@ function openDetail(id) {
         <div class="fin-val">${totalUnitsSold}</div>
       </div>
       <div>
-        <div class="fin-label">Total Revenue</div>
+        <div class="fin-label">Total Sales</div>
         <div class="fin-val" style="color:var(--primary);">${fmt(totalRev)}</div>
       </div>
       <div>
@@ -566,7 +568,7 @@ function closeDetail() {
 
 function render() {
   const authBtn = document.getElementById('authBtn');
-  authBtn.textContent = isAuthorized ? '🔓 Unlocked (Lock)' : '🔒 Unlock Editing';
+  authBtn.textContent = isAuthorized ? '🔒 Unlocked (Lock)' : '🔒 Unlock Editing';
   authBtn.className = 'auth-btn' + (isAuthorized ? ' unlocked' : '');
   
   document.getElementById('fabRow').style.display = isAuthorized ? 'flex' : 'none';
@@ -583,35 +585,44 @@ function render() {
     return (item.name || '').toLowerCase().includes(q) || (item.location || '').toLowerCase().includes(q);
   });
 
-  let totalRev = 0;
+  let totalSales = 0;
   let totalProfit = 0;
-  let totalInventoryCapital = 0;
+  let totalCapital = 0;
+  let totalAddFeesAll = 0;
 
   items.forEach(i => {
     const qty = parseInt(i.quantity) || 0;
     const sales = i.sales || [];
     const baseCost = parseFloat(i.costPrice) || 0;
-    const addFees = parseFloat(i.additionalFees) || 0;
-    const totalCostPerUnit = baseCost + addFees;
+    const addFeesPerUnit = parseFloat(i.additionalFees) || 0;
+    const totalCostPerUnit = baseCost + addFeesPerUnit;
+
+    // Accumulate actual total historical manpower fees correctly (unmultiplied by current inventory quantity)
+    if (i.totalHistoricalAddFees !== undefined) {
+      totalAddFeesAll += parseFloat(i.totalHistoricalAddFees) || 0;
+    } else {
+      totalAddFeesAll += (qty * addFeesPerUnit);
+    }
 
     if (i.totalHistoricalCost !== undefined) {
-      totalInventoryCapital += parseFloat(i.totalHistoricalCost) || 0;
+      totalCapital += parseFloat(i.totalHistoricalCost) || 0;
     } else {
-      totalInventoryCapital += (qty * totalCostPerUnit);
+      totalCapital += (qty * totalCostPerUnit);
     }
 
     sales.forEach(s => {
       const q = parseInt(s.qty, 10) || 1;
       const price = parseFloat(s.price) || 0;
-      totalRev += price;
+      totalSales += price;
       const historicalCostPerUnit = s.unitCostAtSale !== undefined ? s.unitCostAtSale : totalCostPerUnit;
       totalProfit += (price - (q * historicalCostPerUnit));
     });
   });
 
   document.getElementById('totalProfitDisplay').textContent = fmt(totalProfit);
-  document.getElementById('statRevenue').textContent = fmt(totalRev);
-  document.getElementById('statInventoryCapital').textContent = fmt(totalInventoryCapital);
+  document.getElementById('statSales').textContent = fmt(totalSales);
+  document.getElementById('statAddFees').textContent = fmt(totalAddFeesAll);
+  document.getElementById('statTotalCapital').textContent = fmt(totalCapital);
 
   const grid = document.getElementById('inventoryGrid');
   if (filtered.length === 0) {
@@ -626,11 +637,11 @@ function render() {
     sales.forEach(s => soldCount += (parseInt(s.qty, 10) || 1));
 
     const baseCost = parseFloat(item.costPrice) || 0;
-    const addFees = parseFloat(item.additionalFees) || 0;
-    const totalCostPerUnit = baseCost + addFees;
+    const addFeesPerUnit = parseFloat(item.additionalFees) || 0;
+    const totalCostPerUnit = baseCost + addFeesPerUnit;
     
     const totalItemCost = item.totalHistoricalCost !== undefined ? parseFloat(item.totalHistoricalCost) : (qty * totalCostPerUnit);
-    const totalItemAddFees = item.totalHistoricalAddFees !== undefined ? parseFloat(item.totalHistoricalAddFees) : (qty * addFees);
+    const totalItemAddFees = item.totalHistoricalAddFees !== undefined ? parseFloat(item.totalHistoricalAddFees) : (qty * addFeesPerUnit);
 
     const min = parseInt(item.minThreshold) || 2;
     const isLow = qty <= min;
@@ -666,8 +677,12 @@ function render() {
             <div class="fin-val">${fmt(totalItemCost)}</div>
           </div>
           <div>
-            <div class="fin-label">Add. Fees</div>
+            <div class="fin-label">Add. Fees (Total)</div>
             <div class="fin-val">${fmt(totalItemAddFees)}</div>
+          </div>
+          <div>
+            <div class="fin-label">Avg. Price / Unit</div>
+            <div class="fin-val" style="color:var(--primary);">${fmt(totalCostPerUnit)}</div>
           </div>
           <div>
             <div class="fin-label">Units Sold</div>
@@ -697,7 +712,7 @@ function openForm() {
     <label class="field">Category<input type="text" id="fCategory" placeholder="e.g. Hardware" /></label>
     <div class="form-row">
       <label class="field">Base Cost Price (₱)<input type="number" id="fCost" step="0.01" min="0" placeholder="" required /></label>
-      <label class="field">Add. Fees / Manpower (₱)<input type="number" id="fFees" step="0.01" min="0" placeholder="" /></label>
+      <label class="field">Total Add. Manpower Fees (₱)<input type="number" id="fFees" step="0.01" min="0" placeholder="Total fee for initial batch" /></label>
     </div>
     <div class="form-row">
       <label class="field">Initial Stock Quantity<input type="number" id="fQty" min="0" placeholder="" required /></label>
@@ -715,12 +730,15 @@ function openEdit(id) {
   editingId = id;
   document.getElementById('sheetTitle').textContent = 'Edit Product Details';
   document.getElementById('formError').textContent = '';
+  
+  const currentTotalFees = item.totalHistoricalAddFees !== undefined ? item.totalHistoricalAddFees : ((parseInt(item.quantity) || 0) * (parseFloat(item.additionalFees) || 0));
+
   document.getElementById('formFields').innerHTML = `
     <label class="field">Product Name<input type="text" id="fName" value="${escapeHtml(item.name)}" required /></label>
     <label class="field">Category<input type="text" id="fCategory" value="${escapeHtml(item.category || '')}" /></label>
     <div class="form-row">
       <label class="field">Base Cost Price (₱)<input type="number" id="fCost" step="0.01" min="0" value="${item.costPrice !== undefined ? item.costPrice : ''}" required /></label>
-      <label class="field">Add. Fees / Manpower (₱)<input type="number" id="fFees" step="0.01" min="0" value="${item.additionalFees !== undefined ? item.additionalFees : ''}" /></label>
+      <label class="field">Total Add. Manpower Fees (₱)<input type="number" id="fFees" step="0.01" min="0" value="${currentTotalFees}" /></label>
     </div>
     <div class="form-row">
       <label class="field">Current Stock Quantity<input type="number" id="fQty" min="0" value="${item.quantity !== undefined ? item.quantity : ''}" required /></label>
@@ -740,7 +758,7 @@ function submitForm(e) {
   const name = document.getElementById('fName').value.trim();
   const quantity = parseInt(document.getElementById('fQty').value, 10);
   const costPrice = parseFloat(document.getElementById('fCost').value);
-  const additionalFees = parseFloat(document.getElementById('fFees').value) || 0;
+  const totalBatchFees = parseFloat(document.getElementById('fFees').value) || 0;
 
   if (!name || isNaN(quantity) || isNaN(costPrice)) {
     document.getElementById('formError').textContent = 'Please fill out all required numeric fields properly.';
@@ -749,8 +767,8 @@ function submitForm(e) {
 
   const existing = editingId ? items.find(i => i.id === editingId) : null;
   
-  const initialCostTotal = quantity * (costPrice + additionalFees);
-  const initialFeesTotal = quantity * additionalFees;
+  const addFeesPerUnit = quantity > 0 ? (totalBatchFees / quantity) : 0;
+  const initialCostTotal = (quantity * costPrice) + totalBatchFees;
 
   const payload = {
     id: editingId || (Date.now().toString(36) + Math.random().toString(36).slice(2, 5)),
@@ -758,9 +776,9 @@ function submitForm(e) {
     category: document.getElementById('fCategory').value.trim() || 'General',
     quantity,
     costPrice,
-    additionalFees,
+    additionalFees: addFeesPerUnit,
     totalHistoricalCost: existing && existing.totalHistoricalCost !== undefined ? existing.totalHistoricalCost : initialCostTotal,
-    totalHistoricalAddFees: existing && existing.totalHistoricalAddFees !== undefined ? existing.totalHistoricalAddFees : initialFeesTotal,
+    totalHistoricalAddFees: existing && existing.totalHistoricalAddFees !== undefined ? existing.totalHistoricalAddFees : totalBatchFees,
     sales: existing ? (existing.sales || []) : [],
     minThreshold: parseInt(document.getElementById('fMin').value, 10) || 2,
     location: document.getElementById('fLocation').value.trim(),
