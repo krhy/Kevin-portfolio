@@ -310,7 +310,7 @@ function toggleAuth() {
 
 async function loadData() {
   try {
-    const response = await fetch('/api/inventory');
+    const response = await fetch('/api/inventory/items');
     if (response.ok) {
       items = await response.json();
     } else {
@@ -327,7 +327,7 @@ async function saveData() {
   if (!isAuthorized) return;
   showStatus('Syncing to Cloud…');
   try {
-    const response = await fetch('/api/inventory', {
+    const response = await fetch('/api/inventory/items', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify(items)
