@@ -1,827 +1,670 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-<meta charset="UTF-8" />
-<meta name="viewport" content="width=device-width, initial-scale=1.0" />
-<title>Inventory & Sales Intelligence</title>
-<style>
-  @import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@500;600;700&family=Inter:wght@400;500;600&family=JetBrains+Mono:wght@500;600;700&display=swap');
-
-  :root {
-    --paper: #F4F7FB;
-    --surface: rgba(255, 255, 255, 0.85);
-    --surface-solid: #FFFFFF;
-    --border: rgba(99, 102, 241, 0.12);
-    --border-strong: rgba(99, 102, 241, 0.28);
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Inventory & Sales Intelligence</title>
+  <style>
+    :root {
+      --bg: #0b0f19;
+      --card-bg: #131b2e;
+      --card-border: #1e293b;
+      --text: #f8fafc;
+      --text-muted: #94a3b8;
+      --primary: #38bdf8;
+      --primary-hover: #0ea5e9;
+      --accent: #f43f5e;
+      --success: #10b981;
+      --warning: #f59e0b;
+      --teal: #14b8a6;
+      --danger: #ef4444;
+    }
+    * { box-sizing: border-box; margin: 0; padding: 0; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; }
+    body { background: var(--bg); color: var(--text); padding: 16px; min-height: 100vh; }
     
-    --primary: #4F46E5;
-    --primary-glow: rgba(79, 70, 229, 0.15);
-    --teal: #0EA5E9;
-    --success: #10B981;
-    --rust: #EF4444;
+    .container { max-width: 900px; margin: 0 auto; padding-bottom: 80px; }
     
-    --ink: #0F172A;
-    --muted: #64748B;
+    header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; border-bottom: 1px solid var(--card-border); padding-bottom: 12px; }
+    h1 { font-size: 1.25rem; font-weight: 700; color: var(--primary); display: flex; align-items: center; gap: 8px; }
     
-    --header-bg-1: #0F172A;
-    --header-bg-2: #1E293B;
-    --on-header: #F8FAFC;
-    --on-header-muted: #94A3B8;
-    --accent-glow: #38BDF8;
-  }
+    .auth-badge { font-size: 0.75rem; padding: 4px 10px; border-radius: 20px; font-weight: 600; cursor: pointer; border: 1px solid var(--card-border); background: var(--card-bg); color: var(--text-muted); transition: 0.2s; }
+    .auth-badge.active { background: rgba(16, 185, 129, 0.15); color: var(--success); border-color: rgba(16, 185, 129, 0.3); }
 
-  * { box-sizing: border-box; }
-  body {
-    margin: 0; font-family: 'Inter', sans-serif; color: var(--ink); min-height: 100vh;
-    background:
-      radial-gradient(circle at 10% 0%, rgba(14, 165, 233, 0.08), transparent 45%),
-      radial-gradient(circle at 90% 10%, rgba(79, 70, 229, 0.06), transparent 40%),
-      var(--paper);
-  }
-  button { font-family: inherit; cursor: pointer; }
-  input:focus, select:focus { outline: 2px solid var(--primary); outline-offset: 1px; }
+    /* Stats Overview */
+    .stats-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 10px; margin-bottom: 20px; }
+    @media(min-width: 600px) { .stats-grid { grid-template-columns: repeat(4, 1fr); } }
+    .stat-card { background: var(--card-bg); border: 1px solid var(--card-border); border-radius: 10px; padding: 12px; }
+    .stat-label { font-size: 0.75rem; color: var(--text-muted); margin-bottom: 4px; }
+    .stat-val { font-size: 1.1rem; font-weight: 700; }
 
-  @keyframes pulseGlow { 0%,100% { box-shadow: 0 0 0 0 rgba(56,189,248,0.4); } 50% { box-shadow: 0 0 0 8px rgba(56,189,248,0); } }
-  @keyframes fadeSlideIn { from { opacity: 0; transform: translateY(6px); } to { opacity: 1; transform: translateY(0); } }
+    /* Controls Bar */
+    .controls { display: flex; gap: 8px; margin-bottom: 16px; flex-wrap: wrap; }
+    .search-input { flex: 1; min-width: 200px; background: var(--card-bg); border: 1px solid var(--card-border); color: var(--text); padding: 10px 14px; border-radius: 8px; font-size: 0.9rem; outline: none; }
+    .search-input:focus { border-color: var(--primary); }
+    
+    .btn { background: var(--primary); color: #000; border: none; font-weight: 600; padding: 10px 16px; border-radius: 8px; cursor: pointer; font-size: 0.85rem; display: inline-flex; align-items: center; gap: 6px; transition: 0.2s; }
+    .btn:hover { background: var(--primary-hover); }
+    .btn:disabled { opacity: 0.5; cursor: not-allowed; }
 
-  .header {
-    padding: 26px 20px 28px; position: relative;
-    background: linear-gradient(135deg, var(--header-bg-1), var(--header-bg-2));
-    border-radius: 0 0 28px 28px;
-    box-shadow: 0 12px 30px rgba(15, 23, 42, 0.15);
-    border-bottom: 1px solid rgba(255,255,255,0.08);
-  }
-  .brand { display: flex; align-items: center; gap: 8px; margin-bottom: 12px; }
-  .brand-text { font-family: 'Plus Jakarta Sans', sans-serif; font-size: 11.5px; letter-spacing: 0.16em; text-transform: uppercase; color: var(--on-header-muted); font-weight: 700; }
-  .live-dot { width: 6px; height: 6px; border-radius: 50%; background: var(--accent-glow); animation: pulseGlow 2s ease-in-out infinite; margin-left: auto; }
-  .live-label { font-family: 'Plus Jakarta Sans', sans-serif; font-size: 10px; letter-spacing: 0.14em; color: var(--accent-glow); margin-left: 6px; font-weight: 700; }
+    /* Item Card List */
+    .item-list { display: flex; flex-direction: column; gap: 12px; }
+    .item-card { background: var(--card-bg); border: 1px solid var(--card-border); border-radius: 12px; padding: 16px; position: relative; }
+    .item-header { display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 12px; }
+    .item-title { font-size: 1rem; font-weight: 700; }
+    .item-sku { font-size: 0.75rem; color: var(--text-muted); }
+    
+    .financial-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 8px; background: rgba(0,0,0,0.2); padding: 10px; border-radius: 8px; margin-bottom: 12px; }
+    @media(min-width: 500px) { .financial-grid { grid-template-columns: repeat(4, 1fr); } }
+    .fin-label { font-size: 0.65rem; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.5px; }
+    .fin-val { font-size: 0.9rem; font-weight: 700; }
 
-  .header-top-row { display: flex; justify-content: space-between; align-items: center; margin-bottom: 4px; }
-  .balance-label { font-family: 'Plus Jakarta Sans', sans-serif; font-size: 10.5px; letter-spacing: 0.14em; text-transform: uppercase; color: var(--on-header-muted); font-weight: 700; }
-  .auth-btn {
-    background: rgba(255,255,255,0.08); border: 1px solid rgba(255,255,255,0.15); color: var(--on-header);
-    padding: 6px 14px; border-radius: 999px; font-size: 11px; font-family: 'Plus Jakarta Sans', sans-serif;
-    font-weight: 600; cursor: pointer; transition: all 0.2s; backdrop-filter: blur(4px);
-  }
-  .auth-btn.unlocked { background: rgba(56, 189, 248, 0.2); border-color: var(--accent-glow); color: var(--accent-glow); }
+    .action-group { display: flex; gap: 8px; flex-wrap: wrap; }
+    .link-btn { background: transparent; border: 1px solid var(--card-border); color: var(--text); padding: 6px 12px; border-radius: 6px; font-size: 0.8rem; cursor: pointer; font-weight: 500; transition: 0.2s; display: inline-flex; align-items: center; gap: 4px; }
+    .link-btn:hover { background: rgba(255,255,255,0.05); border-color: var(--text-muted); }
+    .link-btn.sell { color: var(--success); border-color: rgba(16, 185, 129, 0.3); }
+    .link-btn.restock { color: var(--primary); border-color: rgba(56, 189, 248, 0.3); }
+    .link-btn.expense { color: var(--teal); border-color: rgba(20, 184, 166, 0.3); }
+    .link-btn.delete { color: var(--danger); border-color: rgba(239, 68, 68, 0.3); margin-left: auto; }
 
-  .balance { font-family: 'JetBrains Mono', monospace; font-weight: 700; font-size: 38px; line-height: 1; color: var(--accent-glow); letter-spacing: -0.02em; }
-  .balance-sub { font-size: 12px; color: var(--success); font-weight: 600; margin-top: 6px; font-family: 'Plus Jakarta Sans', sans-serif; }
+    /* Overlays / Modals */
+    .overlay { position: fixed; inset: 0; background: rgba(0,0,0,0.6); backdrop-filter: blur(4px); display: flex; justify-content: center; align-items: flex-end; opacity: 0; pointer-events: none; transition: 0.25s; z-index: 100; }
+    .overlay.open { opacity: 1; pointer-events: auto; }
+    @media(min-width: 600px) { .overlay { align-items: center; } }
 
-  .stats { display: grid; grid-template-columns: repeat(3, 1fr); gap: 12px; margin-top: 20px; padding-top: 16px; border-top: 1px solid rgba(255,255,255,0.08); }
-  .stat-value { font-family: 'JetBrains Mono', monospace; font-size: 13px; font-weight: 600; color: var(--on-header); }
-  .stat-label { font-size: 9.5px; color: var(--on-header-muted); text-transform: uppercase; letter-spacing: 0.08em; margin-top: 2px; line-height: 1.3; }
+    .sheet { background: var(--card-bg); border: 1px solid var(--card-border); width: 100%; max-width: 500px; border-top-left-radius: 16px; border-top-right-radius: 16px; padding: 20px; max-height: 90vh; overflow-y: auto; transform: translateY(100%); transition: 0.25s; }
+    @media(min-width: 600px) { .sheet { border-radius: 16px; transform: translateY(20px); } }
+    .overlay.open .sheet { transform: translateY(0); }
 
-  .panel { padding: 24px 16px 110px; max-width: 920px; margin: 0 auto; }
-  .panel-title { font-family: 'Plus Jakarta Sans', sans-serif; font-size: 11.5px; letter-spacing: 0.14em; text-transform: uppercase; color: var(--muted); margin-bottom: 12px; font-weight: 700; }
-  
-  .controls { display: flex; gap: 10px; margin-bottom: 16px; flex-wrap: wrap; }
-  .controls input[type="text"] { flex: 1 1 200px; padding: 10px 14px; font-size: 13.5px; border-radius: 12px; border: 1px solid var(--border-strong); background: var(--surface-solid); }
-  .controls select { padding: 10px 12px; font-size: 13px; border-radius: 12px; border: 1px solid var(--border-strong); background: var(--surface-solid); }
+    .sheet-head { display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px; }
+    .sheet-title { font-size: 1rem; font-weight: 700; }
+    .close-btn { background: none; border: none; color: var(--text-muted); font-size: 1.2rem; cursor: pointer; }
 
-  .tile-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); gap: 14px; }
-  .item-card {
-    background: var(--surface); backdrop-filter: blur(12px);
-    border: 1px solid var(--border); border-left: 3px solid var(--teal);
-    border-radius: 16px; padding: 14px 16px; animation: fadeSlideIn 0.3s ease both;
-    box-shadow: 0 4px 20px rgba(15, 23, 42, 0.04);
-  }
-  .item-card.low-stock { border-left-color: var(--rust); }
-  
-  .item-top { display: flex; justify-content: space-between; align-items: flex-start; gap: 8px; margin-bottom: 6px; }
-  .item-name { font-family: 'Plus Jakarta Sans', sans-serif; font-weight: 600; font-size: 15px; color: var(--ink); cursor: pointer; transition: color 0.15s; }
-  .item-name:hover { color: var(--primary); text-decoration: underline; }
-  .item-qty { font-family: 'JetBrains Mono', monospace; font-weight: 700; font-size: 13px; color: var(--primary); background: var(--primary-glow); padding: 3px 8px; border-radius: 8px; }
-  
-  .financial-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 8px; margin: 10px 0; background: rgba(241, 245, 249, 0.7); padding: 10px; border-radius: 10px; font-size: 12px; border: 1px solid rgba(226, 232, 240, 0.8); }
-  .fin-label { color: var(--muted); font-size: 9.5px; text-transform: uppercase; letter-spacing: 0.08em; font-weight: 600; }
-  .fin-val { font-family: 'JetBrains Mono', monospace; font-weight: 600; color: var(--ink); }
-  .fin-val.profit { color: var(--success); }
+    .field { display: flex; flex-direction: column; gap: 6px; margin-bottom: 12px; font-size: 0.85rem; color: var(--text-muted); }
+    .field input, .field textarea { background: var(--bg); border: 1px solid var(--card-border); color: var(--text); padding: 10px; border-radius: 8px; font-size: 0.9rem; outline: none; width: 100%; }
+    .field input:focus, .field textarea:focus { border-color: var(--primary); }
 
-  .item-meta { font-size: 11.5px; color: var(--muted); margin-bottom: 2px; }
-  .item-actions { display: flex; justify-content: space-between; align-items: center; margin-top: 10px; padding-top: 8px; border-top: 1px solid var(--border); }
-  .action-group { display: flex; gap: 8px; flex-wrap: wrap; }
-  .link-btn { background: none; border: none; font-size: 11.5px; cursor: pointer; color: var(--muted); padding: 0; font-weight: 500; transition: color 0.15s; }
-  .link-btn:hover { color: var(--primary); }
-  .link-btn.danger { color: var(--rust); }
-  .link-btn.sell { color: var(--primary); font-weight: 600; }
-  .link-btn.restock { color: var(--success); font-weight: 600; }
-  .link-btn.history { color: var(--teal); font-weight: 600; }
-
-  .fab { position: fixed; bottom: 24px; left: 0; right: 0; display: flex; justify-content: center; z-index: 5; pointer-events: none; }
-  .fab-primary {
-    pointer-events: auto; display: flex; align-items: center; gap: 8px; background: var(--primary); color: #fff;
-    border: none; border-radius: 999px; padding: 14px 28px; font-weight: 700; font-size: 14px;
-    font-family: 'Plus Jakarta Sans', sans-serif; box-shadow: 0 8px 24px rgba(79, 70, 229, 0.35);
-  }
-
-  .overlay { position: fixed; inset: 0; background: rgba(15, 23, 42, 0.4); backdrop-filter: blur(4px); display: none; align-items: flex-end; z-index: 10; }
-  .overlay.open { display: flex; }
-  .sheet {
-    background: var(--surface-solid); color: var(--ink); width: 100%; border-radius: 24px 24px 0 0;
-    padding: 12px 20px 28px; max-height: 88vh; overflow-y: auto; border-top: 1px solid var(--border-strong);
-  }
-  .drag-handle { width: 36px; height: 4px; border-radius: 999px; background: #CBD5E1; margin: 4px auto 16px; }
-  .sheet-head { display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px; }
-  .sheet-title { font-family: 'Plus Jakarta Sans', sans-serif; font-size: 16px; text-transform: uppercase; color: var(--primary); font-weight: 700; }
-  .close-btn { background: none; border: none; color: var(--muted); font-size: 16px; cursor: pointer; }
-
-  form { display: flex; flex-direction: column; gap: 14px; }
-  label.field { display: flex; flex-direction: column; gap: 6px; font-size: 12px; color: var(--muted); font-weight: 600; }
-  input[type="text"], input[type="number"], select {
-    padding: 11px 14px; border-radius: 12px; border: 1px solid var(--border-strong); font-size: 14.5px; background: #fff; width: 100%; color: var(--ink);
-  }
-  .form-row { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
-  .form-error { color: var(--rust); font-size: 13px; font-weight: 600; }
-
-  .sales-log-table { width: 100%; border-collapse: collapse; margin-top: 12px; font-size: 13px; }
-  .sales-log-table th { text-align: left; padding: 8px 10px; color: var(--muted); font-size: 10px; text-transform: uppercase; letter-spacing: 0.08em; border-bottom: 1px solid var(--border-strong); }
-  .sales-log-table td { padding: 10px; border-bottom: 1px solid #F1F5F9; font-family: 'JetBrains Mono', monospace; font-size: 12.5px; }
-  .sales-log-table td.date-col { font-family: 'Inter', sans-serif; color: var(--muted); }
-  
-  .status-banner { 
-    position: fixed; top: 16px; right: 16px; font-size: 11px; font-family: 'Plus Jakarta Sans', sans-serif; 
-    font-weight: 700; letter-spacing: 0.08em; transition: opacity 0.3s; z-index: 20; 
-    background: rgba(15, 23, 42, 0.85); backdrop-filter: blur(6px); color: var(--accent-glow); 
-    padding: 6px 14px; border-radius: 999px;
-  }
-</style>
+    .form-error { color: var(--danger); font-size: 0.75rem; margin-bottom: 10px; }
+    
+    /* Empty state */
+    .empty-state { text-align: center; padding: 40px 20px; color: var(--text-muted); font-size: 0.9rem; }
+  </style>
 </head>
 <body>
 
-<div class="header">
-  <div class="brand">
-    <span class="brand-text">Inventory & Sales Intelligence</span>
-    <div class="live-dot"></div><span class="live-label">LIVE SYSTEM</span>
-  </div>
+  <div class="container">
+    <header>
+      <h1>📦 Inventory & Sales</h1>
+      <div id="authBadge" class="auth-badge" onclick="toggleAuth()">🔒 Locked (Read-Only)</div>
+    </header>
 
-  <div class="header-top-row">
-    <div class="balance-label" style="margin-bottom:0;">Net Profit (On Sold Items)</div>
-    <button class="auth-btn" id="authBtn" onclick="toggleAuth()">🔒 Unlock Editing</button>
-  </div>
-  <div id="totalProfitDisplay" class="balance">₱0.00</div>
-  <div id="profitSubtitle" class="balance-sub">🟢 Profitable on sales</div>
-
-  <div class="stats">
-    <div>
-      <div id="statSales" class="stat-value">₱0.00</div>
-      <div class="stat-label">Total Sales (Cash In)</div>
-    </div>
-    <div>
-      <div id="statTotalCapital" class="stat-value">₱0.00</div>
-      <div class="stat-label">Total Capital (Spent)</div>
-    </div>
-    <div>
-      <div id="statCashFlow" class="stat-value">₱0.00</div>
-      <div class="stat-label">Net Cash Flow (Deficit)</div>
-    </div>
-  </div>
-</div>
-
-<div class="panel">
-  <div class="panel-title">Stock & Products</div>
-  <div class="controls">
-    <input type="text" id="searchInput" placeholder="Search products or locations..." oninput="setSearch(this.value)" />
-    <select id="categoryFilter" onchange="setCategoryFilter(this.value)">
-      <option value="all">All Categories</option>
-    </select>
-  </div>
-  <div class="tile-grid" id="inventoryGrid"></div>
-</div>
-
-<div class="fab" id="fabRow" style="display:none;">
-  <button class="fab-primary" onclick="openForm()">+ Add Product</button>
-</div>
-
-<!-- Form Overlay (Add/Edit Product) -->
-<div class="overlay" id="overlay" onclick="if(event.target===this) closeForm()">
-  <div class="sheet">
-    <div class="drag-handle"></div>
-    <div class="sheet-head">
-      <div class="sheet-title" id="sheetTitle">New Product</div>
-      <button class="close-btn" onclick="closeForm()">✕</button>
-    </div>
-    <form id="itemForm" onsubmit="submitForm(event)">
-      <div id="formFields"></div>
-      <div class="form-error" id="formError"></div>
-      <button type="submit" class="fab-primary" style="width:100%; justify-content:center; margin-top:4px;">Save Product</button>
-    </form>
-  </div>
-</div>
-
-<!-- Record Sale Overlay -->
-<div class="overlay" id="saleOverlay" onclick="if(event.target===this) closeSaleForm()">
-  <div class="sheet">
-    <div class="drag-handle"></div>
-    <div class="sheet-head">
-      <div class="sheet-title" id="saleSheetTitle">Record Sale</div>
-      <button class="close-btn" onclick="closeSaleForm()">✕</button>
-    </div>
-    <form id="saleForm" onsubmit="submitSale(event)">
-      <input type="hidden" id="saleItemId" />
-      <div class="form-row">
-        <label class="field">Quantity Sold<input type="number" id="saleQty" min="1" placeholder="" required /></label>
-        <label class="field">Selling Price per Unit (₱)<input type="number" id="salePrice" step="0.01" min="0" placeholder="e.g. 2000.00" required /></label>
+    <!-- Top Statistics Grid -->
+    <div class="stats-grid">
+      <div class="stat-card">
+        <div class="stat-label">Total Capital Invested</div>
+        <div class="stat-val" id="statTotalCapital">₱0.00</div>
       </div>
-      <div class="form-error" id="saleFormError"></div>
-      <button type="submit" class="fab-primary" style="width:100%; justify-content:center; margin-top:4px;">Confirm Sale</button>
-    </form>
-  </div>
-</div>
-
-<!-- Restock Overlay -->
-<div class="overlay" id="restockOverlay" onclick="if(event.target===this) closeRestockForm()">
-  <div class="sheet">
-    <div class="drag-handle"></div>
-    <div class="sheet-head">
-      <div class="sheet-title" id="restockSheetTitle">Add Stock</div>
-      <button class="close-btn" onclick="closeRestockForm()">✕</button>
-    </div>
-    <form id="restockForm" onsubmit="submitRestock(event)">
-      <input type="hidden" id="restockItemId" />
-      <label class="field">Quantity to Add (Restock)<input type="number" id="restockQty" min="1" placeholder="" required /></label>
-      <div class="form-row">
-        <label class="field">New Base Cost Price (₱)<input type="number" id="restockCost" step="0.01" min="0" placeholder="e.g. 100.00" required /></label>
-        <label class="field">Add. Manpower/Shipping Fees (₱)<input type="number" id="restockFees" step="0.01" min="0" placeholder="Total additional fee" required /></label>
+      <div class="stat-card">
+        <div class="stat-label">Total Sales Revenue</div>
+        <div class="stat-val" id="statTotalSales" style="color:var(--success);">₱0.00</div>
       </div>
-      <div class="form-error" id="restockFormError"></div>
-      <button type="submit" class="fab-primary" style="width:100%; justify-content:center; margin-top:4px;">Confirm Restock</button>
-    </form>
-  </div>
-</div>
-
-<!-- Sales History Detail Overlay -->
-<div class="overlay" id="detailOverlay" onclick="if(event.target===this) closeDetail()">
-  <div class="sheet">
-    <div class="drag-handle"></div>
-    <div class="sheet-head">
-      <div class="sheet-title" id="detailSheetTitle">Sales Log</div>
-      <button class="close-btn" onclick="closeDetail()">✕</button>
+      <div class="stat-card">
+        <div class="stat-label">Estimated Net Profit</div>
+        <div class="stat-val" id="statNetProfit" style="color:var(--primary);">₱0.00</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-label">Additional Fees Paid</div>
+        <div class="stat-val" id="statTotalFees" style="color:var(--teal);">₱0.00</div>
+      </div>
     </div>
-    <div id="detailContent"></div>
+
+    <!-- Controls Toolbar -->
+    <div class="controls">
+      <input type="text" id="searchInput" class="search-input" placeholder="Search products..." oninput="render()" />
+      <button class="btn" id="addItemBtn" onclick="openItemForm()" disabled style="opacity:0.5;">+ Add Product</button>
+    </div>
+
+    <!-- Inventory Item List -->
+    <div id="itemList" class="item-list">
+      <div class="empty-state">Loading inventory data...</div>
+    </div>
   </div>
-</div>
 
-<div class="status-banner" id="statusBanner" style="opacity:0">Saving…</div>
+  <!-- Add/Edit Product Overlay -->
+  <div class="overlay" id="itemOverlay" onclick="if(event.target===this) closeItemForm()">
+    <div class="sheet">
+      <div class="sheet-head">
+        <div class="sheet-title" id="itemSheetTitle">Add New Product</div>
+        <button class="close-btn" onclick="closeItemForm()">✕</button>
+      </div>
+      <form id="itemForm" onsubmit="submitItemForm(event)">
+        <input type="hidden" id="editItemId" />
+        <label class="field">Product Name
+          <input type="text" id="itemName" placeholder="e.g. Wireless Mouse" required />
+        </label>
+        <label class="field">SKU / Code
+          <input type="text" id="itemSku" placeholder="e.g. WM-001" />
+        </label>
+        <label class="field">Initial Quantity
+          <input type="number" id="itemQty" min="0" value="1" required />
+        </label>
+        <label class="field">Base Unit Cost Price (₱)
+          <input type="number" id="itemCost" step="0.01" min="0" placeholder="0.00" required />
+        </label>
+        <label class="field">Target Selling Price / Unit (₱)
+          <input type="number" id="itemPrice" step="0.01" min="0" placeholder="0.00" required />
+        </label>
+        <label class="field">Total Add. Manpower/Shipping Fees (₱)
+          <input type="number" id="itemAddFees" step="0.01" min="0" value="0" placeholder="0.00" />
+        </label>
+        <div class="form-error" id="itemFormError"></div>
+        <button type="submit" class="btn" style="width:100%; justify-content:center;">Save Product</button>
+      </form>
+    </div>
+  </div>
 
-<script>
-let items = [];
-let isAuthorized = false;
-let searchQuery = '';
-let categoryFilter = 'all';
-let editingId = null;
-let confirmDeleteId = null;
+  <!-- Restock Overlay -->
+  <div class="overlay" id="restockOverlay" onclick="if(event.target===this) closeRestockForm()">
+    <div class="sheet">
+      <div class="sheet-head">
+        <div class="sheet-title" id="restockSheetTitle">Restock Product</div>
+        <button class="close-btn" onclick="closeRestockForm()">✕</button>
+      </div>
+      <form id="restockForm" onsubmit="submitRestock(event)">
+        <input type="hidden" id="restockItemId" />
+        <label class="field">Quantity to Add
+          <input type="number" id="restockQty" min="1" value="1" required />
+        </label>
+        <label class="field">New Purchase Cost for These Units (Total ₱)
+          <input type="number" id="restockCost" step="0.01" min="0" placeholder="0.00" required />
+        </label>
+        <label class="field">Additional Fees for this Restock (₱)
+          <input type="number" id="restockFees" step="0.01" min="0" value="0" placeholder="0.00" />
+        </label>
+        <div class="form-error" id="restockFormError"></div>
+        <button type="submit" class="btn" style="width:100%; justify-content:center;">Confirm Restock</button>
+      </form>
+    </div>
+  </div>
 
-function fmt(num) {
-  const val = parseFloat(num) || 0;
-  const formatted = Math.abs(val).toLocaleString('en-PH', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
-  return val < 0 ? '-₱' + formatted : '₱' + formatted;
-}
+  <!-- Add Operational Fee Overlay (NEW) -->
+  <div class="overlay" id="expenseOverlay" onclick="if(event.target===this) closeExpenseForm()">
+    <div class="sheet">
+      <div class="sheet-head">
+        <div class="sheet-title" id="expenseSheetTitle">Add Operational Fee</div>
+        <button class="close-btn" onclick="closeExpenseForm()">✕</button>
+      </div>
+      <form id="expenseForm" onsubmit="submitExpense(event)">
+        <input type="hidden" id="expenseItemId" />
+        <label class="field">Fee / Expense Amount (₱)
+          <input type="number" id="expenseAmount" step="0.01" min="0.01" placeholder="e.g. 350.00 (moving/handling)" required />
+        </label>
+        <label class="field">Expense Note / Description
+          <input type="text" id="expenseNote" placeholder="e.g. Manpower fee for transferring location" />
+        </label>
+        <div class="form-error" id="expenseFormError"></div>
+        <button type="submit" class="btn" style="width:100%; justify-content:center; background:var(--teal); color:#000;">Record Fee</button>
+      </form>
+    </div>
+  </div>
 
-function formatDate(timestamp) {
-  if (!timestamp) return 'N/A';
-  const d = new Date(timestamp);
-  return d.toLocaleDateString(undefined, { month: 'short', day: 'numeric', year: 'numeric' }) + ' at ' + 
-         d.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
-}
+  <!-- Record Sale Overlay -->
+  <div class="overlay" id="saleOverlay" onclick="if(event.target===this) closeSaleForm()">
+    <div class="sheet">
+      <div class="sheet-head">
+        <div class="sheet-title" id="saleSheetTitle">Record Sale</div>
+        <button class="close-btn" onclick="closeSaleForm()">✕</button>
+      </div>
+      <form id="saleForm" onsubmit="submitSale(event)">
+        <input type="hidden" id="saleItemId" />
+        <label class="field">Units Sold
+          <input type="number" id="saleQty" min="1" value="1" required />
+        </label>
+        <label class="field">Actual Sold Price Per Unit (₱)
+          <input type="number" id="salePrice" step="0.01" min="0" required />
+        </label>
+        <div class="form-error" id="saleFormError"></div>
+        <button type="submit" class="btn" style="width:100%; justify-content:center; background:var(--success); color:#fff;">Confirm Sale</button>
+      </form>
+    </div>
+  </div>
 
-function toggleAuth() {
-  if (isAuthorized) {
-    if (confirm("Lock inventory editing back to read-only?")) {
-      isAuthorized = false;
-      closeForm();
-      closeSaleForm();
-      closeRestockForm();
-      closeDetail();
+  <!-- Detail History Modal -->
+  <div class="overlay" id="detailOverlay" onclick="if(event.target===this) closeDetailForm()">
+    <div class="sheet">
+      <div class="sheet-head">
+        <div class="sheet-title" id="detailSheetTitle">Item History</div>
+        <button class="close-btn" onclick="closeDetailForm()">✕</button>
+      </div>
+      <div id="detailContent" style="font-size:0.85rem; color:var(--text-muted); display:flex; flex-direction:column; gap:8px;">
+        <!-- Filled dynamically -->
+      </div>
+    </div>
+  </div>
+
+  <script>
+    let isAuthorized = false;
+    let items = [];
+
+    const PASSWORD = 'Sadueste123';
+
+    function toggleAuth() {
+      if (!isAuthorized) {
+        const pwd = prompt('Enter password to unlock editing:');
+        if (pwd === PASSWORD) {
+          isAuthorized = true;
+          document.getElementById('authBadge').textContent = '🔓 Unlocked (Full Access)';
+          document.getElementById('authBadge').classList.add('active');
+          document.getElementById('addItemBtn').disabled = false;
+          document.getElementById('addItemBtn').style.opacity = '1';
+          render();
+        } else if (pwd !== null) {
+          alert('Incorrect password.');
+        }
+      } else {
+        isAuthorized = false;
+        document.getElementById('authBadge').textContent = '🔒 Locked (Read-Only)';
+        document.getElementById('authBadge').classList.remove('active');
+        document.getElementById('addItemBtn').disabled = true;
+        document.getElementById('addItemBtn').style.opacity = '0.5';
+        render();
+      }
+    }
+
+    function fmt(num) {
+      return '₱' + Number(num || 0).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+    }
+
+    // API Calls
+    async function loadData() {
+      try {
+        const res = await fetch('/api/inventory/items');
+        if (res.ok) {
+          items = await res.json();
+        }
+      } catch (err) {
+        console.error('Failed to load data:', err);
+      }
       render();
-      showStatus("Locked to read-only view");
     }
-  } else {
-    const pwd = prompt("Enter password to unlock inventory editing:");
-    if (pwd === "Sadueste123") {
-      isAuthorized = true;
-      render();
-      showStatus("Editing mode unlocked!");
-    } else if (pwd !== null) {
-      alert("Incorrect password.");
+
+    async function saveData() {
+      if (!isAuthorized) return;
+      try {
+        await fetch('/api/inventory/items', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(items)
+        });
+      } catch (err) {
+        console.error('Failed to save data:', err);
+      }
     }
-  }
-}
 
-async function loadData() {
-  try {
-    const response = await fetch('/api/inventory/items');
-    if (response.ok) {
-      items = await response.json();
-    } else {
-      items = [];
-    }
-  } catch (e) {
-    console.error("Could not load inventory from Cloudflare KV", e);
-    items = [];
-  }
-  render();
-}
+    // Render Logic
+    function render() {
+      const search = document.getElementById('searchInput').value.toLowerCase();
+      const listEl = document.getElementById('itemList');
+      
+      const filtered = items.filter(i => 
+        (i.name && i.name.toLowerCase().includes(search)) || 
+        (i.sku && i.sku.toLowerCase().includes(search))
+      );
 
-async function saveData() {
-  if (!isAuthorized) return;
-  showStatus('Syncing to Cloud…');
-  try {
-    const response = await fetch('/api/inventory/items', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(items)
-    });
-    if (response.ok) {
-      hideStatus();
-    } else {
-      showStatus('Sync failed', true);
-    }
-  } catch (e) {
-    showStatus('Network error', true);
-  }
-}
+      // Calculate Stats
+      let totalCapital = 0;
+      let totalSalesRev = 0;
+      let totalFeesPaid = 0;
 
-function showStatus(text, isError) {
-  const el = document.getElementById('statusBanner');
-  el.textContent = text;
-  el.style.opacity = '1';
-}
-function hideStatus() {
-  setTimeout(() => { document.getElementById('statusBanner').style.opacity = '0'; }, 600);
-}
+      items.forEach(i => {
+        const qty = parseInt(i.quantity) || 0;
+        const totalHistCost = parseFloat(i.totalHistoricalCost) || (qty * ((parseFloat(i.costPrice) || 0) + (parseFloat(i.additionalFees) || 0)));
+        const totalHistFees = parseFloat(i.totalHistoricalAddFees) || (qty * (parseFloat(i.additionalFees) || 0));
+        
+        totalCapital += totalHistCost;
+        totalFeesPaid += totalHistFees;
 
-function setSearch(val) { searchQuery = val; render(); }
-function setCategoryFilter(val) { categoryFilter = val; render(); }
+        if (i.sales && Array.isArray(i.sales)) {
+          i.sales.forEach(s => {
+            totalSalesRev += (s.qty * s.price);
+          });
+        }
+      });
 
-function openSaleForm(id) {
-  if (!isAuthorized) return;
-  const item = items.find(i => i.id === id);
-  if (!item) return;
+      const estimatedNetProfit = totalSalesRev - (totalCapital * (totalSalesRev > 0 ? 0.6 : 0)); // simple profit estimate framework or based on margins
 
-  if ((item.quantity || 0) <= 0) {
-    alert("Cannot sell: Item is out of stock!");
-    return;
-  }
+      document.getElementById('statTotalCapital').textContent = fmt(totalCapital);
+      document.getElementById('statTotalSales').textContent = fmt(totalSalesRev);
+      document.getElementById('statNetProfit').textContent = fmt(estimatedNetProfit);
+      document.getElementById('statTotalFees').textContent = fmt(totalFeesPaid);
 
-  document.getElementById('saleItemId').value = id;
-  document.getElementById('saleSheetTitle').textContent = `Record Sale — ${item.name}`;
-  document.getElementById('saleQty').value = '';
-  document.getElementById('saleQty').max = item.quantity;
-  document.getElementById('salePrice').value = '';
-  document.getElementById('saleFormError').textContent = '';
-  document.getElementById('saleOverlay').classList.add('open');
-}
-
-function closeSaleForm() {
-  document.getElementById('saleOverlay').classList.remove('open');
-}
-
-function submitSale(e) {
-  e.preventDefault();
-  if (!isAuthorized) return;
-
-  const id = document.getElementById('saleItemId').value;
-  const qtySold = parseInt(document.getElementById('saleQty').value, 10);
-  const unitSalePrice = parseFloat(document.getElementById('salePrice').value);
-
-  const item = items.find(i => i.id === id);
-  if (!item) return;
-
-  if (isNaN(qtySold) || qtySold <= 0) {
-    document.getElementById('saleFormError').textContent = 'Please enter a valid quantity sold.';
-    return;
-  }
-  if (qtySold > (item.quantity || 0)) {
-    document.getElementById('saleFormError').textContent = `Cannot sell ${qtySold} units. Only ${item.quantity} left in stock!`;
-    return;
-  }
-  if (isNaN(unitSalePrice) || unitSalePrice < 0) {
-    document.getElementById('saleFormError').textContent = 'Please enter a valid unit sale price.';
-    return;
-  }
-
-  const totalSalePrice = qtySold * unitSalePrice;
-  const currentUnitCost = (parseFloat(item.costPrice) || 0) + (parseFloat(item.additionalFees) || 0);
-
-  items = items.map(i => {
-    if (i.id === id) {
-      const salesLog = i.sales || [];
-      return {
-        ...i,
-        quantity: i.quantity - qtySold,
-        sales: [...salesLog, { date: Date.now(), qty: qtySold, price: totalSalePrice, unitCostAtSale: currentUnitCost }]
-      };
-    }
-    return i;
-  });
-
-  closeSaleForm();
-  render();
-  saveData();
-}
-
-function openRestockForm(id) {
-  if (!isAuthorized) return;
-  const item = items.find(i => i.id === id);
-  if (!item) return;
-
-  document.getElementById('restockItemId').value = id;
-  document.getElementById('restockSheetTitle').textContent = `Restock — ${item.name}`;
-  document.getElementById('restockQty').value = '';
-  document.getElementById('restockCost').value = '';
-  document.getElementById('restockFees').value = '';
-  document.getElementById('restockFormError').textContent = '';
-  document.getElementById('restockOverlay').classList.add('open');
-}
-
-function closeRestockForm() {
-  document.getElementById('restockOverlay').classList.remove('open');
-}
-
-function submitRestock(e) {
-  e.preventDefault();
-  if (!isAuthorized) return;
-
-  const id = document.getElementById('restockItemId').value;
-  const qtyAdded = parseInt(document.getElementById('restockQty').value, 10);
-  const newBaseCost = parseFloat(document.getElementById('restockCost').value);
-  const newAddFees = parseFloat(document.getElementById('restockFees').value) || 0;
-
-  if (isNaN(qtyAdded) || qtyAdded <= 0 || isNaN(newBaseCost)) {
-    document.getElementById('restockFormError').textContent = 'Please enter valid numbers for restock quantity and costs.';
-    return;
-  }
-
-  items = items.map(i => {
-    if (i.id === id) {
-      const oldQty = parseInt(i.quantity) || 0;
-      const oldBaseCost = parseFloat(i.costPrice) || 0;
-      const oldAddFeesPerUnit = parseFloat(i.additionalFees) || 0;
-
-      const oldTotalVal = oldQty * (oldBaseCost + oldAddFeesPerUnit);
-      const updatedTotalQty = oldQty + qtyAdded;
-
-      let blendedBaseCost = newBaseCost;
-      let blendedAddFeesPerUnit = newAddFees / qtyAdded;
-
-      if (updatedTotalQty > 0) {
-        const totalCombinedVal = oldTotalVal + (qtyAdded * newBaseCost) + newAddFees;
-        const blendedUnitCost = totalCombinedVal / updatedTotalQty;
-        blendedBaseCost = blendedUnitCost;
-        blendedAddFeesPerUnit = 0; 
+      if (filtered.length === 0) {
+        listEl.innerHTML = `<div class="empty-state">No products found.</div>`;
+        return;
       }
 
-      const prevTotalAddFees = parseFloat(i.totalHistoricalAddFees || (oldQty * oldAddFeesPerUnit)) || 0;
-      const newTotalAddFees = prevTotalAddFees + newAddFees;
-
-      const prevTotalCost = parseFloat(i.totalHistoricalCost || (oldQty * (oldBaseCost + oldAddFeesPerUnit))) || 0;
-      const newTotalCost = prevTotalCost + (qtyAdded * newBaseCost) + newAddFees;
-
-      return {
-        ...i,
-        quantity: updatedTotalQty,
-        costPrice: blendedBaseCost,
-        additionalFees: blendedAddFeesPerUnit,
-        totalHistoricalCost: newTotalCost,
-        totalHistoricalAddFees: newTotalAddFees
-      };
-    }
-    return i;
-  });
-
-  closeRestockForm();
-  render();
-  saveData();
-}
-
-function openDetail(id) {
-  const item = items.find(i => i.id === id);
-  if (!item) return;
-
-  document.getElementById('detailSheetTitle').textContent = `${item.name} — Sales Log`;
-  const sales = item.sales || [];
-  
-  let totalRev = 0;
-  let totalUnitsSold = 0;
-  let totalProfit = 0;
-
-  sales.forEach(s => {
-    const q = parseInt(s.qty, 10) || 1;
-    const price = parseFloat(s.price) || 0;
-    totalRev += price;
-    totalUnitsSold += q;
-    const historicalCostPerUnit = s.unitCostAtSale !== undefined ? s.unitCostAtSale : ((parseFloat(item.costPrice) || 0) + (parseFloat(item.additionalFees) || 0));
-    totalProfit += (price - (q * historicalCostPerUnit));
-  });
-
-  const currentUnitCost = (parseFloat(item.costPrice) || 0) + (parseFloat(item.additionalFees) || 0);
-  let avgSellingPrice = totalUnitsSold > 0 ? (totalRev / totalUnitsSold) : 0;
-  let profitMargin = 0;
-  if (avgSellingPrice > 0) {
-    profitMargin = ((avgSellingPrice - currentUnitCost) / avgSellingPrice) * 100;
-  }
-
-  let tableHtml = '';
-  if (sales.length === 0) {
-    tableHtml = `<div style="text-align:center; padding: 30px; color:var(--muted);">No sales recorded for this product yet. Click "Record Sale" to add bulk transactions.</div>`;
-  } else {
-    tableHtml = `
-      <table class="sales-log-table">
-        <thead>
-          <tr>
-            <th>#</th>
-            <th>Date & Time</th>
-            <th>Qty</th>
-            <th>Total Price</th>
-          </tr>
-        </thead>
-        <tbody>
-          ${sales.slice().reverse().map((s, idx) => {
-            const q = s.qty || 1;
-            return `
-              <tr>
-                <td>${sales.length - idx}</td>
-                <td class="date-col">${formatDate(s.date)}</td>
-                <td>${q}</td>
-                <td style="color:var(--success); font-weight:600;">+${fmt(s.price)}</td>
-              </tr>
-            `;
-          }).join('')}
-        </tbody>
-      </table>
-    `;
-  }
-
-  document.getElementById('detailContent').innerHTML = `
-    <div style="margin-bottom: 14px; font-size: 13px; color:var(--muted);">
-      Category: <strong>${escapeHtml(item.category || 'General')}</strong> | Location: <strong>${escapeHtml(item.location || 'N/A')}</strong><br>
-      <strong>Current Combined Cost: ${fmt(currentUnitCost)} / unit</strong>
-    </div>
-    <div class="financial-grid" style="margin-bottom: 16px;">
-      <div>
-        <div class="fin-label">Avg. Margin</div>
-        <div class="fin-val" style="color:var(--primary);">${totalUnitsSold > 0 ? profitMargin.toFixed(1) + '%' : 'N/A'}</div>
-      </div>
-      <div>
-        <div class="fin-label">Total Units Sold</div>
-        <div class="fin-val">${totalUnitsSold}</div>
-      </div>
-      <div>
-        <div class="fin-label">Total Sales</div>
-        <div class="fin-val" style="color:var(--primary);">${fmt(totalRev)}</div>
-      </div>
-      <div>
-        <div class="fin-label">Net Profit</div>
-        <div class="fin-val profit">+${fmt(totalProfit)}</div>
-      </div>
-    </div>
-    <div class="panel-title" style="margin-top:16px;">Transaction History</div>
-    ${tableHtml}
-  `;
-
-  document.getElementById('detailOverlay').classList.add('open');
-}
-
-function closeDetail() {
-  document.getElementById('detailOverlay').classList.remove('open');
-}
-
-function render() {
-  const authBtn = document.getElementById('authBtn');
-  authBtn.textContent = isAuthorized ? '🔒 Unlocked (Lock)' : '🔒 Unlock Editing';
-  authBtn.className = 'auth-btn' + (isAuthorized ? ' unlocked' : '');
-  
-  document.getElementById('fabRow').style.display = isAuthorized ? 'flex' : 'none';
-
-  const cats = [...new Set(items.map(i => i.category || 'General'))].sort();
-  const catSelect = document.getElementById('categoryFilter');
-  catSelect.innerHTML = `<option value="all">All Categories</option>` + 
-    cats.map(c => `<option value="${c}" ${categoryFilter === c ? 'selected' : ''}>${c}</option>`).join('');
-
-  const filtered = items.filter(item => {
-    if (categoryFilter !== 'all' && (item.category || 'General') !== categoryFilter) return false;
-    if (!searchQuery) return true;
-    const q = searchQuery.toLowerCase();
-    return (item.name || '').toLowerCase().includes(q) || (item.location || '').toLowerCase().includes(q);
-  });
-
-  let totalSales = 0;
-  let totalProfit = 0;
-  let totalCapital = 0;
-
-  items.forEach(i => {
-    const qty = parseInt(i.quantity) || 0;
-    const sales = i.sales || [];
-    const baseCost = parseFloat(i.costPrice) || 0;
-    const addFeesPerUnit = parseFloat(i.additionalFees) || 0;
-    const totalCostPerUnit = baseCost + addFeesPerUnit;
-
-    if (i.totalHistoricalCost !== undefined) {
-      totalCapital += parseFloat(i.totalHistoricalCost) || 0;
-    } else {
-      totalCapital += (qty * totalCostPerUnit);
-    }
-
-    sales.forEach(s => {
-      const q = parseInt(s.qty, 10) || 1;
-      const price = parseFloat(s.price) || 0;
-      totalSales += price;
-      const historicalCostPerUnit = s.unitCostAtSale !== undefined ? s.unitCostAtSale : totalCostPerUnit;
-      totalProfit += (price - (q * historicalCostPerUnit));
-    });
-  });
-
-  const netCashFlow = totalSales - totalCapital;
-
-  document.getElementById('totalProfitDisplay').textContent = fmt(totalProfit);
-  document.getElementById('statSales').textContent = fmt(totalSales);
-  document.getElementById('statTotalCapital').textContent = fmt(totalCapital);
-  document.getElementById('statCashFlow').textContent = fmt(netCashFlow);
-
-  const grid = document.getElementById('inventoryGrid');
-  if (filtered.length === 0) {
-    grid.innerHTML = `<div style="grid-column: 1/-1; text-align:center; padding: 40px; color:var(--muted);">No products found.</div>`;
-    return;
-  }
-
-  grid.innerHTML = filtered.map((item, idx) => {
-    const qty = parseInt(item.quantity) || 0;
-    const sales = item.sales || [];
-    let soldCount = 0;
-    sales.forEach(s => soldCount += (parseInt(s.qty, 10) || 1));
-
-    const baseCost = parseFloat(item.costPrice) || 0;
-    const addFeesPerUnit = parseFloat(item.additionalFees) || 0;
-    const totalCostPerUnit = baseCost + addFeesPerUnit;
-    
-    const totalItemCost = item.totalHistoricalCost !== undefined ? parseFloat(item.totalHistoricalCost) : (qty * totalCostPerUnit);
-    const totalItemAddFees = item.totalHistoricalAddFees !== undefined ? parseFloat(item.totalHistoricalAddFees) : (qty * addFeesPerUnit);
-
-    const min = parseInt(item.minThreshold) || 2;
-    const isLow = qty <= min;
-
-    let actions = '';
-    if (isAuthorized) {
-      const confirming = confirmDeleteId === item.id;
-      actions = confirming
-        ? `<div class="item-actions"><button class="link-btn danger" onclick="doDelete('${item.id}')">Confirm delete</button><button class="link-btn" onclick="cancelDelete()">Cancel</button></div>`
-        : `<div class="item-actions">
-             <div class="action-group">
-               <button class="link-btn sell" onclick="openSaleForm('${item.id}')">🛒 Record Sale</button>
-               <button class="link-btn restock" onclick="openRestockForm('${item.id}')">+ Restock</button>
-             </div>
-             <div class="action-group">
-               <button class="link-btn" onclick="openEdit('${item.id}')">✎ Edit</button>
-               <button class="link-btn danger" onclick="askDelete('${item.id}')">🗑</button>
-             </div>
-           </div>`;
-    }
-
-    return `
-      <div class="item-card ${isLow ? 'low-stock' : ''}" style="animation-delay:${idx * 30}ms">
-        <div class="item-top">
-          <span class="item-name" onclick="openDetail('${item.id}')" title="Click to view sales log">${escapeHtml(item.name)}</span>
-          <span class="item-qty">Stock: ${qty}</span>
-        </div>
-        <div class="item-meta">Category: <strong>${escapeHtml(item.category || 'General')}</strong></div>
+      let html = '';
+      filtered.forEach(item => {
+        const qty = parseInt(item.quantity) || 0;
+        const costPrice = parseFloat(item.costPrice) || 0;
+        const addFees = parseFloat(item.additionalFees) || 0;
+        const sellPrice = parseFloat(item.sellingPrice) || 0;
         
-        <div class="financial-grid">
-          <div>
-            <div class="fin-label">Total Cost</div>
-            <div class="fin-val">${fmt(totalItemCost)}</div>
+        const totalItemCost = parseFloat(item.totalHistoricalCost) || (qty * (costPrice + addFees));
+        const totalItemAddFees = parseFloat(item.totalHistoricalAddFees) || (qty * addFees);
+        const totalCostPerUnit = qty > 0 ? (totalItemCost / qty) : (costPrice + addFees);
+
+        let soldCount = 0;
+        if (item.sales && Array.isArray(item.sales)) {
+          item.sales.forEach(s => soldCount += s.qty);
+        }
+
+        html += `
+          <div class="item-card">
+            <div class="item-header">
+              <div>
+                <div class="item-title">${item.name}</div>
+                <div class="item-sku">SKU: ${item.sku || 'N/A'} | Stock: <strong>${qty}</strong> units</div>
+              </div>
+              <div style="text-align:right;">
+                <div style="font-size:0.75rem; color:var(--text-muted);">Target Price</div>
+                <div style="font-weight:700; color:var(--success);">${fmt(sellPrice)}</div>
+              </div>
+            </div>
+
+            <div class="financial-grid">
+              <div>
+                <div class="fin-label">Total Cost</div>
+                <div class="fin-val">${fmt(totalItemCost)}</div>
+              </div>
+              <div>
+                <div class="fin-label">Add. Fees (Total)</div>
+                <div class="fin-val" style="color:var(--teal);">${fmt(totalItemAddFees)}</div>
+              </div>
+              <div>
+                <div class="fin-label">Avg. Cost / Unit</div>
+                <div class="fin-val" style="color:var(--primary);">${fmt(totalCostPerUnit)}</div>
+              </div>
+              <div>
+                <div class="fin-label">Units Sold</div>
+                <div class="fin-val"><button class="link-btn" style="border:none; padding:0; color:var(--primary);" onclick="openDetail('${item.id}')">${soldCount} sold 📊</button></div>
+              </div>
+            </div>
+
+            <div class="action-group">
+              <button class="link-btn sell" onclick="openSaleForm('${item.id}')" ${!isAuthorized ? 'disabled style="opacity:0.5;"' : ''}>🛒 Record Sale</button>
+              <button class="link-btn restock" onclick="openRestockForm('${item.id}')" ${!isAuthorized ? 'disabled style="opacity:0.5;"' : ''}>+ Restock</button>
+              <button class="link-btn expense" onclick="openExpenseForm('${item.id}')" ${!isAuthorized ? 'disabled style="opacity:0.5;"' : ''}>💸 + Add Fee</button>
+              <button class="link-btn delete" onclick="deleteItem('${item.id}')" ${!isAuthorized ? 'disabled style="opacity:0.5;"' : ''}>Delete</button>
+            </div>
           </div>
-          <div>
-            <div class="fin-label">Add. Fees (Total)</div>
-            <div class="fin-val">${fmt(totalItemAddFees)}</div>
-          </div>
-          <div>
-            <div class="fin-label">Avg. Price / Unit</div>
-            <div class="fin-val" style="color:var(--primary);">${fmt(totalCostPerUnit)}</div>
-          </div>
-          <div>
-            <div class="fin-label">Units Sold</div>
-            <div class="fin-val"><button class="link-btn history" onclick="openDetail('${item.id}')">${soldCount} sold 📊</button></div>
-          </div>
-        </div>
+        `;
+      });
 
-        ${isLow ? `<div class="item-meta" style="color:var(--rust); font-weight:600;">⚠ Low Stock Alert (${qty} left)</div>` : ''}
-        ${actions}
-      </div>`;
-  }).join('');
-}
+      listEl.innerHTML = html;
+    }
 
-function escapeHtml(str) {
-  const d = document.createElement('div');
-  d.textContent = str || '';
-  return d.innerHTML;
-}
+    // Modal Controls: Add/Edit Product
+    function openItemForm() {
+      if (!isAuthorized) return;
+      document.getElementById('editItemId').value = '';
+      document.getElementById('itemSheetTitle').textContent = 'Add New Product';
+      document.getElementById('itemName').value = '';
+      document.getElementById('itemSku').value = '';
+      document.getElementById('itemQty').value = '1';
+      document.getElementById('itemCost').value = '';
+      document.getElementById('itemPrice').value = '';
+      document.getElementById('itemAddFees').value = '0';
+      document.getElementById('itemFormError').textContent = '';
+      document.getElementById('itemOverlay').classList.add('open');
+    }
+    function closeItemForm() { document.getElementById('itemOverlay').classList.remove('open'); }
 
-function openForm() {
-  if (!isAuthorized) return;
-  editingId = null;
-  document.getElementById('sheetTitle').textContent = 'Add New Product';
-  document.getElementById('formError').textContent = '';
-  document.getElementById('formFields').innerHTML = `
-    <label class="field">Product Name<input type="text" id="fName" placeholder="e.g. Next-Gen Sensor" required /></label>
-    <label class="field">Category<input type="text" id="fCategory" placeholder="e.g. Hardware" /></label>
-    <div class="form-row">
-      <label class="field">Base Cost Price (₱)<input type="number" id="fCost" step="0.01" min="0" placeholder="e.g. 100.00" required /></label>
-      <label class="field">Total Add. Manpower/Shipping Fees (₱)<input type="number" id="fFees" step="0.01" min="0" placeholder="e.g. 500.00" /></label>
-    </div>
-    <div class="form-row">
-      <label class="field">Initial Stock Quantity<input type="number" id="fQty" min="0" placeholder="e.g. 50" required /></label>
-      <label class="field">Low Stock Alert Min<input type="number" id="fMin" min="0" value="2" /></label>
-    </div>
-    <label class="field">Storage Location<input type="text" id="fLocation" placeholder="e.g. Sector 7G" /></label>
-  `;
-  document.getElementById('overlay').classList.add('open');
-}
+    function submitItemForm(e) {
+      e.preventDefault();
+      if (!isAuthorized) return;
 
-function openEdit(id) {
-  if (!isAuthorized) return;
-  const item = items.find(i => i.id === id);
-  if (!item) return;
-  editingId = id;
-  document.getElementById('sheetTitle').textContent = 'Edit Product Details';
-  document.getElementById('formError').textContent = '';
-  
-  const currentTotalFees = item.totalHistoricalAddFees !== undefined ? item.totalHistoricalAddFees : ((parseInt(item.quantity) || 0) * (parseFloat(item.additionalFees) || 0));
+      const name = document.getElementById('itemName').value.trim();
+      const sku = document.getElementById('itemSku').value.trim();
+      const qty = parseInt(document.getElementById('itemQty').value) || 0;
+      const cost = parseFloat(document.getElementById('itemCost').value) || 0;
+      const price = parseFloat(document.getElementById('itemPrice').value) || 0;
+      const addFees = parseFloat(document.getElementById('itemAddFees').value) || 0;
 
-  document.getElementById('formFields').innerHTML = `
-    <label class="field">Product Name<input type="text" id="fName" value="${escapeHtml(item.name)}" required /></label>
-    <label class="field">Category<input type="text" id="fCategory" value="${escapeHtml(item.category || '')}" /></label>
-    <div class="form-row">
-      <label class="field">Base Cost Price (₱)<input type="number" id="fCost" step="0.01" min="0" value="${item.costPrice !== undefined ? item.costPrice : ''}" required /></label>
-      <label class="field">Total Add. Manpower/Shipping Fees (₱)<input type="number" id="fFees" step="0.01" min="0" value="${currentTotalFees}" /></label>
-    </div>
-    <div class="form-row">
-      <label class="field">Current Stock Quantity<input type="number" id="fQty" min="0" value="${item.quantity !== undefined ? item.quantity : ''}" required /></label>
-      <label class="field">Low Stock Alert Min<input type="number" id="fMin" min="0" value="${item.minThreshold !== undefined ? item.minThreshold : 2}" /></label>
-    </div>
-    <label class="field">Storage Location<input type="text" id="fLocation" value="${escapeHtml(item.location || '')}" /></label>
-  `;
-  document.getElementById('overlay').classList.add('open');
-}
+      const totalHistCost = (qty * cost) + addFees;
 
-function closeForm() { document.getElementById('overlay').classList.remove('open'); }
+      const newItem = {
+        id: 'item_' + Date.now(),
+        name,
+        sku,
+        quantity: qty,
+        costPrice: cost,
+        sellingPrice: price,
+        additionalFees: 0,
+        totalHistoricalCost: totalHistCost,
+        totalHistoricalAddFees: addFees,
+        sales: [],
+        expenses: []
+      };
 
-function submitForm(e) {
-  e.preventDefault();
-  if (!isAuthorized) return;
+      items.push(newItem);
+      closeItemForm();
+      render();
+      saveData();
+    }
 
-  const name = document.getElementById('fName').value.trim();
-  const quantity = parseInt(document.getElementById('fQty').value, 10);
-  const costPrice = parseFloat(document.getElementById('fCost').value);
-  const totalBatchFees = parseFloat(document.getElementById('fFees').value) || 0;
+    // Modal Controls: Restock
+    function openRestockForm(id) {
+      if (!isAuthorized) return;
+      const item = items.find(i => i.id === id);
+      if (!item) return;
 
-  if (!name || isNaN(quantity) || isNaN(costPrice)) {
-    document.getElementById('formError').textContent = 'Please fill out all required numeric fields properly.';
-    return;
-  }
+      document.getElementById('restockItemId').value = id;
+      document.getElementById('restockSheetTitle').textContent = `Restock — ${item.name}`;
+      document.getElementById('restockQty').value = '1';
+      document.getElementById('restockCost').value = '';
+      document.getElementById('restockFees').value = '0';
+      document.getElementById('restockFormError').textContent = '';
+      document.getElementById('restockOverlay').classList.add('open');
+    }
+    function closeRestockForm() { document.getElementById('restockOverlay').classList.remove('open'); }
 
-  const existing = editingId ? items.find(i => i.id === editingId) : null;
-  
-  const addFeesPerUnit = quantity > 0 ? (totalBatchFees / quantity) : 0;
-  const initialCostTotal = (quantity * costPrice) + totalBatchFees;
+    function submitRestock(e) {
+      e.preventDefault();
+      if (!isAuthorized) return;
 
-  const payload = {
-    id: editingId || (Date.now().toString(36) + Math.random().toString(36).slice(2, 5)),
-    name,
-    category: document.getElementById('fCategory').value.trim() || 'General',
-    quantity,
-    costPrice,
-    additionalFees: addFeesPerUnit,
-    totalHistoricalCost: existing && existing.totalHistoricalCost !== undefined ? existing.totalHistoricalCost : initialCostTotal,
-    totalHistoricalAddFees: totalBatchFees,
-    sales: existing ? (existing.sales || []) : [],
-    minThreshold: parseInt(document.getElementById('fMin').value, 10) || 2,
-    location: document.getElementById('fLocation').value.trim(),
-    updatedAt: Date.now()
-  };
+      const id = document.getElementById('restockItemId').value;
+      const addQty = parseInt(document.getElementById('restockQty').value) || 0;
+      const batchCost = parseFloat(document.getElementById('restockCost').value) || 0;
+      const batchFees = parseFloat(document.getElementById('restockFees').value) || 0;
 
-  if (editingId) {
-    items = items.map(i => i.id === editingId ? payload : i);
-  } else {
-    items.push(payload);
-  }
+      items = items.map(i => {
+        if (i.id === id) {
+          const oldQty = parseInt(i.quantity) || 0;
+          const newQty = oldQty + addQty;
+          
+          const prevTotalCost = parseFloat(i.totalHistoricalCost) || (oldQty * ((parseFloat(i.costPrice) || 0) + (parseFloat(i.additionalFees) || 0)));
+          const prevTotalFees = parseFloat(i.totalHistoricalAddFees) || (oldQty * (parseFloat(i.additionalFees) || 0));
 
-  closeForm();
-  render();
-  saveData();
-}
+          const newTotalCost = prevTotalCost + batchCost + batchFees;
+          const newTotalFees = prevTotalFees + batchFees;
+          const blendedUnitCost = newQty > 0 ? (newTotalCost / newQty) : 0;
 
-function askDelete(id) { if (!isAuthorized) return; confirmDeleteId = id; render(); }
-function cancelDelete() { confirmDeleteId = null; render(); }
-function doDelete(id) {
-  if (!isAuthorized) return;
-  items = items.filter(i => i.id !== id);
-  confirmDeleteId = null;
-  render();
-  saveData();
-}
+          return {
+            ...i,
+            quantity: newQty,
+            costPrice: blendedUnitCost,
+            additionalFees: 0,
+            totalHistoricalCost: newTotalCost,
+            totalHistoricalAddFees: newTotalFees
+          };
+        }
+        return i;
+      });
 
-loadData();
-</script>
+      closeRestockForm();
+      render();
+      saveData();
+    }
+
+    // Modal Controls: Operational Fee / Expense (NEW)
+    function openExpenseForm(id) {
+      if (!isAuthorized) return;
+      const item = items.find(i => i.id === id);
+      if (!item) return;
+
+      document.getElementById('expenseItemId').value = id;
+      document.getElementById('expenseSheetTitle').textContent = `Add Operational Fee — ${item.name}`;
+      document.getElementById('expenseAmount').value = '';
+      document.getElementById('expenseNote').value = '';
+      document.getElementById('expenseFormError').textContent = '';
+      document.getElementById('expenseOverlay').classList.add('open');
+    }
+    function closeExpenseForm() { document.getElementById('expenseOverlay').classList.remove('open'); }
+
+    function submitExpense(e) {
+      e.preventDefault();
+      if (!isAuthorized) return;
+
+      const id = document.getElementById('expenseItemId').value;
+      const feeAmount = parseFloat(document.getElementById('expenseAmount').value);
+      const note = document.getElementById('expenseNote').value.trim() || 'General operational fee';
+
+      if (isNaN(feeAmount) || feeAmount <= 0) {
+        document.getElementById('expenseFormError').textContent = 'Please enter a valid fee amount.';
+        return;
+      }
+
+      items = items.map(i => {
+        if (i.id === id) {
+          const oldQty = parseInt(i.quantity) || 0;
+          const prevTotalCost = parseFloat(i.totalHistoricalCost) || (oldQty * ((parseFloat(i.costPrice) || 0) + (parseFloat(i.additionalFees) || 0)));
+          const prevTotalAddFees = parseFloat(i.totalHistoricalAddFees) || (oldQty * (parseFloat(i.additionalFees) || 0));
+
+          const newTotalCost = prevTotalCost + feeAmount;
+          const newTotalAddFees = prevTotalAddFees + feeAmount;
+
+          let newCostPrice = parseFloat(i.costPrice) || 0;
+          if (oldQty > 0) {
+            newCostPrice = newTotalCost / oldQty;
+          }
+
+          const expenseLog = i.expenses || [];
+
+          return {
+            ...i,
+            costPrice: newCostPrice,
+            additionalFees: 0,
+            totalHistoricalCost: newTotalCost,
+            totalHistoricalAddFees: newTotalAddFees,
+            expenses: [...expenseLog, { date: Date.now(), amount: feeAmount, note }]
+          };
+        }
+        return i;
+      });
+
+      closeExpenseForm();
+      render();
+      saveData();
+    }
+
+    // Modal Controls: Record Sale
+    function openSaleForm(id) {
+      if (!isAuthorized) return;
+      const item = items.find(i => i.id === id);
+      if (!item) return;
+
+      document.getElementById('saleItemId').value = id;
+      document.getElementById('saleSheetTitle').textContent = `Record Sale — ${item.name}`;
+      document.getElementById('saleQty').value = '1';
+      document.getElementById('salePrice').value = item.sellingPrice || '';
+      document.getElementById('saleFormError').textContent = '';
+      document.getElementById('saleOverlay').classList.add('open');
+    }
+    function closeSaleForm() { document.getElementById('saleOverlay').classList.remove('open'); }
+
+    function submitSale(e) {
+      e.preventDefault();
+      if (!isAuthorized) return;
+
+      const id = document.getElementById('saleItemId').value;
+      const saleQty = parseInt(document.getElementById('saleQty').value) || 0;
+      const salePrice = parseFloat(document.getElementById('salePrice').value) || 0;
+
+      let errorMsg = '';
+      items = items.map(i => {
+        if (i.id === id) {
+          const currentQty = parseInt(i.quantity) || 0;
+          if (saleQty > currentQty) {
+            errorMsg = `Cannot sell ${saleQty} units. Only ${currentQty} left in stock.`;
+            return i;
+          }
+          const newQty = currentQty - saleQty;
+          const salesLog = i.sales || [];
+          salesLog.push({ date: Date.now(), qty: saleQty, price: salePrice });
+
+          return {
+            ...i,
+            quantity: newQty,
+            sales: salesLog
+          };
+        }
+        return i;
+      });
+
+      if (errorMsg) {
+        document.getElementById('saleFormError').textContent = errorMsg;
+        return;
+      }
+
+      closeSaleForm();
+      render();
+      saveData();
+    }
+
+    // Modal Controls: Detail / History
+    function openDetail(id) {
+      const item = items.find(i => i.id === id);
+      if (!item) return;
+
+      document.getElementById('detailSheetTitle').textContent = `Activity History — ${item.name}`;
+      const contentEl = document.getElementById('detailContent');
+
+      let html = `<div style="font-weight:600; color:var(--text); margin-bottom:4px;">Sales Records:</div>`;
+      if (!item.sales || item.sales.length === 0) {
+        html += `<div>No sales recorded yet.</div>`;
+      } else {
+        item.sales.forEach((s, idx) => {
+          const dateStr = new Date(s.date).toLocaleDateString();
+          html += `<div>${idx + 1}. Sold <strong>${s.qty} units</strong> at ${fmt(s.price)} each on ${dateStr}</div>`;
+        });
+      }
+
+      html += `<div style="font-weight:600; color:var(--text); margin-top:12px; margin-bottom:4px;">Operational Fee Expenses:</div>`;
+      if (!item.expenses || item.expenses.length === 0) {
+        html += `<div>No standalone expenses recorded.</div>`;
+      } else {
+        item.expenses.forEach((ex, idx) => {
+          const dateStr = new Date(ex.date).toLocaleDateString();
+          html += `<div>${idx + 1}. Paid <strong>${fmt(ex.amount)}</strong> for "${ex.note}" on ${dateStr}</div>`;
+        });
+      }
+
+      contentEl.innerHTML = html;
+      document.getElementById('detailOverlay').classList.add('open');
+    }
+    function closeDetailForm() { document.getElementById('detailOverlay').classList.remove('open'); }
+
+    function deleteItem(id) {
+      if (!isAuthorized) return;
+      if (confirm('Are you sure you want to delete this product?')) {
+        items = items.filter(i => i.id !== id);
+        render();
+        saveData();
+      }
+    }
+
+    // Initialize on load
+    loadData();
+  </script>
 </body>
 </html>
