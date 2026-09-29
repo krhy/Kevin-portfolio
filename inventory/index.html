@@ -66,10 +66,11 @@
   .auth-btn.unlocked { background: rgba(56, 189, 248, 0.2); border-color: var(--accent-glow); color: var(--accent-glow); }
 
   .balance { font-family: 'JetBrains Mono', monospace; font-weight: 700; font-size: 38px; line-height: 1; color: var(--accent-glow); letter-spacing: -0.02em; }
+  .balance-sub { font-size: 12px; color: var(--success); font-weight: 600; margin-top: 6px; font-family: 'Plus Jakarta Sans', sans-serif; }
 
-  .stats { display: flex; gap: 20px; flex-wrap: wrap; margin-top: 16px; }
-  .stat-value { font-family: 'JetBrains Mono', monospace; font-size: 14px; font-weight: 600; color: var(--on-header); }
-  .stat-label { font-size: 9.5px; color: var(--on-header-muted); text-transform: uppercase; letter-spacing: 0.1em; }
+  .stats { display: grid; grid-template-columns: repeat(3, 1fr); gap: 12px; margin-top: 20px; padding-top: 16px; border-top: 1px solid rgba(255,255,255,0.08); }
+  .stat-value { font-family: 'JetBrains Mono', monospace; font-size: 13px; font-weight: 600; color: var(--on-header); }
+  .stat-label { font-size: 9.5px; color: var(--on-header-muted); text-transform: uppercase; letter-spacing: 0.08em; margin-top: 2px; line-height: 1.3; }
 
   .panel { padding: 24px 16px 110px; max-width: 920px; margin: 0 auto; }
   .panel-title { font-family: 'Plus Jakarta Sans', sans-serif; font-size: 11.5px; letter-spacing: 0.14em; text-transform: uppercase; color: var(--muted); margin-bottom: 12px; font-weight: 700; }
@@ -155,15 +156,25 @@
   </div>
 
   <div class="header-top-row">
-    <div class="balance-label" style="margin-bottom:0;">Total Net Profit</div>
+    <div class="balance-label" style="margin-bottom:0;">Net Profit (On Sold Items)</div>
     <button class="auth-btn" id="authBtn" onclick="toggleAuth()">🔒 Unlock Editing</button>
   </div>
   <div id="totalProfitDisplay" class="balance">₱0.00</div>
+  <div id="profitSubtitle" class="balance-sub">🟢 Profitable on sales</div>
 
   <div class="stats">
-    <div><div id="statSales" class="stat-value">₱0.00</div><div class="stat-label">Total Sales</div></div>
-    <div><div id="statAddFees" class="stat-value">₱0.00</div><div class="stat-label">Total Additional Fees</div></div>
-    <div><div id="statTotalCapital" class="stat-value">₱0.00</div><div class="stat-label">Total Capital</div></div>
+    <div>
+      <div id="statSales" class="stat-value">₱0.00</div>
+      <div class="stat-label">Total Sales (Cash In)</div>
+    </div>
+    <div>
+      <div id="statTotalCapital" class="stat-value">₱0.00</div>
+      <div class="stat-label">Total Capital (Spent)</div>
+    </div>
+    <div>
+      <div id="statCashFlow" class="stat-value">₱0.00</div>
+      <div class="stat-label">Net Cash Flow (Deficit)</div>
+    </div>
   </div>
 </div>
 
@@ -254,7 +265,7 @@
 <div class="status-banner" id="statusBanner" style="opacity:0">Saving…</div>
 
 <script>
-const STORAGE_KEY = 'inventory_sales_intelligence_data_v2';
+const STORAGE_KEY = 'inventory_sales_intelligence_data_v3';
 let items = [];
 let isAuthorized = false;
 let searchQuery = '';
@@ -263,7 +274,9 @@ let editingId = null;
 let confirmDeleteId = null;
 
 function fmt(num) {
-  return '₱' + (parseFloat(num) || 0).toLocaleString('en-PH', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+  const val = parseFloat(num) || 0;
+  const formatted = Math.abs(val).toLocaleString('en-PH', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+  return val < 0 ? '-₱' + formatted : '₱' + formatted;
 }
 
 function formatDate(timestamp) {
@@ -302,8 +315,7 @@ function loadData() {
     if (saved) {
       items = JSON.parse(saved);
     } else {
-      // Fallback check on old key to migrate seamlessly if needed
-      const oldSaved = localStorage.getItem('inventory_sales_intelligence_data_v1');
+      const oldSaved = localStorage.getItem('inventory_sales_intelligence_data_v2');
       if (oldSaved) items = JSON.parse(oldSaved);
     }
   } catch (e) {
@@ -590,7 +602,6 @@ function render() {
   let totalSales = 0;
   let totalProfit = 0;
   let totalCapital = 0;
-  let totalAddFeesAll = 0;
 
   items.forEach(i => {
     const qty = parseInt(i.quantity) || 0;
@@ -598,12 +609,6 @@ function render() {
     const baseCost = parseFloat(i.costPrice) || 0;
     const addFeesPerUnit = parseFloat(i.additionalFees) || 0;
     const totalCostPerUnit = baseCost + addFeesPerUnit;
-
-    if (i.totalHistoricalAddFees !== undefined) {
-      totalAddFeesAll += parseFloat(i.totalHistoricalAddFees) || 0;
-    } else {
-      totalAddFeesAll += (qty * addFeesPerUnit);
-    }
 
     if (i.totalHistoricalCost !== undefined) {
       totalCapital += parseFloat(i.totalHistoricalCost) || 0;
@@ -620,10 +625,12 @@ function render() {
     });
   });
 
+  const netCashFlow = totalSales - totalCapital;
+
   document.getElementById('totalProfitDisplay').textContent = fmt(totalProfit);
   document.getElementById('statSales').textContent = fmt(totalSales);
-  document.getElementById('statAddFees').textContent = fmt(totalAddFeesAll);
   document.getElementById('statTotalCapital').textContent = fmt(totalCapital);
+  document.getElementById('statCashFlow').textContent = fmt(netCashFlow);
 
   const grid = document.getElementById('inventoryGrid');
   if (filtered.length === 0) {
