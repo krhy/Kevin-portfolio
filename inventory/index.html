@@ -158,12 +158,11 @@
     <div class="balance-label" style="margin-bottom:0;">Total Net Profit</div>
     <button class="auth-btn" id="authBtn" onclick="toggleAuth()">🔒 Unlock Editing</button>
   </div>
-  <div id="totalProfitDisplay" class="balance">$0.00</div>
+  <div id="totalProfitDisplay" class="balance">₱0.00</div>
 
   <div class="stats">
-    <div><div id="statRevenue" class="stat-value">$0.00</div><div class="stat-label">Total Revenue</div></div>
-    <div><div id="statUnitsSold" class="stat-value">0</div><div class="stat-label">Units Sold</div></div>
-    <div><div id="statInventoryCapital" class="stat-value">$0.00</div><div class="stat-label">Inventory Capital</div></div>
+    <div><div id="statRevenue" class="stat-value">₱0.00</div><div class="stat-label">Total Revenue</div></div>
+    <div><div id="statInventoryCapital" class="stat-value">₱0.00</div><div class="stat-label">Inventory Capital</div></div>
   </div>
 </div>
 
@@ -209,8 +208,8 @@
     <form id="saleForm" onsubmit="submitSale(event)">
       <input type="hidden" id="saleItemId" />
       <div class="form-row">
-        <label class="field">Quantity Sold<input type="number" id="saleQty" min="1" value="1" required /></label>
-        <label class="field">Total Sale Price ($)<input type="number" id="salePrice" step="0.01" min="0" placeholder="e.g. 150.00" required /></label>
+        <label class="field">Quantity Sold<input type="number" id="saleQty" min="1" placeholder="" required /></label>
+        <label class="field">Total Sale Price (₱)<input type="number" id="salePrice" step="0.01" min="0" placeholder="e.g. 1500.00" required /></label>
       </div>
       <div class="form-error" id="saleFormError"></div>
       <button type="submit" class="fab-primary" style="width:100%; justify-content:center; margin-top:4px;">Confirm Sale</button>
@@ -228,9 +227,13 @@
     </div>
     <form id="restockForm" onsubmit="submitRestock(event)">
       <input type="hidden" id="restockItemId" />
-      <label class="field">Quantity to Add (Restock)<input type="number" id="restockQty" min="1" value="10" required /></label>
+      <label class="field">Quantity to Add (Restock)<input type="number" id="restockQty" min="1" placeholder="" required /></label>
+      <div class="form-row">
+        <label class="field">New Base Cost Price (₱)<input type="number" id="restockCost" step="0.01" min="0" placeholder="e.g. 100.00" required /></label>
+        <label class="field">New Add. Fees / Manpower (₱)<input type="number" id="restockFees" step="0.01" min="0" placeholder="" required /></label>
+      </div>
       <div class="form-error" id="restockFormError"></div>
-      <button type="submit" class="fab-primary" style="width:100%; justify-content:center; margin-top:4px;">Update Stock</button>
+      <button type="submit" class="fab-primary" style="width:100%; justify-content:center; margin-top:4px;">Confirm Restock</button>
     </form>
   </div>
 </div>
@@ -259,7 +262,7 @@ let editingId = null;
 let confirmDeleteId = null;
 
 function fmt(num) {
-  return '$' + (parseFloat(num) || 0).toFixed(2);
+  return '₱' + (parseFloat(num) || 0).toLocaleString('en-PH', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
 }
 
 function formatDate(timestamp) {
@@ -341,7 +344,7 @@ function openSaleForm(id) {
 
   document.getElementById('saleItemId').value = id;
   document.getElementById('saleSheetTitle').textContent = `Record Sale — ${item.name}`;
-  document.getElementById('saleQty').value = 1;
+  document.getElementById('saleQty').value = '';
   document.getElementById('saleQty').max = item.quantity;
   document.getElementById('salePrice').value = '';
   document.getElementById('saleFormError').textContent = '';
@@ -376,13 +379,15 @@ function submitSale(e) {
     return;
   }
 
+  const currentUnitCost = (parseFloat(item.costPrice) || 0) + (parseFloat(item.additionalFees) || 0);
+
   items = items.map(i => {
     if (i.id === id) {
       const salesLog = i.sales || [];
       return {
         ...i,
         quantity: i.quantity - qtySold,
-        sales: [...salesLog, { date: Date.now(), qty: qtySold, price: totalSalePrice }]
+        sales: [...salesLog, { date: Date.now(), qty: qtySold, price: totalSalePrice, unitCostAtSale: currentUnitCost }]
       };
     }
     return i;
@@ -400,7 +405,9 @@ function openRestockForm(id) {
 
   document.getElementById('restockItemId').value = id;
   document.getElementById('restockSheetTitle').textContent = `Restock — ${item.name}`;
-  document.getElementById('restockQty').value = 10;
+  document.getElementById('restockQty').value = '';
+  document.getElementById('restockCost').value = '';
+  document.getElementById('restockFees').value = '';
   document.getElementById('restockFormError').textContent = '';
   document.getElementById('restockOverlay').classList.add('open');
 }
@@ -415,17 +422,46 @@ function submitRestock(e) {
 
   const id = document.getElementById('restockItemId').value;
   const qtyAdded = parseInt(document.getElementById('restockQty').value, 10);
+  const newBaseCost = parseFloat(document.getElementById('restockCost').value);
+  const newAddFees = parseFloat(document.getElementById('restockFees').value) || 0;
 
-  if (isNaN(qtyAdded) || qtyAdded <= 0) {
-    document.getElementById('restockFormError').textContent = 'Please enter a valid quantity to add.';
+  if (isNaN(qtyAdded) || qtyAdded <= 0 || isNaN(newBaseCost)) {
+    document.getElementById('restockFormError').textContent = 'Please enter valid numbers for restock quantity and costs.';
     return;
   }
 
   items = items.map(i => {
     if (i.id === id) {
+      const oldQty = parseInt(i.quantity) || 0;
+      const oldBaseCost = parseFloat(i.costPrice) || 0;
+      const oldAddFees = parseFloat(i.additionalFees) || 0;
+
+      const oldTotalVal = oldQty * (oldBaseCost + oldAddFees);
+      const newBatchVal = qtyAdded * (newBaseCost + newAddFees);
+      const updatedTotalQty = oldQty + qtyAdded;
+
+      let weightedBaseCost = newBaseCost;
+      let weightedAddFees = newAddFees;
+
+      if (updatedTotalQty > 0) {
+        const totalCombinedVal = oldTotalVal + newBatchVal;
+        const blendedUnitCost = totalCombinedVal / updatedTotalQty;
+        weightedBaseCost = blendedUnitCost;
+        weightedAddFees = 0; 
+      }
+
+      const prevTotalAddFees = parseFloat(i.totalHistoricalAddFees || (oldQty * oldAddFees)) || 0;
+      const newTotalAddFees = prevTotalAddFees + (qtyAdded * newAddFees);
+      const prevTotalCost = parseFloat(i.totalHistoricalCost || (oldQty * (oldBaseCost + oldAddFees))) || 0;
+      const newTotalCost = prevTotalCost + newBatchVal;
+
       return {
         ...i,
-        quantity: (i.quantity || 0) + qtyAdded
+        quantity: updatedTotalQty,
+        costPrice: weightedBaseCost,
+        additionalFees: weightedAddFees,
+        totalHistoricalCost: newTotalCost,
+        totalHistoricalAddFees: newTotalAddFees
       };
     }
     return i;
@@ -445,20 +481,22 @@ function openDetail(id) {
   
   let totalRev = 0;
   let totalUnitsSold = 0;
+  let totalProfit = 0;
+
   sales.forEach(s => {
-    totalRev += (parseFloat(s.price) || 0);
-    totalUnitsSold += (parseInt(s.qty, 10) || 1);
+    const q = parseInt(s.qty, 10) || 1;
+    const price = parseFloat(s.price) || 0;
+    totalRev += price;
+    totalUnitsSold += q;
+    const historicalCostPerUnit = s.unitCostAtSale !== undefined ? s.unitCostAtSale : ((parseFloat(item.costPrice) || 0) + (parseFloat(item.additionalFees) || 0));
+    totalProfit += (price - (q * historicalCostPerUnit));
   });
 
-  const baseCost = parseFloat(item.costPrice) || 0;
-  const addFees = parseFloat(item.additionalFees) || 0;
-  const totalCostPerUnit = baseCost + addFees;
-  const totalProfit = totalRev - (totalUnitsSold * totalCostPerUnit);
-  
+  const currentUnitCost = (parseFloat(item.costPrice) || 0) + (parseFloat(item.additionalFees) || 0);
   let avgSellingPrice = totalUnitsSold > 0 ? (totalRev / totalUnitsSold) : 0;
   let profitMargin = 0;
   if (avgSellingPrice > 0) {
-    profitMargin = ((avgSellingPrice - totalCostPerUnit) / avgSellingPrice) * 100;
+    profitMargin = ((avgSellingPrice - currentUnitCost) / avgSellingPrice) * 100;
   }
 
   let tableHtml = '';
@@ -495,7 +533,7 @@ function openDetail(id) {
   document.getElementById('detailContent').innerHTML = `
     <div style="margin-bottom: 14px; font-size: 13px; color:var(--muted);">
       Category: <strong>${escapeHtml(item.category || 'General')}</strong> | Location: <strong>${escapeHtml(item.location || 'N/A')}</strong><br>
-      Base Cost: ${fmt(baseCost)} | Manpower/Fees: ${fmt(addFees)} | <strong>Total Cost: ${fmt(totalCostPerUnit)} / unit</strong>
+      <strong>Current Total Cost: ${fmt(currentUnitCost)} / unit</strong>
     </div>
     <div class="financial-grid" style="margin-bottom: 16px;">
       <div>
@@ -548,7 +586,6 @@ function render() {
   let totalRev = 0;
   let totalProfit = 0;
   let totalInventoryCapital = 0;
-  let totalSoldUnits = 0;
 
   items.forEach(i => {
     const qty = parseInt(i.quantity) || 0;
@@ -557,20 +594,23 @@ function render() {
     const addFees = parseFloat(i.additionalFees) || 0;
     const totalCostPerUnit = baseCost + addFees;
 
-    totalInventoryCapital += (qty * totalCostPerUnit);
+    if (i.totalHistoricalCost !== undefined) {
+      totalInventoryCapital += parseFloat(i.totalHistoricalCost) || 0;
+    } else {
+      totalInventoryCapital += (qty * totalCostPerUnit);
+    }
 
     sales.forEach(s => {
       const q = parseInt(s.qty, 10) || 1;
       const price = parseFloat(s.price) || 0;
-      totalSoldUnits += q;
       totalRev += price;
-      totalProfit += (price - (q * totalCostPerUnit));
+      const historicalCostPerUnit = s.unitCostAtSale !== undefined ? s.unitCostAtSale : totalCostPerUnit;
+      totalProfit += (price - (q * historicalCostPerUnit));
     });
   });
 
   document.getElementById('totalProfitDisplay').textContent = fmt(totalProfit);
   document.getElementById('statRevenue').textContent = fmt(totalRev);
-  document.getElementById('statUnitsSold').textContent = totalSoldUnits;
   document.getElementById('statInventoryCapital').textContent = fmt(totalInventoryCapital);
 
   const grid = document.getElementById('inventoryGrid');
@@ -587,7 +627,11 @@ function render() {
 
     const baseCost = parseFloat(item.costPrice) || 0;
     const addFees = parseFloat(item.additionalFees) || 0;
-    const totalCost = baseCost + addFees;
+    const totalCostPerUnit = baseCost + addFees;
+    
+    const totalItemCost = item.totalHistoricalCost !== undefined ? parseFloat(item.totalHistoricalCost) : (qty * totalCostPerUnit);
+    const totalItemAddFees = item.totalHistoricalAddFees !== undefined ? parseFloat(item.totalHistoricalAddFees) : (qty * addFees);
+
     const min = parseInt(item.minThreshold) || 2;
     const isLow = qty <= min;
 
@@ -619,7 +663,11 @@ function render() {
         <div class="financial-grid">
           <div>
             <div class="fin-label">Total Cost</div>
-            <div class="fin-val">${fmt(totalCost)} per unit</div>
+            <div class="fin-val">${fmt(totalItemCost)}</div>
+          </div>
+          <div>
+            <div class="fin-label">Add. Fees</div>
+            <div class="fin-val">${fmt(totalItemAddFees)}</div>
           </div>
           <div>
             <div class="fin-label">Units Sold</div>
@@ -648,11 +696,11 @@ function openForm() {
     <label class="field">Product Name<input type="text" id="fName" placeholder="e.g. Next-Gen Sensor" required /></label>
     <label class="field">Category<input type="text" id="fCategory" placeholder="e.g. Hardware" /></label>
     <div class="form-row">
-      <label class="field">Base Cost Price ($)<input type="number" id="fCost" step="0.01" min="0" value="0.00" required /></label>
-      <label class="field">Add. Fees / Manpower ($)<input type="number" id="fFees" step="0.01" min="0" value="0.00" /></label>
+      <label class="field">Base Cost Price (₱)<input type="number" id="fCost" step="0.01" min="0" placeholder="" required /></label>
+      <label class="field">Add. Fees / Manpower (₱)<input type="number" id="fFees" step="0.01" min="0" placeholder="" /></label>
     </div>
     <div class="form-row">
-      <label class="field">Initial Stock Quantity<input type="number" id="fQty" min="0" value="10" required /></label>
+      <label class="field">Initial Stock Quantity<input type="number" id="fQty" min="0" placeholder="" required /></label>
       <label class="field">Low Stock Alert Min<input type="number" id="fMin" min="0" value="2" /></label>
     </div>
     <label class="field">Storage Location<input type="text" id="fLocation" placeholder="e.g. Sector 7G" /></label>
@@ -671,12 +719,12 @@ function openEdit(id) {
     <label class="field">Product Name<input type="text" id="fName" value="${escapeHtml(item.name)}" required /></label>
     <label class="field">Category<input type="text" id="fCategory" value="${escapeHtml(item.category || '')}" /></label>
     <div class="form-row">
-      <label class="field">Base Cost Price ($)<input type="number" id="fCost" step="0.01" min="0" value="${item.costPrice || 0}" required /></label>
-      <label class="field">Add. Fees / Manpower ($)<input type="number" id="fFees" step="0.01" min="0" value="${item.additionalFees || 0}" /></label>
+      <label class="field">Base Cost Price (₱)<input type="number" id="fCost" step="0.01" min="0" value="${item.costPrice !== undefined ? item.costPrice : ''}" required /></label>
+      <label class="field">Add. Fees / Manpower (₱)<input type="number" id="fFees" step="0.01" min="0" value="${item.additionalFees !== undefined ? item.additionalFees : ''}" /></label>
     </div>
     <div class="form-row">
-      <label class="field">Current Stock Quantity<input type="number" id="fQty" min="0" value="${item.quantity}" required /></label>
-      <label class="field">Low Stock Alert Min<input type="number" id="fMin" min="0" value="${item.minThreshold || 2}" /></label>
+      <label class="field">Current Stock Quantity<input type="number" id="fQty" min="0" value="${item.quantity !== undefined ? item.quantity : ''}" required /></label>
+      <label class="field">Low Stock Alert Min<input type="number" id="fMin" min="0" value="${item.minThreshold !== undefined ? item.minThreshold : 2}" /></label>
     </div>
     <label class="field">Storage Location<input type="text" id="fLocation" value="${escapeHtml(item.location || '')}" /></label>
   `;
@@ -700,6 +748,9 @@ function submitForm(e) {
   }
 
   const existing = editingId ? items.find(i => i.id === editingId) : null;
+  
+  const initialCostTotal = quantity * (costPrice + additionalFees);
+  const initialFeesTotal = quantity * additionalFees;
 
   const payload = {
     id: editingId || (Date.now().toString(36) + Math.random().toString(36).slice(2, 5)),
@@ -708,6 +759,8 @@ function submitForm(e) {
     quantity,
     costPrice,
     additionalFees,
+    totalHistoricalCost: existing && existing.totalHistoricalCost !== undefined ? existing.totalHistoricalCost : initialCostTotal,
+    totalHistoricalAddFees: existing && existing.totalHistoricalAddFees !== undefined ? existing.totalHistoricalAddFees : initialFeesTotal,
     sales: existing ? (existing.sales || []) : [],
     minThreshold: parseInt(document.getElementById('fMin').value, 10) || 2,
     location: document.getElementById('fLocation').value.trim(),
