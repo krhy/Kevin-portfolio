@@ -210,7 +210,7 @@
       <input type="hidden" id="saleItemId" />
       <div class="form-row">
         <label class="field">Quantity Sold<input type="number" id="saleQty" min="1" placeholder="" required /></label>
-        <label class="field">Total Sale Price (₱)<input type="number" id="salePrice" step="0.01" min="0" placeholder="e.g. 1500.00" required /></label>
+        <label class="field">Selling Price per Unit (₱)<input type="number" id="salePrice" step="0.01" min="0" placeholder="e.g. 2000.00" required /></label>
       </div>
       <div class="form-error" id="saleFormError"></div>
       <button type="submit" class="fab-primary" style="width:100%; justify-content:center; margin-top:4px;">Confirm Sale</button>
@@ -254,7 +254,7 @@
 <div class="status-banner" id="statusBanner" style="opacity:0">Saving…</div>
 
 <script>
-const API_URL = '/api/inventory/items';
+const STORAGE_KEY = 'inventory_sales_intelligence_data_v1';
 let items = [];
 let isAuthorized = false;
 let searchQuery = '';
@@ -296,28 +296,26 @@ function toggleAuth() {
   }
 }
 
-async function loadData() {
+function loadData() {
   try {
-    const res = await fetch(API_URL);
-    if (res.ok) items = await res.json();
+    const saved = localStorage.getItem(STORAGE_KEY);
+    if (saved) {
+      items = JSON.parse(saved);
+    }
   } catch (e) {
-    console.error("Could not load inventory", e);
+    console.error("Could not load inventory from localStorage", e);
   }
   render();
 }
 
-async function saveData() {
+function saveData() {
   if (!isAuthorized) return;
-  showStatus('Syncing…');
+  showStatus('Saving…');
   try {
-    await fetch(API_URL, {
-      method: 'PUT',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(items)
-    });
+    localStorage.setItem(STORAGE_KEY, JSON.stringify(items));
     hideStatus();
   } catch (e) {
-    showStatus('Sync failed', true);
+    showStatus('Save failed', true);
   }
 }
 
@@ -362,7 +360,7 @@ function submitSale(e) {
 
   const id = document.getElementById('saleItemId').value;
   const qtySold = parseInt(document.getElementById('saleQty').value, 10);
-  const totalSalePrice = parseFloat(document.getElementById('salePrice').value);
+  const unitSalePrice = parseFloat(document.getElementById('salePrice').value);
 
   const item = items.find(i => i.id === id);
   if (!item) return;
@@ -375,11 +373,12 @@ function submitSale(e) {
     document.getElementById('saleFormError').textContent = `Cannot sell ${qtySold} units. Only ${item.quantity} left in stock!`;
     return;
   }
-  if (isNaN(totalSalePrice) || totalSalePrice < 0) {
-    document.getElementById('saleFormError').textContent = 'Please enter a valid total sale price.';
+  if (isNaN(unitSalePrice) || unitSalePrice < 0) {
+    document.getElementById('saleFormError').textContent = 'Please enter a valid unit sale price.';
     return;
   }
 
+  const totalSalePrice = qtySold * unitSalePrice;
   const currentUnitCost = (parseFloat(item.costPrice) || 0) + (parseFloat(item.additionalFees) || 0);
 
   items = items.map(i => {
@@ -438,7 +437,6 @@ function submitRestock(e) {
       const oldAddFeesPerUnit = parseFloat(i.additionalFees) || 0;
 
       const oldTotalVal = oldQty * (oldBaseCost + oldAddFeesPerUnit);
-      const newBatchVal = qtyAdded * (newBaseCost + (newAddFees / qtyAdded));
       const updatedTotalQty = oldQty + qtyAdded;
 
       let blendedBaseCost = newBaseCost;
@@ -448,7 +446,7 @@ function submitRestock(e) {
         const totalCombinedVal = oldTotalVal + (qtyAdded * newBaseCost) + newAddFees;
         const blendedUnitCost = totalCombinedVal / updatedTotalQty;
         blendedBaseCost = blendedUnitCost;
-        blendedAddFeesPerUnit = 0; // integrated into blended base cost or tracked clean
+        blendedAddFeesPerUnit = 0; 
       }
 
       const prevTotalAddFees = parseFloat(i.totalHistoricalAddFees || (oldQty * oldAddFeesPerUnit)) || 0;
@@ -597,7 +595,6 @@ function render() {
     const addFeesPerUnit = parseFloat(i.additionalFees) || 0;
     const totalCostPerUnit = baseCost + addFeesPerUnit;
 
-    // Accumulate actual total historical manpower fees correctly (unmultiplied by current inventory quantity)
     if (i.totalHistoricalAddFees !== undefined) {
       totalAddFeesAll += parseFloat(i.totalHistoricalAddFees) || 0;
     } else {
