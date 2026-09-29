@@ -85,12 +85,17 @@
     border: 1px solid var(--border); border-left: 3px solid var(--teal);
     border-radius: 16px; padding: 14px 16px; animation: fadeSlideIn 0.3s ease both;
     box-shadow: 0 4px 20px rgba(15, 23, 42, 0.04);
+    cursor: pointer; transition: transform 0.15s, box-shadow 0.15s;
+  }
+  .item-card:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 6px 24px rgba(15, 23, 42, 0.08);
+    border-color: var(--border-strong);
   }
   .item-card.low-stock { border-left-color: var(--rust); }
   
   .item-top { display: flex; justify-content: space-between; align-items: flex-start; gap: 8px; margin-bottom: 6px; }
-  .item-name { font-family: 'Plus Jakarta Sans', sans-serif; font-weight: 600; font-size: 15px; color: var(--ink); cursor: pointer; transition: color 0.15s; }
-  .item-name:hover { color: var(--primary); text-decoration: underline; }
+  .item-name { font-family: 'Plus Jakarta Sans', sans-serif; font-weight: 600; font-size: 15px; color: var(--ink); }
   .item-qty { font-family: 'JetBrains Mono', monospace; font-weight: 700; font-size: 13px; color: var(--primary); background: var(--primary-glow); padding: 3px 8px; border-radius: 8px; }
   
   .financial-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 8px; margin: 10px 0; background: rgba(241, 245, 249, 0.7); padding: 10px; border-radius: 10px; font-size: 12px; border: 1px solid rgba(226, 232, 240, 0.8); }
@@ -107,7 +112,6 @@
   .link-btn.sell { color: var(--primary); font-weight: 600; }
   .link-btn.restock { color: var(--success); font-weight: 600; }
   .link-btn.fees { color: var(--teal); font-weight: 600; }
-  .link-btn.history { color: var(--teal); font-weight: 600; }
 
   .fab { position: fixed; bottom: 24px; left: 0; right: 0; display: flex; justify-content: center; z-index: 5; pointer-events: none; }
   .fab-primary {
@@ -224,7 +228,6 @@
         <label class="field">Quantity Sold<input type="number" id="saleQty" min="1" placeholder="" required /></label>
         <label class="field">Selling Price per Unit (₱)<input type="number" id="salePrice" step="0.01" min="0" placeholder="e.g. 2000.00" required /></label>
       </div>
-      <label class="field" style="margin-top:4px;">Additional Misc Fee / Extra Cost (₱)<input type="number" id="saleMiscFee" step="0.01" min="0" value="0.00" placeholder="e.g. 50.00" /></label>
       <div class="form-error" id="saleFormError"></div>
       <button type="submit" class="fab-primary" style="width:100%; justify-content:center; margin-top:4px;">Confirm Sale</button>
     </form>
@@ -246,7 +249,6 @@
         <label class="field">New Base Cost Price (₱)<input type="number" id="restockCost" step="0.01" min="0" placeholder="e.g. 100.00" required /></label>
         <label class="field">Add. Manpower/Shipping Fees (₱)<input type="number" id="restockFees" step="0.01" min="0" placeholder="Total additional fee" required /></label>
       </div>
-      <label class="field" style="margin-top:4px;">Additional Misc Fee (₱)<input type="number" id="restockMiscFee" step="0.01" min="0" value="0.00" placeholder="e.g. 25.00" /></label>
       <div class="form-error" id="restockFormError"></div>
       <button type="submit" class="fab-primary" style="width:100%; justify-content:center; margin-top:4px;">Confirm Restock</button>
     </form>
@@ -391,7 +393,6 @@ function openSaleForm(id) {
   document.getElementById('saleQty').value = '';
   document.getElementById('saleQty').max = item.quantity;
   document.getElementById('salePrice').value = '';
-  document.getElementById('saleMiscFee').value = '0.00';
   document.getElementById('saleFormError').textContent = '';
   document.getElementById('saleOverlay').classList.add('open');
 }
@@ -407,7 +408,6 @@ function submitSale(e) {
   const id = document.getElementById('saleItemId').value;
   const qtySold = parseInt(document.getElementById('saleQty').value, 10);
   const unitSalePrice = parseFloat(document.getElementById('salePrice').value);
-  const miscFee = parseFloat(document.getElementById('saleMiscFee').value) || 0;
 
   const item = items.find(i => i.id === id);
   if (!item) return;
@@ -425,7 +425,7 @@ function submitSale(e) {
     return;
   }
 
-  const totalSalePrice = (qtySold * unitSalePrice) + miscFee;
+  const totalSalePrice = qtySold * unitSalePrice;
   const currentUnitCost = (parseFloat(item.costPrice) || 0) + (parseFloat(item.additionalFees) || 0);
 
   items = items.map(i => {
@@ -434,7 +434,7 @@ function submitSale(e) {
       return {
         ...i,
         quantity: i.quantity - qtySold,
-        sales: [...salesLog, { date: Date.now(), qty: qtySold, price: totalSalePrice, miscFee: miscFee, unitCostAtSale: currentUnitCost }]
+        sales: [...salesLog, { date: Date.now(), qty: qtySold, price: totalSalePrice, unitCostAtSale: currentUnitCost }]
       };
     }
     return i;
@@ -455,7 +455,6 @@ function openRestockForm(id) {
   document.getElementById('restockQty').value = '';
   document.getElementById('restockCost').value = '';
   document.getElementById('restockFees').value = '';
-  document.getElementById('restockMiscFee').value = '0.00';
   document.getElementById('restockFormError').textContent = '';
   document.getElementById('restockOverlay').classList.add('open');
 }
@@ -472,14 +471,13 @@ function submitRestock(e) {
   const qtyAdded = parseInt(document.getElementById('restockQty').value, 10);
   const newBaseCost = parseFloat(document.getElementById('restockCost').value);
   const newAddFees = parseFloat(document.getElementById('restockFees').value) || 0;
-  const newMiscFee = parseFloat(document.getElementById('restockMiscFee').value) || 0;
 
   if (isNaN(qtyAdded) || qtyAdded <= 0 || isNaN(newBaseCost)) {
     document.getElementById('restockFormError').textContent = 'Please enter valid numbers for restock quantity and costs.';
     return;
   }
 
-  const totalRestockExpense = (qtyAdded * newBaseCost) + newAddFees + newMiscFee;
+  const totalRestockExpense = (qtyAdded * newBaseCost) + newAddFees;
 
   items = items.map(i => {
     if (i.id === id) {
@@ -491,7 +489,7 @@ function submitRestock(e) {
       const updatedTotalQty = oldQty + qtyAdded;
 
       let blendedBaseCost = newBaseCost;
-      let blendedAddFeesPerUnit = (newAddFees + newMiscFee) / qtyAdded;
+      let blendedAddFeesPerUnit = newAddFees / qtyAdded;
 
       if (updatedTotalQty > 0) {
         const totalCombinedVal = oldTotalVal + totalRestockExpense;
@@ -501,7 +499,7 @@ function submitRestock(e) {
       }
 
       const prevTotalAddFees = parseFloat(i.totalHistoricalAddFees || (oldQty * oldAddFeesPerUnit)) || 0;
-      const newTotalAddFees = prevTotalAddFees + newAddFees + newMiscFee;
+      const newTotalAddFees = prevTotalAddFees + newAddFees;
 
       const prevTotalCost = parseFloat(i.totalHistoricalCost || (oldQty * (oldBaseCost + oldAddFeesPerUnit))) || 0;
       const newTotalCost = prevTotalCost + totalRestockExpense;
@@ -765,8 +763,8 @@ function render() {
     if (isAuthorized) {
       const confirming = confirmDeleteId === item.id;
       actions = confirming
-        ? `<div class="item-actions"><button class="link-btn danger" onclick="doDelete('${item.id}')">Confirm delete</button><button class="link-btn" onclick="cancelDelete()">Cancel</button></div>`
-        : `<div class="item-actions">
+        ? `<div class="item-actions" onclick="event.stopPropagation()"><button class="link-btn danger" onclick="doDelete('${item.id}')">Confirm delete</button><button class="link-btn" onclick="cancelDelete()">Cancel</button></div>`
+        : `<div class="item-actions" onclick="event.stopPropagation()">
              <div class="action-group">
                <button class="link-btn sell" onclick="openSaleForm('${item.id}')">🛒 Sell</button>
                <button class="link-btn restock" onclick="openRestockForm('${item.id}')">+ Restock</button>
@@ -780,9 +778,9 @@ function render() {
     }
 
     return `
-      <div class="item-card ${isLow ? 'low-stock' : ''}" style="animation-delay:${idx * 30}ms">
+      <div class="item-card ${isLow ? 'low-stock' : ''}" style="animation-delay:${idx * 30}ms" onclick="openDetail('${item.id}')" title="Click to view activity log">
         <div class="item-top">
-          <span class="item-name" onclick="openDetail('${item.id}')" title="Click to view history log">${escapeHtml(item.name)}</span>
+          <span class="item-name">${escapeHtml(item.name)}</span>
           <span class="item-qty">Stock: ${qty}</span>
         </div>
         <div class="item-meta">Category: <strong>${escapeHtml(item.category || 'General')}</strong></div>
@@ -802,7 +800,7 @@ function render() {
           </div>
           <div>
             <div class="fin-label">Units Sold</div>
-            <div class="fin-val"><button class="link-btn history" onclick="openDetail('${item.id}')">${soldCount} sold 📊</button></div>
+            <div class="fin-val" style="color:var(--primary);">${soldCount} sold</div>
           </div>
         </div>
 
