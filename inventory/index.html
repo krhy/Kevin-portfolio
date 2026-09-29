@@ -14,12 +14,11 @@
     --border: rgba(99, 102, 241, 0.12);
     --border-strong: rgba(99, 102, 241, 0.28);
     
-    --primary: #4F46E5;       /* Electric Indigo */
+    --primary: #4F46E5;
     --primary-glow: rgba(79, 70, 229, 0.15);
-    --teal: #0EA5E9;          /* Cyber Cyan */
-    --teal-wash: rgba(14, 165, 233, 0.06);
-    --success: #10B981;       /* Emerald Profit */
-    --rust: #EF4444;          /* Alert Crimson */
+    --teal: #0EA5E9;
+    --success: #10B981;
+    --rust: #EF4444;
     
     --ink: #0F172A;
     --muted: #64748B;
@@ -64,7 +63,6 @@
     padding: 6px 14px; border-radius: 999px; font-size: 11px; font-family: 'Plus Jakarta Sans', sans-serif;
     font-weight: 600; cursor: pointer; transition: all 0.2s; backdrop-filter: blur(4px);
   }
-  .auth-btn:hover { background: rgba(255,255,255,0.15); }
   .auth-btn.unlocked { background: rgba(56, 189, 248, 0.2); border-color: var(--accent-glow); color: var(--accent-glow); }
 
   .balance { font-family: 'JetBrains Mono', monospace; font-weight: 700; font-size: 38px; line-height: 1; color: var(--accent-glow); letter-spacing: -0.02em; }
@@ -77,7 +75,7 @@
   .panel-title { font-family: 'Plus Jakarta Sans', sans-serif; font-size: 11.5px; letter-spacing: 0.14em; text-transform: uppercase; color: var(--muted); margin-bottom: 12px; font-weight: 700; }
   
   .controls { display: flex; gap: 10px; margin-bottom: 16px; flex-wrap: wrap; }
-  .controls input[type="text"] { flex: 1 1 200px; padding: 10px 14px; font-size: 13.5px; border-radius: 12px; border: 1px solid var(--border-strong); background: var(--surface-solid); box-shadow: 0 2px 4px rgba(0,0,0,0.01); }
+  .controls input[type="text"] { flex: 1 1 200px; padding: 10px 14px; font-size: 13.5px; border-radius: 12px; border: 1px solid var(--border-strong); background: var(--surface-solid); }
   .controls select { padding: 10px 12px; font-size: 13px; border-radius: 12px; border: 1px solid var(--border-strong); background: var(--surface-solid); }
 
   .tile-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); gap: 14px; }
@@ -86,9 +84,7 @@
     border: 1px solid var(--border); border-left: 3px solid var(--teal);
     border-radius: 16px; padding: 14px 16px; animation: fadeSlideIn 0.3s ease both;
     box-shadow: 0 4px 20px rgba(15, 23, 42, 0.04);
-    transition: transform 0.2s, box-shadow 0.2s;
   }
-  .item-card:hover { transform: translateY(-2px); box-shadow: 0 8px 24px rgba(15, 23, 42, 0.07); }
   .item-card.low-stock { border-left-color: var(--rust); }
   
   .item-top { display: flex; justify-content: space-between; align-items: flex-start; gap: 8px; margin-bottom: 6px; }
@@ -113,24 +109,21 @@
     pointer-events: auto; display: flex; align-items: center; gap: 8px; background: var(--primary); color: #fff;
     border: none; border-radius: 999px; padding: 14px 28px; font-weight: 700; font-size: 14px;
     font-family: 'Plus Jakarta Sans', sans-serif; box-shadow: 0 8px 24px rgba(79, 70, 229, 0.35);
-    transition: transform 0.2s, background 0.2s;
   }
-  .fab-primary:hover { background: #4338CA; transform: scale(1.02); }
 
   .overlay { position: fixed; inset: 0; background: rgba(15, 23, 42, 0.4); backdrop-filter: blur(4px); display: none; align-items: flex-end; z-index: 10; }
   .overlay.open { display: flex; }
   .sheet {
     background: var(--surface-solid); color: var(--ink); width: 100%; border-radius: 24px 24px 0 0;
     padding: 12px 20px 28px; max-height: 88vh; overflow-y: auto; border-top: 1px solid var(--border-strong);
-    box-shadow: 0 -10px 40px rgba(15, 23, 42, 0.15);
   }
   .drag-handle { width: 36px; height: 4px; border-radius: 999px; background: #CBD5E1; margin: 4px auto 16px; }
   .sheet-head { display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px; }
-  .sheet-title { font-family: 'Plus Jakarta Sans', sans-serif; font-size: 16px; text-transform: uppercase; color: var(--primary); font-weight: 700; letter-spacing: 0.05em; }
+  .sheet-title { font-family: 'Plus Jakarta Sans', sans-serif; font-size: 16px; text-transform: uppercase; color: var(--primary); font-weight: 700; }
   .close-btn { background: none; border: none; color: var(--muted); font-size: 16px; cursor: pointer; }
 
   form { display: flex; flex-direction: column; gap: 14px; }
-  label.field { display: flex; flex-direction: column; gap: 6px; font-size: 12px; color: var(--muted); font-weight: 600; letter-spacing: 0.04em; }
+  label.field { display: flex; flex-direction: column; gap: 6px; font-size: 12px; color: var(--muted); font-weight: 600; }
   input[type="text"], input[type="number"], select {
     padding: 11px 14px; border-radius: 12px; border: 1px solid var(--border-strong); font-size: 14.5px; background: #fff; width: 100%; color: var(--ink);
   }
@@ -141,7 +134,7 @@
     position: fixed; top: 16px; right: 16px; font-size: 11px; font-family: 'Plus Jakarta Sans', sans-serif; 
     font-weight: 700; letter-spacing: 0.08em; transition: opacity 0.3s; z-index: 20; 
     background: rgba(15, 23, 42, 0.85); backdrop-filter: blur(6px); color: var(--accent-glow); 
-    padding: 6px 14px; border-radius: 999px; box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+    padding: 6px 14px; border-radius: 999px;
   }
 </style>
 </head>
@@ -268,11 +261,12 @@ function hideStatus() {
 function setSearch(val) { searchQuery = val; render(); }
 function setCategoryFilter(val) { categoryFilter = val; render(); }
 
+// Independent Sales Event: Decrements stock and logs a sale record cleanly
 function recordSale(id) {
   if (!isAuthorized) return;
   items = items.map(i => {
     if (i.id === id) {
-      if (i.quantity <= 0) {
+      if ((i.quantity || 0) <= 0) {
         alert("Cannot sell: Item is out of stock!");
         return i;
       }
@@ -354,7 +348,7 @@ function render() {
                <button class="link-btn sell" onclick="recordSale('${item.id}')">🛒 Record Sale (-1)</button>
              </div>
              <div class="action-group">
-               <button class="link-btn" onclick="openEdit('${item.id}')">✎ Edit</button>
+               <button class="link-btn" onclick="openEdit('${item.id}')">✎ Edit Info</button>
                <button class="link-btn danger" onclick="askDelete('${item.id}')">🗑</button>
              </div>
            </div>`;
@@ -399,6 +393,7 @@ function escapeHtml(str) {
   return d.innerHTML;
 }
 
+// FORM: Setup product details (Cost, Price, Initial Stock setup only)
 function openForm() {
   if (!isAuthorized) return;
   editingId = null;
@@ -412,10 +407,9 @@ function openForm() {
       <label class="field">Selling Price ($)<input type="number" id="fPrice" step="0.01" min="0" value="0.00" required /></label>
     </div>
     <div class="form-row">
-      <label class="field">Initial Stock<input type="number" id="fQty" min="0" value="10" required /></label>
+      <label class="field">Initial Stock Quantity<input type="number" id="fQty" min="0" value="10" required /></label>
       <label class="field">Low Stock Alert Min<input type="number" id="fMin" min="0" value="2" /></label>
     </div>
-    <label class="field">Units Already Sold (Optional)<input type="number" id="fSold" min="0" value="0" /></label>
     <label class="field">Storage Location<input type="text" id="fLocation" placeholder="e.g. Sector 7G" /></label>
   `;
   document.getElementById('overlay').classList.add('open');
@@ -426,8 +420,9 @@ function openEdit(id) {
   const item = items.find(i => i.id === id);
   if (!item) return;
   editingId = id;
-  document.getElementById('sheetTitle').textContent = 'Edit Product & Financials';
+  document.getElementById('sheetTitle').textContent = 'Edit Product Details';
   document.getElementById('formError').textContent = '';
+  // Notice: unitsSold is preserved as-is so sales history is never overwritten when editing general info
   document.getElementById('formFields').innerHTML = `
     <label class="field">Product Name<input type="text" id="fName" value="${escapeHtml(item.name)}" required /></label>
     <label class="field">Category<input type="text" id="fCategory" value="${escapeHtml(item.category || '')}" /></label>
@@ -436,10 +431,9 @@ function openEdit(id) {
       <label class="field">Selling Price ($)<input type="number" id="fPrice" step="0.01" min="0" value="${item.sellingPrice || 0}" required /></label>
     </div>
     <div class="form-row">
-      <label class="field">Current Stock<input type="number" id="fQty" min="0" value="${item.quantity}" required /></label>
+      <label class="field">Current Stock Quantity<input type="number" id="fQty" min="0" value="${item.quantity}" required /></label>
       <label class="field">Low Stock Alert Min<input type="number" id="fMin" min="0" value="${item.minThreshold || 2}" /></label>
     </div>
-    <label class="field">Units Sold<input type="number" id="fSold" min="0" value="${item.unitsSold || 0}" /></label>
     <label class="field">Storage Location<input type="text" id="fLocation" value="${escapeHtml(item.location || '')}" /></label>
   `;
   document.getElementById('overlay').classList.add('open');
@@ -455,12 +449,13 @@ function submitForm(e) {
   const quantity = parseInt(document.getElementById('fQty').value, 10);
   const costPrice = parseFloat(document.getElementById('fCost').value);
   const sellingPrice = parseFloat(document.getElementById('fPrice').value);
-  const unitsSold = parseInt(document.getElementById('fSold').value, 10) || 0;
 
   if (!name || isNaN(quantity) || isNaN(costPrice) || isNaN(sellingPrice)) {
     document.getElementById('formError').textContent = 'Please fill out all required numeric fields properly.';
     return;
   }
+
+  const existing = editingId ? items.find(i => i.id === editingId) : null;
 
   const payload = {
     id: editingId || (Date.now().toString(36) + Math.random().toString(36).slice(2, 5)),
@@ -469,7 +464,8 @@ function submitForm(e) {
     quantity,
     costPrice,
     sellingPrice,
-    unitsSold,
+    // Preserve existing unitsSold if editing, otherwise start at 0 for new items
+    unitsSold: existing ? (existing.unitsSold || 0) : 0,
     minThreshold: parseInt(document.getElementById('fMin').value, 10) || 2,
     location: document.getElementById('fLocation').value.trim(),
     updatedAt: Date.now()
