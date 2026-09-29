@@ -793,7 +793,7 @@ function submitForm(e) {
     costPrice,
     additionalFees: addFeesPerUnit,
     totalHistoricalCost: existing && existing.totalHistoricalCost !== undefined ? existing.totalHistoricalCost : initialCostTotal,
-    totalHistoricalAddFees: existing && existing.totalHistoricalAddFees !== undefined ? existing.totalHistoricalAddFees : totalBatchFees,
+    totalHistoricalAddFees: totalBatchFees,
     sales: existing ? (existing.sales || []) : [],
     minThreshold: parseInt(document.getElementById('fMin').value, 10) || 2,
     location: document.getElementById('fLocation').value.trim(),
