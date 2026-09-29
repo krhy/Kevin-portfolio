@@ -198,6 +198,22 @@
   <button class="fab-primary" onclick="openForm()">+ Add Product</button>
 </div>
 
+<!-- Password Auth Overlay -->
+<div class="overlay" id="authOverlay" onclick="if(event.target===this) closeAuthForm()">
+  <div class="sheet">
+    <div class="drag-handle"></div>
+    <div class="sheet-head">
+      <div class="sheet-title">Unlock Editing</div>
+      <button class="close-btn" onclick="closeAuthForm()">✕</button>
+    </div>
+    <form id="authForm" onsubmit="submitAuth(event)">
+      <label class="field">Password<input type="password" id="authPassword" placeholder="Enter password" required /></label>
+      <div class="form-error" id="authFormError"></div>
+      <button type="submit" class="fab-primary" style="width:100%; justify-content:center; margin-top:4px;">Unlock</button>
+    </form>
+  </div>
+</div>
+
 <!-- Form Overlay (Add/Edit Product) -->
 <div class="overlay" id="overlay" onclick="if(event.target===this) closeForm()">
   <div class="sheet">
@@ -336,18 +352,31 @@ function toggleAuth() {
       closeRestockForm();
       closeFeesForm();
       closeDetail();
+      closeAuthForm();
       render();
       showStatus("Locked to read-only view");
     }
   } else {
-    const pwd = prompt("Enter password to unlock inventory editing:");
-    if (pwd === "Sadueste123") {
-      isAuthorized = true;
-      render();
-      showStatus("Editing mode unlocked!");
-    } else if (pwd !== null) {
-      alert("Incorrect password.");
-    }
+    document.getElementById('authPassword').value = '';
+    document.getElementById('authFormError').textContent = '';
+    document.getElementById('authOverlay').classList.add('open');
+  }
+}
+
+function closeAuthForm() {
+  document.getElementById('authOverlay').classList.remove('open');
+}
+
+function submitAuth(e) {
+  e.preventDefault();
+  const pwd = document.getElementById('authPassword').value;
+  if (pwd === "Sadueste123") {
+    isAuthorized = true;
+    closeAuthForm();
+    render();
+    showStatus("Editing mode unlocked!");
+  } else {
+    document.getElementById('authFormError').textContent = "Incorrect password.";
   }
 }
 
