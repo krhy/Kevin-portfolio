@@ -10,6 +10,10 @@
     {
       "binding": "PICKLEBALL_FUND",
       "id": "939b274868f5448dad2db62257343bd1"
+    },
+    {
+      "binding": "INVENTORY_KV",
+      "id": "a054490051b54bb09b111ad353a68c0c"
     }
   ]
 }
