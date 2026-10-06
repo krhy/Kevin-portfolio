@@ -120,7 +120,6 @@
     font-family: 'Plus Jakarta Sans', sans-serif; box-shadow: 0 8px 24px rgba(79, 70, 229, 0.35);
   }
 
-  /* Overlay styles for centered popups */
   .overlay { 
     position: fixed; 
     inset: 0; 
@@ -218,7 +217,7 @@
   <button class="fab-primary" onclick="openForm()">+ Add Product</button>
 </div>
 
-<!-- Password Auth Overlay (Standard Popup Style) -->
+<!-- Password Auth Overlay -->
 <div class="overlay" id="authOverlay" onclick="if(event.target===this) closeAuthForm()">
   <div class="sheet">
     <div class="sheet-head">
@@ -661,7 +660,19 @@ function openDetail(id) {
   document.getElementById('detailSheetTitle').textContent = `${item.name} — Activity Log`;
   const sales = item.sales || [];
   const fees = item.standaloneFees || [];
-  const restocks = item.restocks || [];
+  
+  // Fallback for existing items created before restock logging was added
+  let restocks = item.restocks || [];
+  if (restocks.length === 0 && (item.quantity > 0 || item.costPrice > 0)) {
+    restocks = [{
+      date: item.updatedAt || Date.now(),
+      qty: item.quantity || 0,
+      cost: item.costPrice || 0,
+      fees: (item.additionalFees || 0) * (item.quantity || 0),
+      totalExpense: ((item.quantity || 0) * (item.costPrice || 0)) + ((item.additionalFees || 0) * (item.quantity || 0)),
+      type: 'Initial Add (Legacy)'
+    }];
+  }
   
   let totalRev = 0;
   let totalUnitsSold = 0;
