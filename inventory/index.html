@@ -308,7 +308,7 @@
 <div class="overlay" id="detailOverlay" onclick="if(event.target===this) closeDetail()">
   <div class="sheet" style="max-width: 600px;">
     <div class="sheet-head">
-      <div class="sheet-title" id="detailSheetTitle">Sales Log</div>
+      <div class="sheet-title" id="detailSheetTitle">Activity Log</div>
       <button class="close-btn" onclick="closeDetail()">✕</button>
     </div>
     <div id="detailContent"></div>
@@ -565,13 +565,16 @@ function submitRestock(e) {
       const prevTotalCost = parseFloat(i.totalHistoricalCost || (oldQty * (oldBaseCost + oldAddFeesPerUnit))) || 0;
       const newTotalCost = prevTotalCost + totalRestockExpense;
 
+      const restocksLog = i.restocks || [];
+
       return {
         ...i,
         quantity: updatedTotalQty,
         costPrice: blendedBaseCost,
         additionalFees: blendedAddFeesPerUnit,
         totalHistoricalCost: newTotalCost,
-        totalHistoricalAddFees: newTotalAddFees
+        totalHistoricalAddFees: newTotalAddFees,
+        restocks: [...restocksLog, { date: Date.now(), qty: qtyAdded, cost: newBaseCost, fees: newAddFees, totalExpense: totalRestockExpense, type: 'Restock' }]
       };
     }
     return i;
@@ -658,6 +661,7 @@ function openDetail(id) {
   document.getElementById('detailSheetTitle').textContent = `${item.name} — Activity Log`;
   const sales = item.sales || [];
   const fees = item.standaloneFees || [];
+  const restocks = item.restocks || [];
   
   let totalRev = 0;
   let totalUnitsSold = 0;
@@ -680,8 +684,8 @@ function openDetail(id) {
   }
 
   let tableHtml = '';
-  if (sales.length === 0 && fees.length === 0) {
-    tableHtml = `<div style="text-align:center; padding: 30px; color:var(--muted);">No transactions or fee logs recorded for this product yet.</div>`;
+  if (sales.length === 0 && fees.length === 0 && restocks.length === 0) {
+    tableHtml = `<div style="text-align:center; padding: 30px; color:var(--muted);">No transactions, restocks or fee logs recorded for this product yet.</div>`;
   } else {
     tableHtml = `
       <table class="sales-log-table">
@@ -696,7 +700,8 @@ function openDetail(id) {
         <tbody>
           ${[
             ...sales.map(s => ({ ...s, type: 'Sale', label: `${s.qty} unit(s) sold`, amountVal: s.price, isPositive: true })),
-            ...fees.map(f => ({ ...f, type: 'Fee', label: f.desc, amountVal: f.amount, isPositive: false }))
+            ...fees.map(f => ({ ...f, type: 'Fee', label: f.desc, amountVal: f.amount, isPositive: false })),
+            ...restocks.map(r => ({ ...r, type: r.type || 'Restock', label: `${r.qty} unit(s) added (Base: ${fmt(r.cost)}${r.fees ? `, Fees: ${fmt(r.fees)}` : ''})`, amountVal: r.totalExpense !== undefined ? r.totalExpense : ((r.qty * r.cost) + (r.fees || 0)), isPositive: false }))
           ].sort((a, b) => b.date - a.date).map(entry => `
             <tr>
               <td class="date-col">${formatDate(entry.date)}</td>
@@ -735,7 +740,7 @@ function openDetail(id) {
         <div class="fin-val profit">+${fmt(totalProfit)}</div>
       </div>
     </div>
-    <div class="panel-title" style="margin-top:16px;">Transaction & Fee History</div>
+    <div class="panel-title" style="margin-top:16px;">Transaction & Restock History</div>
     ${tableHtml}
   `;
 
@@ -946,6 +951,18 @@ function submitForm(e) {
   const addFeesPerUnit = quantity > 0 ? (totalBatchFees / quantity) : 0;
   const initialCostTotal = (quantity * costPrice) + totalBatchFees;
 
+  let restocksLog = existing ? (existing.restocks || []) : [];
+  if (!existing && quantity > 0) {
+    restocksLog.push({
+      date: Date.now(),
+      qty: quantity,
+      cost: costPrice,
+      fees: totalBatchFees,
+      totalExpense: initialCostTotal,
+      type: 'Initial Add'
+    });
+  }
+
   const payload = {
     id: editingId || (Date.now().toString(36) + Math.random().toString(36).slice(2, 5)),
     name,
@@ -957,6 +974,7 @@ function submitForm(e) {
     totalHistoricalAddFees: totalBatchFees,
     sales: existing ? (existing.sales || []) : [],
     standaloneFees: existing ? (existing.standaloneFees || []) : [],
+    restocks: restocksLog,
     minThreshold: parseInt(document.getElementById('fMin').value, 10) || 2,
     location: document.getElementById('fLocation').value.trim(),
     updatedAt: Date.now()
