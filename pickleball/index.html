@@ -159,7 +159,6 @@
   }
   .overlay.open .sheet { transform: translateY(0); }
   
-  /* Centered Auth Overlay Modal for Messenger compatibility */
   .overlay#authOverlay { align-items: center; justify-content: center; padding: 20px; }
   .overlay#authOverlay .sheet {
     max-width: 360px; border-radius: 22px; transform: scale(0.95); opacity: 0;
@@ -179,8 +178,6 @@
     padding: 10px 12px; border-radius: 10px; border: 1px solid var(--border-strong); font-size: 15px;
     font-family: 'Inter', sans-serif; background: #fff; color: var(--ink); width: 100%;
   }
-  .split-row { display: flex; gap: 8px; }
-  .split-btn { padding: 0 12px; border-radius: 10px; border: 1px solid var(--teal); background: transparent; color: var(--teal); font-size: 12px; font-weight: 600; white-space: nowrap; }
   .preview-line { font-size: 13px; color: var(--muted); }
   .preview-line strong.pos { color: var(--teal); }
   .preview-line strong.neg { color: var(--rust); }
@@ -202,7 +199,6 @@
     display: flex; justify-content: space-between; align-items: center; gap: 8px;
   }
   .link-suggest button { background: var(--teal); color: #fff; border: none; border-radius: 6px; padding: 4px 10px; font-size: 12px; font-weight: 700; flex-shrink: 0; }
-  .mismatch-tag { font-size: 11px; color: var(--rust); margin-top: 3px; }
   .card.needs-update { border-left-color: var(--brown); background: rgba(201,138,45,0.05); }
   .needs-update-banner {
     font-size: 13px; font-weight: 600; color: var(--brown-deep);
@@ -314,6 +310,7 @@
 <script>
 const API_URL = '/api/pickleball/entries';
 const TAB_ORDER = ['bookings', 'contributions', 'expenses', 'summary'];
+const CUTOFF_DATE = '2026-09-16';
 
 let data = { contributions: [], bookings: [], expenses: [] };
 let activeTab = 'bookings';
@@ -321,7 +318,7 @@ let editingId = null;
 let confirmDeleteId = null;
 let confirmDeleteTab = null;
 let displayedBalance = 0;
-let isAuthorized = false; // Starts locked as read-only for public viewers
+let isAuthorized = false;
 
 let tabState = {
   contributions: { search: '', sort: 'date_desc', dateFilter: 'all' },
@@ -423,7 +420,16 @@ async function loadData() {
   }
 
   const beforeCount = data.contributions.length;
-  [...new Set(data.bookings.map(b => b.date))].forEach(date => ensureContributionDraft(date));
+  [...new Set(data.bookings.map(b => b.date))].forEach(date => {
+    if (date >= CUTOFF_DATE) ensureContributionDraft(date);
+  });
+  
+  data.contributions.forEach(c => {
+    if (c.date >= CUTOFF_DATE) {
+      c.ccSpent = bookingsTotalForDate(c.date);
+    }
+  });
+
   cleanupEmptyDrafts();
   if (data.contributions.length !== beforeCount && isAuthorized) saveData();
 
@@ -560,7 +566,7 @@ function applyControls(list, tab, searchFields, amountField) {
   });
   out.sort((a, b) => {
     if (st.sort === 'date_desc') return b.date.localeCompare(a.date) || b.createdAt - a.createdAt;
-    if (st.sort === 'date_asc') return a.date.localeCompare(b.date) || a.createdAt - b.createdAt;
+    if (st.sort === 'date_asc') return a.date.localeCompare(b.date) || b.createdAt - a.createdAt;
     if (st.sort === 'amount_desc') return b[amountField] - a[amountField];
     if (st.sort === 'amount_asc') return a[amountField] - b[amountField];
     return 0;
@@ -658,7 +664,6 @@ function renderContributions() {
 function contributionTileHtml(c, i) {
   const ccSpent = liveCcSpent(c);
   const extra = c.expectedCollection - ccSpent;
-  const linked = hasLinkedBookings(c.date);
   const incomplete = contributionNeedsUpdate(c);
   
   let actions = '';
@@ -693,7 +698,7 @@ function contributionFormFields(c) {
     <label class="field">Game type / court info<input type="text" id="fGameType" placeholder="e.g. 2 courts / 4 hrs" value="${c ? escapeHtml(c.gameType || '') : ''}" /></label>
     <label class="field">Fee per person ($)<input type="number" step="0.01" min="0" id="fFee" value="${c ? c.feePerPerson : ''}" oninput="updateContribPreview()" /></label>
     <label class="field">Players<input type="number" min="1" id="fPlayers" value="${c ? c.players : ''}" oninput="updateContribPreview()" /></label>
-    <label class="field" id="fCcSpentLabel">Credit card / actual spent ($)<input type="number" step="0.01" min="0" id="fCcSpent" value="${c ? c.ccSpent : ''}" oninput="updateContribPreview()" /></label>
+    <label class="field">Credit card / actual spent ($)<input type="number" step="0.01" min="0" id="fCcSpent" value="${c ? c.ccSpent : ''}" oninput="updateContribPreview()" /></label>
     <label class="field">Remarks (optional)<input type="text" id="fRemarks" placeholder="e.g. Paid via personal CC" value="${c ? escapeHtml(c.remarks || '') : ''}" /></label>
     <div class="preview-line" id="contribPreview"></div>
   `;
@@ -707,13 +712,9 @@ function fillCcFromBookings() {
 
 function updateContribPreview() {
   const date = document.getElementById('fDate').value;
-  const ccInput = document.getElementById('fCcSpent');
-  const ccLabel = document.getElementById('fCcSpentLabel');
   const linkEl = document.getElementById('linkSuggest');
-  ccInput.removeAttribute('disabled');
-  ccLabel.firstChild.textContent = 'Credit card / actual spent ($)';
-
   const linkedCount = date ? data.bookings.filter(b => b.date === date && b.status !== 'Cancelled').length : 0;
+  
   if (linkEl) {
     if (linkedCount > 0) {
       const total = bookingsTotalForDate(date);
@@ -725,7 +726,7 @@ function updateContribPreview() {
 
   const fee = parseFloat(document.getElementById('fFee').value) || 0;
   const players = parseInt(document.getElementById('fPlayers').value, 10) || 0;
-  const cc = parseFloat(ccInput.value) || 0;
+  const cc = parseFloat(document.getElementById('fCcSpent').value) || 0;
   const el = document.getElementById('contribPreview');
   if (fee && players) {
     const expected = fee * players;
@@ -758,7 +759,6 @@ function submitContribution() {
     players,
     expectedCollection,
     ccSpent: cc,
-    ccSpentAuto: hasLinkedBookings(date),
     extra: expectedCollection - cc,
     remarks: document.getElementById('fRemarks').value.trim(),
     createdAt: editingId ? data.contributions.find(x => x.id === editingId).createdAt : Date.now(),
@@ -848,6 +848,10 @@ function submitBooking() {
   if (!date) return errEl.textContent = 'Pick a game date.';
   if (isNaN(amount)) return errEl.textContent = 'Enter an amount.';
 
+  // Capture old date if editing an existing booking so we can sync both if date changed
+  const oldBooking = editingId ? data.bookings.find(x => x.id === editingId) : null;
+  const oldDate = oldBooking ? oldBooking.date : null;
+
   const entry = {
     id: editingId || uid(),
     date,
@@ -857,11 +861,25 @@ function submitBooking() {
     amount,
     status: document.getElementById('fStatus').value,
     comments: document.getElementById('fComments').value.trim(),
-    createdAt: editingId ? data.bookings.find(x => x.id === editingId).createdAt : Date.now(),
+    createdAt: editingId ? oldBooking.createdAt : Date.now(),
   };
+
   if (editingId) data.bookings = data.bookings.map(x => x.id === editingId ? entry : x);
   else data.bookings.push(entry);
-  ensureContributionDraft(date);
+
+  // Sync new date if >= CUTOFF_DATE
+  if (date >= CUTOFF_DATE) {
+    ensureContributionDraft(date);
+    const contrib = data.contributions.find(c => c.date === date);
+    if (contrib) contrib.ccSpent = bookingsTotalForDate(date);
+  }
+
+  // If date was changed during edit, also sync the old date
+  if (oldDate && oldDate !== date && oldDate >= CUTOFF_DATE) {
+    const oldContrib = data.contributions.find(c => c.date === oldDate);
+    if (oldContrib) oldContrib.ccSpent = bookingsTotalForDate(oldDate);
+  }
+
   cleanupEmptyDrafts();
   finishSubmit();
 }
@@ -878,7 +896,6 @@ function ensureContributionDraft(date) {
     players: 0,
     expectedCollection: 0,
     ccSpent,
-    ccSpentAuto: true,
     extra: -ccSpent,
     remarks: '',
     createdAt: Date.now(),
@@ -995,8 +1012,16 @@ function askDelete(tab, id) { if (!isAuthorized) return; confirmDeleteId = id; c
 function cancelDelete() { confirmDeleteId = null; confirmDeleteTab = null; render(); }
 function doDelete(tab, id) {
   if (!isAuthorized) return;
+  const itemToDelete = data[tab].find(x => x.id === id);
   data[tab] = data[tab].filter(x => x.id !== id);
-  if (tab === 'bookings') cleanupEmptyDrafts();
+  
+  if (tab === 'bookings' && itemToDelete && itemToDelete.date >= CUTOFF_DATE) {
+    const contrib = data.contributions.find(c => c.date === itemToDelete.date);
+    if (contrib) {
+      contrib.ccSpent = bookingsTotalForDate(itemToDelete.date);
+    }
+    cleanupEmptyDrafts();
+  }
   confirmDeleteId = null; confirmDeleteTab = null;
   render();
   saveData();
