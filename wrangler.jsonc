@@ -15,5 +15,11 @@
       "binding": "INVENTORY_KV",
       "id": "a054490051b54bb09b111ad353a68c0c"
     }
+  ],
+  "r2_buckets": [
+    {
+      "binding": "MY_BUCKET",
+      "bucket_name": "ka-pickleball-storage"
+    }
   ]
 }
