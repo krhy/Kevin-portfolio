@@ -5,8 +5,55 @@ const PICKLEBALL_KV_KEY = "pickleball:entries";
 async function handlePickleballApi(request, env) {
   const url = new URL(request.url);
 
+  // 1. UPLOAD IMAGE TO R2
+  if (url.pathname === "/api/pickleball/upload-image" && request.method === "POST") {
+    const corsHeaders = {
+      "Content-Type": "application/json",
+      "Access-Control-Allow-Origin": "*",
+    };
+
+    try {
+      const { imageBase64, filename } = await request.json();
+      const base64Data = imageBase64.replace(/^data:image\/\w+;base64,/, "");
+      const buffer = Uint8Array.from(atob(base64Data), (c) => c.charCodeAt(0));
+
+      const key = `${Date.now()}-${filename || "receipt.jpg"}`;
+
+      await env.MY_BUCKET.put(key, buffer, {
+        httpMetadata: { contentType: "image/jpeg" },
+      });
+
+      return new Response(JSON.stringify({ url: `/api/pickleball/images/${key}` }), {
+        headers: corsHeaders,
+      });
+    } catch (err) {
+      return new Response(JSON.stringify({ error: err.message }), {
+        status: 500,
+        headers: corsHeaders,
+      });
+    }
+  }
+
+  // 2. SERVE IMAGE FROM R2
+  if (url.pathname.startsWith("/api/pickleball/images/")) {
+    const key = url.pathname.replace("/api/pickleball/images/", "");
+    const object = await env.MY_BUCKET.get(key);
+
+    if (!object) {
+      return new Response("Image not found", { status: 404 });
+    }
+
+    const headers = new Headers();
+    object.writeHttpMetadata(headers);
+    headers.set("etag", object.httpEtag);
+    headers.set("Access-Control-Allow-Origin", "*");
+
+    return new Response(object.body, { headers });
+  }
+
+  // 3. CORE KV API ROUTE FOR ENTRIES
   if (url.pathname !== "/api/pickleball/entries") {
-    return null; 
+    return null;
   }
 
   const corsHeaders = {
@@ -23,7 +70,7 @@ async function handlePickleballApi(request, env) {
     let body;
     try {
       body = await request.text();
-      JSON.parse(body); 
+      JSON.parse(body);
     } catch {
       return new Response(JSON.stringify({ error: "Invalid JSON" }), {
         status: 400,
