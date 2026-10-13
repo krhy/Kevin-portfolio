@@ -193,7 +193,6 @@
   }
   .tile-meta { font-size: 11px; color: var(--muted); }
   
-  /* Restored Classic Link Button Styles */
   .tile-actions { display: flex; gap: 14px; margin-top: 8px; padding-top: 8px; border-top: 1px solid var(--border); }
   .link-btn { background: none; border: none; font-size: 12px; cursor: pointer; display: flex; align-items: center; gap: 4px; padding: 0; color: var(--muted); font-family: inherit; }
   .link-btn:hover { color: var(--ink); }
@@ -464,6 +463,13 @@ function hideStatus() {
   setTimeout(() => { el.style.opacity = '0'; }, 600);
 }
 
+function calcExpected(c) {
+  const base = (c.feePerPerson || 0) * (c.players || 0);
+  const extraColl = c.extraCollections || c.additionalContributions || 0;
+  const deduct = c.deductions || c.additionalExpenses || 0;
+  return base + extraColl - deduct;
+}
+
 function summary() {
   const accumulated = data.contributions.reduce(
     (s, c) => s + (contributionNeedsUpdate(c) ? 0 : liveExtra(c)), 0
@@ -588,7 +594,7 @@ function hasLinkedBookings(date) {
 }
 
 function liveCcSpent(c) { return c.ccSpent; }
-function liveExtra(c) { return c.expectedCollection - c.ccSpent; }
+function liveExtra(c) { return calcExpected(c) - c.ccSpent; }
 
 function controlsBar(tab, searchPlaceholder, extraSelect) {
   const st = tabState[tab];
@@ -640,16 +646,16 @@ function groupByDate(list) {
 
 function renderContributions() {
   const decorated = data.contributions.map(c => ({ ...c, extra: liveExtra(c) }));
-  const list = applyControls(decorated, 'contributions', ['gameType', 'remarks', 'addedBy'], 'extra');
+  const list = applyControls(decorated, 'contributions', ['remarks', 'addedBy'], 'extra');
   const filtered = tabState.contributions.dateFilter === 'all'
     ? list
     : list.filter(c => c.date === tabState.contributions.dateFilter);
-  const controls = controlsBar('contributions', 'Search game type, remarks, added by…', dateFilterSelect('contributions', data.contributions));
+  const controls = controlsBar('contributions', 'Search remarks, added by…', dateFilterSelect('contributions', data.contributions));
 
   if (filtered.length === 0) return `<div class="panel-title">Game Contributions</div>${controls}<div class="empty-state">No games match.</div>`;
 
   const groupsHtml = groupByDate(filtered).map(({ date, items }) => {
-    const countedTotal = items.reduce((s, c) => s + (contributionNeedsUpdate(c) ? 0 : (c.expectedCollection - liveCcSpent(c))), 0);
+    const countedTotal = items.reduce((s, c) => s + (contributionNeedsUpdate(c) ? 0 : (calcExpected(c) - liveCcSpent(c))), 0);
     const tiles = items.map((c, i) => contributionTileHtml(c, i)).join('');
     return `
       <div class="date-group">
@@ -666,9 +672,13 @@ function renderContributions() {
 
 function contributionTileHtml(c, i) {
   const ccSpent = liveCcSpent(c);
-  const extra = c.expectedCollection - ccSpent;
+  const expected = calcExpected(c);
+  const extra = expected - ccSpent;
   const incomplete = contributionNeedsUpdate(c);
   
+  const extraColl = c.extraCollections || c.additionalContributions || 0;
+  const deduct = c.deductions || c.additionalExpenses || 0;
+
   let actions = '';
   if (isAuthorized) {
     const confirming = confirmDeleteId === c.id && confirmDeleteTab === 'contributions';
@@ -680,27 +690,31 @@ function contributionTileHtml(c, i) {
   return `
     <div class="booking-tile ${incomplete ? 'needs-update' : ''}" style="animation-delay:${Math.min(i, 8) * 30}ms">
       <div class="tile-top">
-        <span class="tile-meta">${c.gameType ? escapeHtml(c.gameType) : (c.addedBy ? 'by ' + escapeHtml(c.addedBy) : '')}</span>
+        <span class="tile-meta">${c.addedBy ? 'by ' + escapeHtml(c.addedBy) : 'Session'}</span>
         ${incomplete
           ? `<span class="tile-amount" style="color:var(--brown-deep)">Not counted yet</span>`
           : `<span class="tile-amount" style="color:${extra >= 0 ? 'var(--teal)' : 'var(--rust)'}">${extra >= 0 ? '▲' : '▼'}${fmt(extra)}</span>`}
       </div>
       ${incomplete
         ? `<div class="needs-update-banner">⚠ Needs update — add fee &amp; players. CC spent: ${fmt(ccSpent)}</div>`
-        : `<div class="tile-desc" style="white-space:normal">${c.players} × ${fmt(c.feePerPerson)} =${fmt(c.expectedCollection)} expected · CC spent ${fmt(ccSpent)}</div>`}
+        : `<div class="tile-desc" style="white-space:normal">${c.players} × ${fmt(c.feePerPerson)}${extraColl ? ' + ' + fmt(extraColl) : ''}${deduct ? ' - ' + fmt(deduct) : ''} = ${fmt(expected)} expected · CC spent ${fmt(ccSpent)}</div>`}
       ${c.remarks ? `<div class="tile-meta" style="margin-top:4px; white-space:normal">${escapeHtml(c.remarks)}</div>` : ''}
       ${actions}
     </div>`;
 }
 
 function contributionFormFields(c) {
+  const extraColl = c ? (c.extraCollections || c.additionalContributions || '') : '';
+  const deduct = c ? (c.deductions || c.additionalExpenses || '') : '';
+
   return `
     <label class="field">Game Date<input type="date" id="fDate" value="${c ? c.date : todayStr()}" oninput="updateContribPreview()" /></label>
     <div id="linkSuggest"></div>
     <label class="field">Added by<input type="text" id="fAddedBy" placeholder="e.g. Doreen" value="${c ? escapeHtml(c.addedBy || '') : ''}" /></label>
-    <label class="field">Game type / court info<input type="text" id="fGameType" placeholder="e.g. 2 courts / 4 hrs" value="${c ? escapeHtml(c.gameType || '') : ''}" /></label>
     <label class="field">Fee per person ($)<input type="number" step="0.01" min="0" id="fFee" value="${c ? c.feePerPerson : ''}" oninput="updateContribPreview()" /></label>
     <label class="field">Players<input type="number" min="1" id="fPlayers" value="${c ? c.players : ''}" oninput="updateContribPreview()" /></label>
+    <label class="field">Extra Collections (+) (e.g. cancellation fees, top-ups)<input type="number" step="0.01" min="0" id="fExtraCollections" value="${extraColl}" oninput="updateContribPreview()" /></label>
+    <label class="field">Deductions (-) (e.g. session-specific expenses)<input type="number" step="0.01" min="0" id="fDeductions" value="${deduct}" oninput="updateContribPreview()" /></label>
     <label class="field">Credit card / actual spent ($)<input type="number" step="0.01" min="0" id="fCcSpent" value="${c ? c.ccSpent : ''}" oninput="updateContribPreview()" /></label>
     <label class="field">Remarks (optional)<input type="text" id="fRemarks" placeholder="e.g. Paid via personal CC" value="${c ? escapeHtml(c.remarks || '') : ''}" /></label>
     <div class="preview-line" id="contribPreview"></div>
@@ -729,10 +743,13 @@ function updateContribPreview() {
 
   const fee = parseFloat(document.getElementById('fFee').value) || 0;
   const players = parseInt(document.getElementById('fPlayers').value, 10) || 0;
+  const extraColl = parseFloat(document.getElementById('fExtraCollections').value) || 0;
+  const deduct = parseFloat(document.getElementById('fDeductions').value) || 0;
   const cc = parseFloat(document.getElementById('fCcSpent').value) || 0;
   const el = document.getElementById('contribPreview');
+  
   if (fee && players) {
-    const expected = fee * players;
+    const expected = (fee * players) + extraColl - deduct;
     const extra = expected - cc;
     const cls = extra >= 0 ? 'pos' : 'neg';
     el.innerHTML = `Expected collection ${fmt(expected)}, CC spent ${fmt(cc)} → <strong class="${cls}">${fmt(extra)} extra</strong>`;
@@ -752,14 +769,18 @@ function submitContribution() {
   if (!(players > 0)) return errEl.textContent = 'Enter at least 1 player.';
   if (!(cc >= 0)) return errEl.textContent = 'Enter the credit card / actual amount spent.';
 
-  const expectedCollection = fee * players;
+  const extraColl = parseFloat(document.getElementById('fExtraCollections').value) || 0;
+  const deduct = parseFloat(document.getElementById('fDeductions').value) || 0;
+  const expectedCollection = (fee * players) + extraColl - deduct;
+
   const entry = {
     id: editingId || uid(),
     date,
     addedBy: document.getElementById('fAddedBy').value.trim(),
-    gameType: document.getElementById('fGameType').value.trim(),
     feePerPerson: fee,
     players,
+    extraCollections: extraColl,
+    deductions: deduct,
     expectedCollection,
     ccSpent: cc,
     extra: expectedCollection - cc,
@@ -939,9 +960,10 @@ function ensureContributionDraft(date) {
     id: uid(),
     date,
     addedBy: '',
-    gameType: '',
     feePerPerson: 0,
     players: 0,
+    extraCollections: 0,
+    deductions: 0,
     expectedCollection: 0,
     ccSpent,
     extra: -ccSpent,
