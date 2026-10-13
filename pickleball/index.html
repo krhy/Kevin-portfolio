@@ -4,6 +4,8 @@
 <meta charset="UTF-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1.0" />
 <title>Pickleball Committee Fund</title>
+<!-- SheetJS for .xlsx export -->
+<script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
 <style>
   @import url('https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@500;600;700&family=Inter:wght@400;500;600&family=IBM+Plex+Mono:wght@500;600;700&display=swap');
 
@@ -87,9 +89,9 @@
   .tabs-wrap { position: relative; background: rgba(255,255,255,0.1); border-radius: 999px; padding: 4px; display: flex; margin-bottom: 0; }
   .tabs { display: flex; width: 100%; position: relative; z-index: 2; }
   .tab-btn {
-    flex: 1; padding: 10px 4px; background: none; border: none; color: var(--on-teal-muted);
-    font-family: 'Space Grotesk', sans-serif; font-size: 11.5px; letter-spacing: 0.02em;
-    text-transform: uppercase; font-weight: 600; position: relative; transition: color 0.25s;
+    flex: 1; padding: 10px 2px; background: none; border: none; color: var(--on-teal-muted);
+    font-family: 'Space Grotesk', sans-serif; font-size: 10.5px; letter-spacing: 0.01em;
+    text-transform: uppercase; font-weight: 600; position: relative; transition: color 0.25s; text-align: center;
   }
   .tab-btn.active { color: var(--header-1); }
   .tab-indicator {
@@ -104,7 +106,7 @@
 
   .summary-card {
     background: var(--surface-solid); border: 1px solid var(--border);
-    border-radius: 16px; padding: 20px; margin-bottom: 12px;
+    border-radius: 16px; padding: 20px; margin-bottom: 16px;
     box-shadow: 0 1px 3px rgba(36,29,22,0.05);
   }
   .summary-row { display: flex; justify-content: space-between; align-items: baseline; padding: 10px 0; }
@@ -113,6 +115,23 @@
   .summary-value { font-family: 'IBM Plex Mono', monospace; font-size: 18px; font-weight: 600; color: var(--ink); }
   .summary-row.total .summary-label { font-weight: 600; color: var(--ink); }
   .summary-row.total .summary-value { font-size: 26px; }
+
+  .action-buttons { display: flex; gap: 10px; margin-bottom: 20px; flex-wrap: wrap; }
+  .action-btn {
+    flex: 1; min-width: 140px; background: var(--teal); color: #fff; border: none; border-radius: 12px;
+    padding: 12px 16px; font-weight: 600; font-family: 'Space Grotesk', sans-serif; font-size: 13px;
+    display: flex; align-items: center; justify-content: center; gap: 8px; transition: background 0.2s;
+    box-shadow: 0 2px 8px rgba(79,114,89,0.2);
+  }
+  .action-btn:hover { background: var(--teal-deep); }
+
+  .log-card {
+    background: var(--surface-solid); border: 1px solid var(--border); border-radius: 12px;
+    padding: 12px 14px; margin-bottom: 8px; font-size: 12.5px;
+  }
+  .log-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 4px; font-size: 11px; color: var(--muted); }
+  .log-desc { font-weight: 500; color: var(--ink); margin-bottom: 6px; }
+  .log-meta { font-family: 'IBM Plex Mono', monospace; font-size: 10.5px; color: var(--muted-2); display: flex; gap: 12px; flex-wrap: wrap; }
 
   .fab { position: fixed; bottom: 20px; left: 0; right: 0; display: flex; justify-content: center; z-index: 5; }
   .fab-primary {
@@ -251,7 +270,7 @@
       <button class="tab-btn active" data-tab="bookings" onclick="switchTab('bookings')">Bookings</button>
       <button class="tab-btn" data-tab="contributions" onclick="switchTab('contributions')">Contributions</button>
       <button class="tab-btn" data-tab="expenses" onclick="switchTab('expenses')">Expenses</button>
-      <button class="tab-btn" data-tab="summary" onclick="switchTab('summary')">Summary</button>
+      <button class="tab-btn" data-tab="summary" onclick="switchTab('summary')">Summary / Logs</button>
     </div>
   </div>
 </div>
@@ -311,13 +330,20 @@ const API_URL = '/api/pickleball/entries';
 const TAB_ORDER = ['bookings', 'contributions', 'expenses', 'summary'];
 const CUTOFF_DATE = '2026-09-16';
 
-let data = { contributions: [], bookings: [], expenses: [], lastModified: 0 };
+let data = { contributions: [], bookings: [], expenses: [], activityLogs: [], lastModified: 0 };
 let activeTab = 'bookings';
 let editingId = null;
 let confirmDeleteId = null;
 let confirmDeleteTab = null;
 let displayedBalance = 0;
 let isAuthorized = false;
+
+// Persistent Device ID generator
+let deviceId = localStorage.getItem('pickle_device_id');
+if (!deviceId) {
+  deviceId = 'dev_' + Math.random().toString(36).substring(2, 9);
+  localStorage.setItem('pickle_device_id', deviceId);
+}
 
 let tabState = {
   contributions: { search: '', sort: 'date_desc', dateFilter: 'all' },
@@ -400,12 +426,13 @@ async function loadData() {
     if (!res.ok) throw new Error('load failed');
     const raw = await res.json();
     if (Array.isArray(raw)) {
-      data = { contributions: [], bookings: [], expenses: [], lastModified: 0 };
+      data = { contributions: [], bookings: [], expenses: [], activityLogs: [], lastModified: 0 };
     } else {
       data = { 
         contributions: raw.contributions || [], 
         bookings: raw.bookings || [], 
         expenses: raw.expenses || [],
+        activityLogs: raw.activityLogs || [],
         lastModified: raw.lastModified || 0
       };
       
@@ -429,6 +456,46 @@ async function loadData() {
   if (data.contributions.length !== beforeCount && isAuthorized) saveData();
 
   render();
+}
+
+function logActivity(actionDesc) {
+  if (!data.activityLogs) data.activityLogs = [];
+  const logEntry = {
+    id: uid(),
+    timestamp: Date.now(),
+    deviceId: deviceId,
+    userAgent: navigator.userAgent.substring(0, 60) + '...',
+    description: actionDesc,
+    // Snapshot state for revert capability
+    snapshot: JSON.parse(JSON.stringify({
+      contributions: data.contributions,
+      bookings: data.bookings,
+      expenses: data.expenses
+    }))
+  };
+  
+  data.activityLogs.unshift(logEntry);
+  // Cap strictly at 20 entries
+  if (data.activityLogs.length > 20) {
+    data.activityLogs = data.activityLogs.slice(0, 20);
+  }
+}
+
+function revertToLog(logId) {
+  if (!isAuthorized) return;
+  const targetLog = data.activityLogs.find(l => l.id === logId);
+  if (!targetLog || !targetLog.snapshot) return;
+
+  if (confirm(`Are you sure you want to revert the system state back to this activity log ("${targetLog.description}")?`)) {
+    data.contributions = JSON.parse(JSON.stringify(targetLog.snapshot.contributions));
+    data.bookings = JSON.parse(JSON.stringify(targetLog.snapshot.bookings));
+    data.expenses = JSON.parse(JSON.stringify(targetLog.snapshot.expenses));
+    
+    logActivity(`Reverted system state to: ${targetLog.description}`);
+    render();
+    saveData();
+    alert("System successfully reverted!");
+  }
 }
 
 async function saveData() {
@@ -578,7 +645,7 @@ function render() {
   if (activeTab === 'contributions') body.innerHTML = renderContributions();
   else if (activeTab === 'bookings') body.innerHTML = renderBookings();
   else if (activeTab === 'expenses') body.innerHTML = renderExpenses();
-  else body.innerHTML = renderSummary(s);
+  else body.innerHTML = renderSummaryAndLogs(s);
 }
 
 function applyControls(list, tab, searchFields, amountField) {
@@ -791,6 +858,7 @@ function submitContribution() {
   const deduct = parseFloat(document.getElementById('fDeductions').value) || 0;
   const expectedCollection = (fee * players) + extraColl - deduct;
 
+  const isEdit = !!editingId;
   const entry = {
     id: editingId || uid(),
     date,
@@ -803,10 +871,12 @@ function submitContribution() {
     ccSpent: cc,
     extra: expectedCollection - cc,
     remarks: document.getElementById('fRemarks').value.trim(),
-    createdAt: editingId ? data.contributions.find(x => x.id === editingId).createdAt : Date.now(),
+    createdAt: isEdit ? data.contributions.find(x => x.id === editingId).createdAt : Date.now(),
   };
-  if (editingId) data.contributions = data.contributions.map(x => x.id === editingId ? entry : x);
+  if (isEdit) data.contributions = data.contributions.map(x => x.id === editingId ? entry : x);
   else data.contributions.push(entry);
+
+  logActivity(`${isEdit ? 'Updated' : 'Added'} contribution for ${date} ($${expectedCollection.toFixed(2)})`);
   finishSubmit();
 }
 
@@ -988,7 +1058,6 @@ async function submitBooking() {
   if (!date) return errEl.textContent = 'Pick a game date.';
   if (isNaN(amount)) return errEl.textContent = 'Enter an amount.';
 
-  // Upload pending local base64 images to Cloudflare R2 bucket via worker endpoint
   const uploadedImageUrls = [];
   for (const img of currentFormImages) {
     if (img.startsWith('data:image')) {
@@ -1000,18 +1069,19 @@ async function submitBooking() {
         });
         if (!res.ok) throw new Error('R2 upload failed');
         const jsonRes = await res.json();
-        uploadedImageUrls.push(jsonRes.url); // Saves /api/pickleball/images/<key> instead of base64
+        uploadedImageUrls.push(jsonRes.url);
       } catch (err) {
         console.error('Image upload error:', err);
         alert('Failed to upload image attachment to R2.');
         return;
       }
     } else {
-      uploadedImageUrls.push(img); // Already an R2 URL string
+      uploadedImageUrls.push(img);
     }
   }
 
-  const oldBooking = editingId ? data.bookings.find(x => x.id === editingId) : null;
+  const isEdit = !!editingId;
+  const oldBooking = isEdit ? data.bookings.find(x => x.id === editingId) : null;
   const oldDate = oldBooking ? oldBooking.date : null;
 
   const entry = {
@@ -1024,10 +1094,10 @@ async function submitBooking() {
     status: document.getElementById('fStatus').value,
     comments: document.getElementById('fComments').value.trim(),
     receiptImages: uploadedImageUrls,
-    createdAt: editingId ? oldBooking.createdAt : Date.now(),
+    createdAt: isEdit ? oldBooking.createdAt : Date.now(),
   };
 
-  if (editingId) data.bookings = data.bookings.map(x => x.id === editingId ? entry : x);
+  if (isEdit) data.bookings = data.bookings.map(x => x.id === editingId ? entry : x);
   else data.bookings.push(entry);
 
   if (date >= CUTOFF_DATE) {
@@ -1046,6 +1116,7 @@ async function submitBooking() {
   }
 
   cleanupEmptyDrafts();
+  logActivity(`${isEdit ? 'Updated' : 'Added'} booking for ${date} ($${amount.toFixed(2)})`);
   finishSubmit();
 }
 
@@ -1145,6 +1216,7 @@ function submitExpense() {
   if (!(totalCost > 0)) return errEl.textContent = 'Enter a total cost greater than 0.';
 
   const qtyRaw = document.getElementById('fQuantity').value;
+  const isEdit = !!editingId;
   const entry = {
     id: editingId || uid(),
     date,
@@ -1153,14 +1225,90 @@ function submitExpense() {
     quantity: qtyRaw ? parseInt(qtyRaw, 10) : null,
     totalCost,
     remarks: document.getElementById('fRemarks').value.trim(),
-    createdAt: editingId ? data.expenses.find(x => x.id === editingId).createdAt : Date.now(),
+    createdAt: isEdit ? data.expenses.find(x => x.id === editingId).createdAt : Date.now(),
   };
-  if (editingId) data.expenses = data.expenses.map(x => x.id === editingId ? entry : x);
+  if (isEdit) data.expenses = data.expenses.map(x => x.id === editingId ? entry : x);
   else data.expenses.push(entry);
+
+  logActivity(`${isEdit ? 'Updated' : 'Added'} expense: ${item} ($${totalCost.toFixed(2)})`);
   finishSubmit();
 }
 
-function renderSummary(s) {
+function exportToExcel() {
+  try {
+    const wb = XLSX.utils.book_new();
+
+    // 1. Bookings Sheet
+    const bookingsData = data.bookings.map(b => ({
+      Date: b.date,
+      'Booked By': b.bookedBy || '',
+      'Transaction Date': b.transactionDate || '',
+      Description: b.description || '',
+      Amount: b.amount,
+      Status: b.status || 'Pending',
+      Comments: b.comments || ''
+    }));
+    const wsBookings = XLSX.utils.json_to_sheet(bookingsData);
+    XLSX.utils.book_append_sheet(wb, wsBookings, "Bookings");
+
+    // 2. Contributions Sheet
+    const contribData = data.contributions.map(c => ({
+      Date: c.date,
+      'Added By': c.addedBy || '',
+      'Fee Per Person': c.feePerPerson,
+      Players: c.players,
+      'Extra Collections': c.extraCollections || 0,
+      Deductions: c.deductions || 0,
+      'Expected Collection': c.expectedCollection,
+      'CC Spent': c.ccSpent,
+      Extra: c.extra,
+      Remarks: c.remarks || ''
+    }));
+    const wsContrib = XLSX.utils.json_to_sheet(contribData);
+    XLSX.utils.book_append_sheet(wb, wsContrib, "Contributions");
+
+    // 3. Expenses Sheet
+    const expensesData = data.expenses.map(e => ({
+      Date: e.date,
+      'Added By': e.addedBy || '',
+      Item: e.item,
+      Quantity: e.quantity || '',
+      'Total Cost': e.totalCost,
+      Remarks: e.remarks || ''
+    }));
+    const wsExpenses = XLSX.utils.json_to_sheet(expensesData);
+    XLSX.utils.book_append_sheet(wb, wsExpenses, "Expenses");
+
+    // Trigger download
+    XLSX.writeFile(wb, "Pickleball_Fund_Report.xlsx");
+    logActivity("Exported ledger to Excel (.xlsx)");
+    saveData();
+  } catch (err) {
+    console.error("Excel export failed:", err);
+    alert("Failed to generate Excel file.");
+  }
+}
+
+function renderSummaryAndLogs(s) {
+  const logsHtml = (data.activityLogs && data.activityLogs.length > 0)
+    ? data.activityLogs.map(l => {
+        const timeStr = new Date(l.timestamp).toLocaleString();
+        const revertBtn = isAuthorized ? `<button class="link-btn" style="color:var(--brown); font-weight:600;" onclick="revertToLog('${l.id}')">↺ Revert to this state</button>` : '';
+        return `
+          <div class="log-card">
+            <div class="log-header">
+              <span>📅 ${timeStr}</span>
+              ${revertBtn}
+            </div>
+            <div class="log-desc">${escapeHtml(l.description)}</div>
+            <div class="log-meta">
+              <span>Device: ${escapeHtml(l.deviceId)}</span>
+              <span>Browser: ${escapeHtml(l.userAgent)}</span>
+            </div>
+          </div>`;
+      }).join('')
+    : `<div class="empty-state" style="padding:20px;">No activity logs recorded yet.</div>`;
+
   return `
     <div class="panel-title">Funds Summary</div>
     <div class="summary-card">
@@ -1168,9 +1316,19 @@ function renderSummary(s) {
       <div class="summary-row"><div class="summary-label">Expenses (aside from bookings)</div><div class="summary-value">${fmt(s.expensesTotal)}</div></div>
       <div class="summary-row total"><div class="summary-label">Remaining funds</div><div class="summary-value" style="color:${s.remaining < 0 ? '#C4442A' : '#37503F'}">${fmt(s.remaining)}</div></div>
     </div>
-    <div style="font-size:12.5px; color:var(--muted); padding: 0 4px">
-      Accumulated funds = sum of "extra" across all game contributions. Bookings are logged for reference and don't affect this total on their own — their cost is captured in each contribution's "CC spent" figure.
+
+    <div class="action-buttons">
+      <button class="action-btn" onclick="exportToExcel()">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+        Download Excel (.xlsx)
+      </button>
     </div>
+
+    <div class="panel-title" style="margin-top:24px;">Activity Log & Audit Trail (Last 20)</div>
+    <div style="font-size:12px; color:var(--muted); margin-bottom:12px; padding:0 2px;">
+      Tracks system modifications, device IDs, timestamps, and allows authorized users to instantly revert states.
+    </div>
+    <div>${logsHtml}</div>
   `;
 }
 
@@ -1188,6 +1346,8 @@ function doDelete(tab, id) {
     }
     cleanupEmptyDrafts();
   }
+
+  logActivity(`Deleted ${tab.slice(0, -1)} item`);
   confirmDeleteId = null; confirmDeleteTab = null;
   render();
   saveData();
