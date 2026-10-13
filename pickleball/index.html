@@ -127,8 +127,9 @@
 
   .log-card {
     background: var(--surface-solid); border: 1px solid var(--border); border-radius: 12px;
-    padding: 12px 14px; margin-bottom: 8px; font-size: 12.5px;
+    padding: 12px 14px; margin-bottom: 8px; font-size: 12.5px; cursor: pointer; transition: border-color 0.2s;
   }
+  .log-card:hover { border-color: var(--teal); }
   .log-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 4px; font-size: 11px; color: var(--muted); }
   .log-desc { font-weight: 600; color: var(--ink); margin-bottom: 6px; font-size: 13px; }
   .log-meta { font-family: 'IBM Plex Mono', monospace; font-size: 10.5px; color: var(--muted-2); display: flex; gap: 12px; flex-wrap: wrap; }
@@ -152,13 +153,13 @@
   }
   .overlay.open .sheet { transform: translateY(0); }
   
-  .overlay#authOverlay, .overlay#imageModalOverlay { align-items: center; justify-content: center; padding: 20px; }
-  .overlay#authOverlay .sheet, .overlay#imageModalOverlay .sheet {
-    max-width: 380px; border-radius: 22px; transform: scale(0.95); opacity: 0;
+  .overlay#authOverlay, .overlay#imageModalOverlay, .overlay#logDetailOverlay { align-items: center; justify-content: center; padding: 20px; }
+  .overlay#authOverlay .sheet, .overlay#imageModalOverlay .sheet, .overlay#logDetailOverlay .sheet {
+    max-width: 440px; border-radius: 22px; transform: scale(0.95); opacity: 0;
     transition: transform 0.25s cubic-bezier(0.34, 1.2, 0.4, 1), opacity 0.25s ease;
     box-shadow: 0 10px 30px rgba(36,29,22,0.2);
   }
-  .overlay#authOverlay.open .sheet, .overlay#imageModalOverlay.open .sheet { transform: scale(1); opacity: 1; }
+  .overlay#authOverlay.open .sheet, .overlay#imageModalOverlay.open .sheet, .overlay#logDetailOverlay.open .sheet { transform: scale(1); opacity: 1; }
 
   .drag-handle { width: 36px; height: 4px; border-radius: 999px; background: var(--border-strong); margin: 4px auto 14px; }
   .sheet-head { display: flex; justify-content: space-between; align-items: center; margin-bottom: 14px; }
@@ -307,6 +308,19 @@
       <button class="close-btn" onclick="closeAuthModal()">✕</button>
     </div>
     <div id="authModalContent"></div>
+  </div>
+</div>
+
+<!-- Activity Log Detail Modal -->
+<div class="overlay" id="logDetailOverlay" onclick="closeLogDetailModal()">
+  <div class="sheet" onclick="event.stopPropagation()">
+    <div class="drag-handle"></div>
+    <div class="sheet-head">
+      <div class="sheet-title">Audit Log Details</div>
+      <button class="close-btn" onclick="closeLogDetailModal()">✕</button>
+    </div>
+    <div id="logDetailContent" style="font-size: 13.5px; color: var(--ink); margin-bottom: 16px; line-height: 1.5; max-height: 50vh; overflow-y: auto;"></div>
+    <div id="logDetailActions" style="display: flex; gap: 10px;"></div>
   </div>
 </div>
 
@@ -477,6 +491,39 @@ function logActivity(actionDesc) {
   if (data.activityLogs.length > 20) {
     data.activityLogs = data.activityLogs.slice(0, 20);
   }
+}
+
+function openLogDetailModal(logId) {
+  const targetLog = data.activityLogs.find(l => l.id === logId);
+  if (!targetLog) return;
+
+  const timeStr = new Date(targetLog.timestamp).toLocaleString();
+  const isExcel = targetLog.description.includes('Excel');
+
+  document.getElementById('logDetailContent').innerHTML = `
+    <div style="margin-bottom: 8px;"><strong>Timestamp:</strong> ${timeStr}</div>
+    <div style="margin-bottom: 8px;"><strong>Action / Details:</strong><br/><span style="color:var(--teal-deep); font-weight:600;">${escapeHtml(targetLog.description)}</span></div>
+    <div style="margin-bottom: 8px;"><strong>Device ID:</strong> ${escapeHtml(targetLog.deviceId)}</div>
+    <div style="margin-bottom: 12px;"><strong>Browser:</strong> ${escapeHtml(targetLog.userAgent)}</div>
+  `;
+
+  const actionsEl = document.getElementById('logDetailActions');
+  if (isAuthorized && !isExcel) {
+    actionsEl.innerHTML = `
+      <button type="button" class="fab-primary submit-btn" style="background: var(--muted); flex: 1; animation: none;" onclick="closeLogDetailModal()">Close</button>
+      <button type="button" class="fab-primary submit-btn" style="background: var(--brown); flex: 1; animation: none;" onclick="closeLogDetailModal(); revertToLog('${targetLog.id}')">↺ Revert State</button>
+    `;
+  } else {
+    actionsEl.innerHTML = `
+      <button type="button" class="fab-primary submit-btn" style="background: var(--muted); width: 100%; animation: none;" onclick="closeLogDetailModal()">Close</button>
+    `;
+  }
+
+  document.getElementById('logDetailOverlay').classList.add('open');
+}
+
+function closeLogDetailModal() {
+  document.getElementById('logDetailOverlay').classList.remove('open');
 }
 
 function revertToLog(logId) {
@@ -856,12 +903,13 @@ function submitContribution() {
   const deduct = parseFloat(document.getElementById('fDeductions').value) || 0;
   const expectedCollection = (fee * players) + extraColl - deduct;
   const extra = expectedCollection - cc;
+  const addedBy = document.getElementById('fAddedBy').value.trim() || 'Someone';
 
   const isEdit = !!editingId;
   const entry = {
     id: editingId || uid(),
     date,
-    addedBy: document.getElementById('fAddedBy').value.trim(),
+    addedBy,
     feePerPerson: fee,
     players,
     extraCollections: extraColl,
@@ -875,7 +923,7 @@ function submitContribution() {
   if (isEdit) data.contributions = data.contributions.map(x => x.id === editingId ? entry : x);
   else data.contributions.push(entry);
 
-  const detailStr = `${isEdit ? 'Updated' : 'Added'} Contribution for ${date}: ${players} players × $${fee.toFixed(2)} = Expected $${expectedCollection.toFixed(2)}, CC Spent $${cc.toFixed(2)} (${extra >= 0 ? '+' : ''}$${extra.toFixed(2)} extra)`;
+  const detailStr = `${isEdit ? 'Updated' : 'Added'} Contribution for ${date} by ${addedBy}: ${players} players × $${fee.toFixed(2)} = Expected $${expectedCollection.toFixed(2)}, CC Spent $${cc.toFixed(2)} (${extra >= 0 ? '+' : ''}$${extra.toFixed(2)} extra)`;
   logActivity(detailStr);
   finishSubmit();
 }
@@ -1119,7 +1167,7 @@ async function submitBooking() {
   }
 
   cleanupEmptyDrafts();
-  const detailStr = `${isEdit ? 'Updated' : 'Added'} Booking for ${date} — "${desc}" by ${bookedBy}: $${amount.toFixed(2)} [${status}]`;
+  const detailStr = `${isEdit ? 'Updated' : 'Added'} Booking on ${date} — "${desc}" by ${bookedBy}: $${amount.toFixed(2)} [Status: ${status}]`;
   logActivity(detailStr);
   finishSubmit();
 }
@@ -1297,9 +1345,10 @@ function renderSummaryAndLogs(s) {
   const logsHtml = (data.activityLogs && data.activityLogs.length > 0)
     ? data.activityLogs.map(l => {
         const timeStr = new Date(l.timestamp).toLocaleString();
-        const revertBtn = isAuthorized ? `<button class="link-btn" style="color:var(--brown); font-weight:600;" onclick="revertToLog('${l.id}')">↺ Revert to this state</button>` : '';
+        const isExcel = l.description.includes('Excel');
+        const revertBtn = (isAuthorized && !isExcel) ? `<button class="link-btn" style="color:var(--brown); font-weight:600;" onclick="event.stopPropagation(); revertToLog('${l.id}')">↺ Revert</button>` : '';
         return `
-          <div class="log-card">
+          <div class="log-card" onclick="openLogDetailModal('${l.id}')">
             <div class="log-header">
               <span>📅 ${timeStr}</span>
               ${revertBtn}
@@ -1330,7 +1379,7 @@ function renderSummaryAndLogs(s) {
 
     <div class="panel-title" style="margin-top:24px;">Activity Log & Audit Trail (Last 20)</div>
     <div style="font-size:12px; color:var(--muted); margin-bottom:12px; padding:0 2px;">
-      Detailed audit trail showing concrete figures, amounts, names, and timestamps for every change.
+      Click any log entry to view complete concrete details, timestamps, and options to revert.
     </div>
     <div>${logsHtml}</div>
   `;
@@ -1351,9 +1400,13 @@ function doDelete(tab, id) {
     cleanupEmptyDrafts();
   }
 
-  const itemName = itemToDelete.description || itemToDelete.item || itemToDelete.date || 'item';
-  const itemVal = itemToDelete.amount || itemToDelete.totalCost || itemToDelete.expectedCollection || 0;
-  logActivity(`Deleted ${tab.slice(0, -1)} — "${itemName}" ($${Number(itemVal).toFixed(2)})`);
+  if (tab === 'contributions') {
+    logActivity(`Deleted Contribution for ${itemToDelete.date} — Players: ${itemToDelete.players}, Fee: $${Number(itemToDelete.feePerPerson || 0).toFixed(2)}, Expected: $${Number(itemToDelete.expectedCollection || 0).toFixed(2)}, CC Spent: $${Number(itemToDelete.ccSpent || 0).toFixed(2)}`);
+  } else if (tab === 'bookings') {
+    logActivity(`Deleted Booking on ${itemToDelete.date} — "${itemToDelete.description}" by ${itemToDelete.bookedBy}: $${Number(itemToDelete.amount || 0).toFixed(2)} [Status: ${itemToDelete.status}]`);
+  } else if (tab === 'expenses') {
+    logActivity(`Deleted Expense on ${itemToDelete.date} — "${itemToDelete.item}" by ${itemToDelete.addedBy}: $${Number(itemToDelete.totalCost || 0).toFixed(2)}`);
+  }
 
   confirmDeleteId = null; confirmDeleteTab = null;
   render();
