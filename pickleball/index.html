@@ -1,521 +1,1248 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Pickleball Committee Fund Manager</title>
-    <!-- Tailwind CSS CDN -->
-    <script src="https://cdn.tailwindcss.com"></script>
-    <script>
-        tailwind.config = {
-            theme: {
-                extend: {
-                    colors: {
-                        pickle: {
-                            50: '#f0fdf4',
-                            100: '#dcfce7',
-                            500: '#22c55e',
-                            600: '#16a34a',
-                            700: '#15803d',
-                        }
-                    }
-                }
-            }
-        }
-    </script>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Pickleball Committee Fund</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@500;600;700&family=Inter:wght@400;500;600&family=IBM+Plex+Mono:wght@500;600;700&display=swap');
+
+  :root {
+    --paper: #F7F5F0;
+    --surface: rgba(255,255,255,0.78);
+    --surface-solid: #FFFFFF;
+    --border: rgba(79,114,89,0.14);
+    --border-strong: rgba(79,114,89,0.30);
+    --teal: #4F7259;
+    --teal-deep: #37503F;
+    --teal-wash: rgba(79,114,89,0.07);
+    --brown: #C98A2D;
+    --brown-deep: #8C5A28;
+    --brown-wash: rgba(140,90,40,0.08);
+    --rust: #C4442A;
+    --ink: #23223A;
+    --muted: #6E6C7E;
+    --muted-2: #B0AAA0;
+    --header-1: #223228;
+    --header-2: #4F7259;
+    --on-teal: rgba(255,255,255,0.9);
+    --on-teal-muted: rgba(255,255,255,0.58);
+    --on-teal-border: rgba(255,255,255,0.18);
+    --amber-on-teal: #E7B26B;
+    --coral-on-teal: #FF9A80;
+  }
+
+  * { box-sizing: border-box; }
+  html { scroll-behavior: smooth; }
+  body {
+    margin: 0; font-family: 'Inter', sans-serif; color: var(--ink); min-height: 100vh;
+    background:
+      radial-gradient(circle at 15% -10%, var(--teal-wash), transparent 40%),
+      radial-gradient(circle at 100% 0%, var(--brown-wash), transparent 35%),
+      var(--paper);
+  }
+  button { font-family: inherit; cursor: pointer; }
+  input:focus, select:focus { outline: 2px solid var(--teal); outline-offset: 1px; }
+  button:focus-visible { outline: 2px solid var(--teal); outline-offset: 2px; }
+
+  @keyframes pulseDot { 0%,100% { box-shadow: 0 0 0 0 rgba(47,111,107,0.45); } 50% { box-shadow: 0 0 0 6px rgba(47,111,107,0); } }
+  @keyframes fadeSlideIn { from { opacity: 0; transform: translateY(8px); } to { opacity: 1; transform: translateY(0); } }
+  @keyframes fabGlow { 0%,100% { box-shadow: 0 4px 16px rgba(180,118,59,0.28); } 50% { box-shadow: 0 4px 24px rgba(180,118,59,0.46); } }
+  @media (prefers-reduced-motion: reduce) {
+    * { animation-duration: 0.001ms !important; animation-iteration-count: 1 !important; transition-duration: 0.001ms !important; }
+  }
+
+  .header {
+    padding: 24px 20px 26px; position: relative;
+    background: linear-gradient(160deg, var(--header-1), var(--header-2));
+    border-radius: 0 0 24px 24px;
+    box-shadow: 0 10px 24px rgba(23,66,63,0.22);
+  }
+  .brand { display: flex; align-items: center; gap: 8px; margin-bottom: 10px; }
+  .brand-icon { flex-shrink: 0; }
+  .brand-text { font-family: 'Space Grotesk', sans-serif; font-size: 12.5px; letter-spacing: 0.14em; text-transform: uppercase; color: var(--on-teal-muted); font-weight: 600; }
+  .live-dot { width: 6px; height: 6px; border-radius: 50%; background: var(--amber-on-teal); animation: pulseDot 2s ease-in-out infinite; margin-left: auto; }
+  .live-label { font-family: 'Space Grotesk', sans-serif; font-size: 10.5px; letter-spacing: 0.12em; color: var(--amber-on-teal); margin-left: 6px; font-weight: 600; }
+
+  .header-top-row { display: flex; justify-content: space-between; align-items: center; margin-bottom: 6px; }
+  .balance-label { font-family: 'Space Grotesk', sans-serif; font-size: 10.5px; letter-spacing: 0.12em; text-transform: uppercase; color: var(--on-teal-muted); font-weight: 600; }
+  .auth-btn {
+    background: rgba(255,255,255,0.15); border: 1px solid var(--on-teal-border); color: var(--on-teal);
+    padding: 5px 12px; border-radius: 999px; font-size: 11px; font-family: 'Space Grotesk', sans-serif;
+    font-weight: 600; cursor: pointer; transition: background 0.2s;
+  }
+  .auth-btn.unlocked { background: rgba(231,178,124,0.3); border-color: var(--amber-on-teal); color: var(--amber-on-teal); }
+
+  .balance { font-family: 'IBM Plex Mono', monospace; font-weight: 700; font-size: 44px; line-height: 1; color: var(--amber-on-teal); text-shadow: 0 0 26px rgba(231,178,124,0.3); }
+  .balance.negative { color: var(--coral-on-teal); text-shadow: 0 0 26px rgba(255,154,128,0.3); }
+
+  .sparkline-wrap { margin: 6px 0 10px; height: 46px; }
+  .sparkline-wrap svg { width: 100%; height: 100%; display: block; overflow: visible; }
+
+  .divider { border-top: 1px dashed var(--on-teal-border); margin: 4px 0 14px; }
+  .stats { display: flex; gap: 22px; flex-wrap: wrap; margin-bottom: 18px; }
+  .stat-value { font-family: 'IBM Plex Mono', monospace; font-size: 15px; font-weight: 600; color: var(--on-teal); }
+  .stat-label { font-size: 10px; color: var(--on-teal-muted); text-transform: uppercase; letter-spacing: 0.08em; }
+
+  .tabs-wrap { position: relative; background: rgba(255,255,255,0.1); border-radius: 999px; padding: 4px; display: flex; margin-bottom: 0; }
+  .tabs { display: flex; width: 100%; position: relative; z-index: 2; }
+  .tab-btn {
+    flex: 1; padding: 10px 4px; background: none; border: none; color: var(--on-teal-muted);
+    font-family: 'Space Grotesk', sans-serif; font-size: 11.5px; letter-spacing: 0.02em;
+    text-transform: uppercase; font-weight: 600; position: relative; transition: color 0.25s;
+  }
+  .tab-btn.active { color: var(--header-1); }
+  .tab-indicator {
+    position: absolute; top: 4px; bottom: 4px; left: 4px; width: calc(25% - 4px);
+    background: #fff; border-radius: 999px; box-shadow: 0 2px 10px rgba(0,0,0,0.15);
+    transition: transform 0.32s cubic-bezier(0.4, 0, 0.2, 1); z-index: 1;
+  }
+
+  .panel { min-height: 320px; padding: 22px 16px 110px; }
+  .panel-title { font-family: 'Space Grotesk', sans-serif; font-size: 12px; letter-spacing: 0.1em; text-transform: uppercase; color: var(--muted); margin-bottom: 12px; padding: 0 4px; font-weight: 600; }
+  .empty-state { text-align: center; padding: 44px 20px; color: var(--muted); font-size: 14px; }
+
+  .summary-card {
+    background: var(--surface-solid); border: 1px solid var(--border);
+    border-radius: 16px; padding: 20px; margin-bottom: 12px;
+    box-shadow: 0 1px 3px rgba(36,29,22,0.05);
+  }
+  .summary-row { display: flex; justify-content: space-between; align-items: baseline; padding: 10px 0; }
+  .summary-row + .summary-row { border-top: 1px solid var(--border); }
+  .summary-label { font-size: 14px; color: var(--muted); }
+  .summary-value { font-family: 'IBM Plex Mono', monospace; font-size: 18px; font-weight: 600; color: var(--ink); }
+  .summary-row.total .summary-label { font-weight: 600; color: var(--ink); }
+  .summary-row.total .summary-value { font-size: 26px; }
+
+  .fab { position: fixed; bottom: 20px; left: 0; right: 0; display: flex; justify-content: center; z-index: 5; }
+  .fab-primary {
+    display: flex; align-items: center; gap: 6px; background: var(--brown); color: #fff;
+    border: none; border-radius: 999px; padding: 13px 24px; font-weight: 700; font-size: 14.5px;
+    font-family: 'Space Grotesk', sans-serif; letter-spacing: 0.02em;
+    animation: fabGlow 2.6s ease-in-out infinite;
+  }
+
+  .overlay { position: fixed; inset: 0; background: rgba(36,29,22,0.35); backdrop-filter: blur(2px); display: none; align-items: flex-end; z-index: 10; }
+  .overlay.open { display: flex; }
+  .sheet {
+    background: var(--surface-solid); color: var(--ink); width: 100%; border-radius: 22px 22px 0 0;
+    padding: 10px 18px 24px; max-height: 88vh; overflow-y: auto;
+    border-top: 1px solid var(--border-strong);
+    transform: translateY(100%); transition: transform 0.38s cubic-bezier(0.34, 1.2, 0.4, 1);
+    box-shadow: 0 -8px 30px rgba(36,29,22,0.12);
+  }
+  .overlay.open .sheet { transform: translateY(0); }
+  
+  .overlay#authOverlay, .overlay#imageModalOverlay { align-items: center; justify-content: center; padding: 20px; }
+  .overlay#authOverlay .sheet, .overlay#imageModalOverlay .sheet {
+    max-width: 380px; border-radius: 22px; transform: scale(0.95); opacity: 0;
+    transition: transform 0.25s cubic-bezier(0.34, 1.2, 0.4, 1), opacity 0.25s ease;
+    box-shadow: 0 10px 30px rgba(36,29,22,0.2);
+  }
+  .overlay#authOverlay.open .sheet, .overlay#imageModalOverlay.open .sheet { transform: scale(1); opacity: 1; }
+
+  .drag-handle { width: 36px; height: 4px; border-radius: 999px; background: var(--border-strong); margin: 4px auto 14px; }
+  .sheet-head { display: flex; justify-content: space-between; align-items: center; margin-bottom: 14px; }
+  .sheet-title { font-family: 'Space Grotesk', sans-serif; font-size: 16px; text-transform: uppercase; letter-spacing: 0.03em; color: var(--teal); font-weight: 700; }
+  .close-btn { background: none; border: none; color: var(--muted); }
+
+  form { display: flex; flex-direction: column; gap: 12px; }
+  label.field { display: flex; flex-direction: column; gap: 5px; font-size: 12.5px; color: var(--muted); }
+  input[type="text"], input[type="number"], input[type="date"], input[type="password"], input[type="file"], select {
+    padding: 10px 12px; border-radius: 10px; border: 1px solid var(--border-strong); font-size: 15px;
+    font-family: 'Inter', sans-serif; background: #fff; color: var(--ink); width: 100%;
+  }
+  input[type="file"] { padding: 8px; font-size: 13px; background: var(--paper); }
+  .preview-line { font-size: 13px; color: var(--muted); }
+  .form-error { color: var(--rust); font-size: 13px; font-weight: 600; }
+  .submit-btn { width: 100%; justify-content: center; margin-top: 8px; }
+
+  .controls { display: flex; gap: 8px; margin-bottom: 14px; flex-wrap: wrap; }
+  .controls input[type="text"] { flex: 1 1 100%; padding: 8px 12px; font-size: 13.5px; }
+  .controls select { padding: 8px 10px; font-size: 13px; width: auto; }
+  .link-suggest {
+    font-size: 12.5px; color: var(--teal); background: var(--teal-wash);
+    border: 1px dashed var(--teal); border-radius: 8px; padding: 8px 10px;
+    display: flex; justify-content: space-between; align-items: center; gap: 8px;
+  }
+  .link-suggest button { background: var(--teal); color: #fff; border: none; border-radius: 6px; padding: 4px 10px; font-size: 12px; font-weight: 700; flex-shrink: 0; }
+  .needs-update-banner {
+    font-size: 13px; font-weight: 600; color: var(--brown-deep);
+    background: rgba(201,138,45,0.12); border: 1px dashed var(--brown);
+    border-radius: 8px; padding: 6px 10px; margin-top: 2px;
+  }
+
+  .date-group { margin-bottom: 20px; }
+  .date-group-header {
+    display: flex; justify-content: space-between; align-items: baseline;
+    font-family: 'Space Grotesk', sans-serif; font-size: 13px; font-weight: 700; color: var(--ink);
+    padding: 0 2px 7px; border-bottom: 1px solid var(--border); margin-bottom: 10px;
+  }
+  .date-group-header .muted { font-size: 11.5px; font-weight: 500; color: var(--muted); }
+  .tile-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(230px, 1fr)); gap: 10px; }
+  .booking-tile {
+    background: var(--surface); backdrop-filter: blur(10px); -webkit-backdrop-filter: blur(10px);
+    border: 1px solid var(--border); border-left: 3px solid var(--border-strong);
+    border-radius: 12px; padding: 10px 12px; animation: fadeSlideIn 0.3s ease both;
+  }
+  .tile-top { display: flex; justify-content: space-between; align-items: center; gap: 8px; margin-bottom: 5px; }
+  .tile-amount { font-family: 'IBM Plex Mono', monospace; font-weight: 600; font-size: 14px; color: var(--ink); flex-shrink: 0; }
+  .tile-desc {
+    font-size: 12.5px; color: var(--ink); overflow: hidden; text-overflow: ellipsis;
+    white-space: nowrap; margin-bottom: 2px;
+  }
+  .tile-meta { font-size: 11px; color: var(--muted); }
+  
+  .tile-actions { display: flex; gap: 14px; margin-top: 8px; padding-top: 8px; border-top: 1px solid var(--border); }
+  .link-btn { background: none; border: none; font-size: 12px; cursor: pointer; display: flex; align-items: center; gap: 4px; padding: 0; color: var(--muted); font-family: inherit; }
+  .link-btn:hover { color: var(--ink); }
+  .link-btn.danger { color: var(--rust); }
+  .link-btn.danger.hover { opacity: 0.8; }
+  
+  .receipt-link {
+    display: inline-flex; align-items: center; gap: 4px; font-size: 11px; font-weight: 600;
+    color: var(--teal); background: var(--teal-wash); padding: 2px 8px; border-radius: 999px;
+    margin-top: 4px; border: 1px solid var(--border-strong); text-decoration: none;
+  }
+  .receipt-link:hover { background: var(--border); }
+  
+  .thumb-item { position: relative; display: inline-block; margin-right: 6px; margin-bottom: 6px; }
+  .thumb-item img { max-height: 70px; border-radius: 6px; border: 1px solid var(--border); display: block; }
+  .thumb-remove {
+    position: absolute; top: -6px; right: -6px; background: var(--rust); color: #fff;
+    border: none; border-radius: 50%; width: 20px; height: 20px; font-size: 11px;
+    display: flex; align-items: center; justify-content: center; cursor: pointer; font-weight: 700;
+  }
+</style>
 </head>
-<body class="bg-slate-50 text-slate-800 min-h-screen flex flex-col font-sans antialiased">
+<body>
 
-    <!-- Header -->
-    <header class="bg-white border-b border-slate-200 sticky top-0 z-30 shadow-xs">
-        <div class="max-w-7xl mx-auto px-4 py-4 flex flex-col sm:flex-row justify-between items-center gap-4">
-            <div class="flex items-center space-x-3">
-                <div class="bg-pickle-600 text-white p-2.5 rounded-xl shadow-xs">
-                    <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path>
-                    </svg>
-                </div>
-                <div>
-                    <h1 class="text-xl font-bold tracking-tight text-slate-900">Pickleball Committee Fund Manager</h1>
-                    <p class="text-xs text-slate-500">Cloudflare KV + R2 Storage Architecture</p>
-                </div>
-            </div>
-            <div class="flex items-center space-x-2">
-                <button onclick="syncData(true)" id="sync-btn" class="inline-flex items-center px-3.5 py-2 border border-slate-300 text-xs font-medium rounded-lg text-slate-700 bg-white hover:bg-slate-50 transition shadow-xs">
-                    <svg class="w-4 h-4 mr-1.5 text-slate-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"></path></svg>
-                    Sync Status: <span id="sync-status" class="ml-1 text-pickle-600 font-semibold">Synced</span>
-                </button>
-                <button onclick="openBookingModal()" class="inline-flex items-center px-4 py-2 bg-pickle-600 text-white text-xs font-semibold rounded-lg hover:bg-pickle-700 transition shadow-xs">
-                    <svg class="w-4 h-4 mr-1.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"></path></svg>
-                    Log New Session
-                </button>
-            </div>
-        </div>
-    </header>
+<div class="header">
+  <div class="brand">
+    <svg class="brand-icon" width="20" height="20" viewBox="0 0 24 24" fill="none">
+      <ellipse cx="12" cy="9" rx="7" ry="8" fill="#E7B26B" />
+      <circle cx="9.5" cy="6.5" r="0.9" fill="#223228" /><circle cx="12.5" cy="5.5" r="0.9" fill="#223228" />
+      <circle cx="15" cy="7" r="0.9" fill="#223228" /><circle cx="9" cy="9.5" r="0.9" fill="#223228" />
+      <circle cx="12" cy="9" r="0.9" fill="#223228" /><circle cx="15" cy="9.5" r="0.9" fill="#223228" />
+      <circle cx="10" cy="12" r="0.9" fill="#223228" /><circle cx="13" cy="12" r="0.9" fill="#223228" />
+      <rect x="10.7" y="16" width="2.6" height="7" rx="1.3" fill="#E7B26B" />
+    </svg>
+    <span class="brand-text">Committee Fund</span>
+    <div class="live-dot"></div><span class="live-label">LIVE</span>
+  </div>
 
-    <!-- Main Container -->
-    <main class="max-w-7xl mx-auto px-4 py-6 flex-1 w-full space-y-6">
+  <div class="header-top-row">
+    <div class="balance-label" style="margin-bottom:0;">Remaining funds</div>
+    <button class="auth-btn" id="authBtn" onclick="toggleAuth()">🔒 Unlock Editing</button>
+  </div>
+  <div id="balance" class="balance">$0</div>
+  <div class="sparkline-wrap" id="sparklineWrap"></div>
 
-        <!-- Financial Overview Cards -->
-        <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-            <div class="bg-white p-5 rounded-xl border border-slate-200 shadow-xs">
-                <p class="text-xs font-medium text-slate-500 uppercase tracking-wider">Total Expected Fund</p>
-                <p id="card-expected" class="text-2xl font-bold text-slate-900 mt-1">₱0.00</p>
-                <p class="text-xs text-slate-400 mt-1">(Fee × Players) + Extras - Deductions</p>
-            </div>
-            <div class="bg-white p-5 rounded-xl border border-slate-200 shadow-xs">
-                <p class="text-xs font-medium text-slate-500 uppercase tracking-wider">Total CC / GCash Spent</p>
-                <p id="card-spent" class="text-2xl font-bold text-slate-700 mt-1">₱0.00</p>
-                <p class="text-xs text-slate-400 mt-1">Actual court & ball payments</p>
-            </div>
-            <div class="bg-white p-5 rounded-xl border border-slate-200 shadow-xs">
-                <p class="text-xs font-medium text-slate-500 uppercase tracking-wider">Net Surplus / (Deficit)</p>
-                <p id="card-surplus" class="text-2xl font-bold text-pickle-600 mt-1">₱0.00</p>
-                <p class="text-xs text-slate-400 mt-1">Expected minus Spent</p>
-            </div>
-            <div class="bg-white p-5 rounded-xl border border-slate-200 shadow-xs">
-                <p class="text-xs font-medium text-slate-500 uppercase tracking-wider">Total Sessions Logged</p>
-                <p id="card-sessions" class="text-2xl font-bold text-slate-900 mt-1">0</p>
-                <p class="text-xs text-slate-400 mt-1">Active historical records</p>
-            </div>
-        </div>
+  <div class="divider"></div>
+  <div class="stats">
+    <div><div id="statAccumulated" class="stat-value">$0</div><div class="stat-label">Accumulated</div></div>
+    <div><div id="statExpenses" class="stat-value">$0</div><div class="stat-label">Expenses</div></div>
+    <div><div id="statSessions" class="stat-value">0</div><div class="stat-label">Sessions</div></div>
+  </div>
 
-        <!-- Bookings Data Table Section -->
-        <div class="bg-white rounded-xl border border-slate-200 shadow-xs overflow-hidden">
-            <div class="px-6 py-4 border-b border-slate-200 flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
-                <h3 class="font-semibold text-slate-800">Booking & Expense Ledger</h3>
-                <div class="flex items-center space-x-2 w-full sm:w-auto">
-                    <input type="text" id="search-input" oninput="renderTable()" placeholder="Search date or remarks..." class="px-3 py-1.5 text-xs border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-pickle-500 w-full sm:w-64">
-                </div>
-            </div>
-            <div class="overflow-x-auto">
-                <table class="w-full text-left border-collapse">
-                    <thead>
-                        <tr class="bg-slate-50 text-slate-500 text-xs uppercase tracking-wider border-b border-slate-200">
-                            <th class="px-6 py-3 font-medium">Date</th>
-                            <th class="px-6 py-3 font-medium">Players & Fee</th>
-                            <th class="px-6 py-3 font-medium">Extra / Ded.</th>
-                            <th class="px-6 py-3 font-medium">Expected</th>
-                            <th class="px-6 py-3 font-medium">CC Spent</th>
-                            <th class="px-6 py-3 font-medium">Surplus</th>
-                            <th class="px-6 py-3 font-medium">Attachments</th>
-                            <th class="px-6 py-3 font-medium text-right">Actions</th>
-                        </tr>
-                    </thead>
-                    <tbody id="bookings-table-body" class="divide-y divide-slate-200 text-sm text-slate-700">
-                        <tr>
-                            <td colspan="8" class="px-6 py-8 text-center text-slate-400">Loading ledger entries...</td>
-                        </tr>
-                    </tbody>
-                </table>
-            </div>
-        </div>
-    </main>
-
-    <!-- Booking Modal Form -->
-    <div id="booking-modal" class="fixed inset-0 bg-slate-900/50 backdrop-blur-xs hidden z-50 flex items-center justify-center p-4">
-        <div class="bg-white rounded-2xl shadow-xl max-w-lg w-full max-h-[90vh] overflow-y-auto border border-slate-200">
-            <div class="px-6 py-4 border-b border-slate-200 flex justify-between items-center sticky top-0 bg-white z-10">
-                <h3 id="modal-title" class="font-bold text-slate-900">Log New Pickleball Session</h3>
-                <button onclick="closeBookingModal()" class="text-slate-400 hover:text-slate-600 p-1 rounded-lg">
-                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path></svg>
-                </button>
-            </div>
-            <form id="booking-form" onsubmit="handleFormSubmit(event)" class="p-6 space-y-4">
-                <input type="hidden" id="edit-index" value="">
-                
-                <div>
-                    <label class="block text-xs font-medium text-slate-700 mb-1">Session Date</label>
-                    <input type="date" id="form-date" required class="w-full px-3 py-2 border border-slate-300 rounded-lg text-sm focus:ring-2 focus:ring-pickle-500 focus:outline-none">
-                </div>
-
-                <div class="grid grid-cols-2 gap-4">
-                    <div>
-                        <label class="block text-xs font-medium text-slate-700 mb-1">Number of Players</label>
-                        <input type="number" id="form-players" min="1" value="8" oninput="calculateModalPreview()" required class="w-full px-3 py-2 border border-slate-300 rounded-lg text-sm focus:ring-2 focus:ring-pickle-500 focus:outline-none">
-                    </div>
-                    <div>
-                        <label class="block text-xs font-medium text-slate-700 mb-1">Fee per Player (₱)</label>
-                        <input type="number" id="form-fee" min="0" step="0.5" value="150" oninput="calculateModalPreview()" required class="w-full px-3 py-2 border border-slate-300 rounded-lg text-sm focus:ring-2 focus:ring-pickle-500 focus:outline-none">
-                    </div>
-                </div>
-
-                <div class="grid grid-cols-2 gap-4">
-                    <div>
-                        <label class="block text-xs font-medium text-slate-700 mb-1">Extra Collections (₱)</label>
-                        <input type="number" id="form-extra" min="0" step="1" value="0" oninput="calculateModalPreview()" class="w-full px-3 py-2 border border-slate-300 rounded-lg text-sm focus:ring-2 focus:ring-pickle-500 focus:outline-none">
-                    </div>
-                    <div>
-                        <label class="block text-xs font-medium text-slate-700 mb-1">Deductions (₱)</label>
-                        <input type="number" id="form-deductions" min="0" step="1" value="0" oninput="calculateModalPreview()" class="w-full px-3 py-2 border border-slate-300 rounded-lg text-sm focus:ring-2 focus:ring-pickle-500 focus:outline-none">
-                    </div>
-                </div>
-
-                <div>
-                    <label class="block text-xs font-medium text-slate-700 mb-1">CC / GCash Spent (₱)</label>
-                    <input type="number" id="form-spent" min="0" step="0.5" value="1000" oninput="calculateModalPreview()" required class="w-full px-3 py-2 border border-slate-300 rounded-lg text-sm focus:ring-2 focus:ring-pickle-500 focus:outline-none">
-                </div>
-
-                <!-- Live Calculated Preview Banner -->
-                <div class="bg-pickle-50 border border-pickle-100 p-3 rounded-lg text-xs space-y-1">
-                    <div class="flex justify-between font-medium text-slate-700">
-                        <span>Expected Fund:</span>
-                        <span id="preview-expected">₱1,200.00</span>
-                    </div>
-                    <div class="flex justify-between font-bold text-pickle-700 text-sm">
-                        <span>Surplus / Deficit:</span>
-                        <span id="preview-surplus">₱200.00</span>
-                    </div>
-                </div>
-
-                <div>
-                    <label class="block text-xs font-medium text-slate-700 mb-1">Remarks / Notes</label>
-                    <input type="text" id="form-remarks" placeholder="e.g., Weekend morning court rental" class="w-full px-3 py-2 border border-slate-300 rounded-lg text-sm focus:ring-2 focus:ring-pickle-500 focus:outline-none">
-                </div>
-
-                <!-- Attachments Section (Max 2) -->
-                <div>
-                    <label class="block text-xs font-medium text-slate-700 mb-1">Receipt Attachments (Max 2)</label>
-                    <input type="file" id="form-files" accept="image/*" multiple onchange="handleFileSelection(event)" class="w-full text-xs text-slate-500 file:mr-4 file:py-2 file:px-4 file:rounded-lg file:border-0 file:text-xs file:font-semibold file:bg-pickle-50 file:text-pickle-700 hover:file:bg-pickle-100">
-                    <div id="image-preview-container" class="flex gap-2 mt-2 flex-wrap"></div>
-                </div>
-
-                <div class="flex justify-end space-x-2 pt-4 border-t border-slate-200">
-                    <button type="button" onclick="closeBookingModal()" class="px-4 py-2 border border-slate-300 text-slate-700 text-xs font-medium rounded-lg hover:bg-slate-50 transition">Cancel</button>
-                    <button type="submit" id="save-btn" class="px-4 py-2 bg-pickle-600 text-white text-xs font-semibold rounded-lg hover:bg-pickle-700 transition">Save Session</button>
-                </div>
-            </form>
-        </div>
+  <div class="tabs-wrap">
+    <div class="tab-indicator" id="tabIndicator"></div>
+    <div class="tabs">
+      <button class="tab-btn active" data-tab="bookings" onclick="switchTab('bookings')">Bookings</button>
+      <button class="tab-btn" data-tab="contributions" onclick="switchTab('contributions')">Contributions</button>
+      <button class="tab-btn" data-tab="expenses" onclick="switchTab('expenses')">Expenses</button>
+      <button class="tab-btn" data-tab="summary" onclick="switchTab('summary')">Summary</button>
     </div>
+  </div>
+</div>
 
-    <!-- Image Lightbox Modal -->
-    <div id="image-modal" class="fixed inset-0 bg-slate-900/80 backdrop-blur-xs hidden z-50 flex items-center justify-center p-4" onclick="closeImageModal()">
-        <div class="relative max-w-4xl max-h-[90vh]">
-            <img id="modal-img" src="" class="max-w-full max-h-[85vh] rounded-lg shadow-2xl object-contain">
-            <button class="absolute -top-10 right-0 text-white hover:text-slate-300 text-sm font-semibold">Close ✕</button>
-        </div>
+<div class="panel">
+  <div id="panelBody"></div>
+</div>
+
+<div class="fab" id="fabRow" style="display:none;">
+  <button class="fab-primary" id="fabBtn" onclick="openForm()">+ Add</button>
+</div>
+
+<!-- Main Entry/Edit Overlay -->
+<div class="overlay" id="overlay" onclick="if(event.target===this) closeForm()">
+  <div class="sheet">
+    <div class="drag-handle"></div>
+    <div class="sheet-head">
+      <div class="sheet-title" id="sheetTitle">New entry</div>
+      <button class="close-btn" onclick="closeForm()">✕</button>
     </div>
+    <form id="entryForm" onsubmit="submitForm(event)">
+      <div id="formFields"></div>
+      <div class="form-error" id="formError"></div>
+      <button type="submit" class="fab-primary submit-btn" id="submitBtn">Add</button>
+    </form>
+  </div>
+</div>
 
-    <!-- JavaScript Application Logic -->
-    <script>
-        let bookings = [];
-        let currentFormImages = []; // Array of compressed base64 or URL strings (max 2)
+<!-- Centered Unlock/Lock Auth Modal -->
+<div class="overlay" id="authOverlay" onclick="if(event.target===this) closeAuthModal()">
+  <div class="sheet">
+    <div class="sheet-head">
+      <div class="sheet-title" id="authModalTitle">Unlock Editing</div>
+      <button class="close-btn" onclick="closeAuthModal()">✕</button>
+    </div>
+    <div id="authModalContent"></div>
+  </div>
+</div>
 
-        document.addEventListener("DOMContentLoaded", () => {
-            document.getElementById('form-date').valueAsDate = new Date();
-            syncData();
+<!-- Image / Attachment Preview Modal -->
+<div class="overlay" id="imageModalOverlay" onclick="closeImageModal()">
+  <div class="sheet" style="text-align:center;" onclick="event.stopPropagation()">
+    <div class="drag-handle"></div>
+    <div class="sheet-head">
+      <div class="sheet-title">Booking Attachments</div>
+      <button class="close-btn" onclick="closeImageModal()">✕</button>
+    </div>
+    <div id="modalImageContainer" style="margin-bottom: 14px; max-height: 60vh; overflow: auto; display: flex; flex-direction: column; gap: 12px; align-items: center;"></div>
+    <button type="button" class="fab-primary submit-btn" style="background:var(--muted); animation:none;" onclick="closeImageModal()">Close</button>
+  </div>
+</div>
+
+<div class="status-banner" id="statusBanner" style="opacity:0">Saving…</div>
+
+<script>
+const API_URL = '/api/pickleball/entries';
+const TAB_ORDER = ['bookings', 'contributions', 'expenses', 'summary'];
+const CUTOFF_DATE = '2026-09-16';
+
+let data = { contributions: [], bookings: [], expenses: [], lastModified: 0 };
+let activeTab = 'bookings';
+let editingId = null;
+let confirmDeleteId = null;
+let confirmDeleteTab = null;
+let displayedBalance = 0;
+let isAuthorized = false;
+
+let tabState = {
+  contributions: { search: '', sort: 'date_desc', dateFilter: 'all' },
+  bookings: { search: '', sort: 'date_desc', status: 'all', dateFilter: 'all' },
+  expenses: { search: '', sort: 'date_desc', dateFilter: 'all' },
+};
+
+let currentFormImages = [];
+
+function fmt(n) {
+  const sign = n < 0 ? '-' : '';
+  return sign + '$' + Math.abs(n).toFixed(2).replace(/\.00$/, '');
+}
+function fmtDate(d) {
+  if (!d) return '';
+  const dt = new Date(d + 'T00:00:00');
+  return dt.toLocaleDateString(undefined, { month: 'short', day: 'numeric' });
+}
+function uid() { return Date.now().toString(36) + Math.random().toString(36).slice(2, 7); }
+function todayStr() { return new Date().toISOString().slice(0, 10); }
+function escapeHtml(s) { const d = document.createElement('div'); d.textContent = s || ''; return d.innerHTML; }
+
+function toggleAuth() {
+  if (isAuthorized) showAuthConfirmModal();
+  else showAuthPasswordModal();
+}
+
+function showAuthPasswordModal() {
+  const overlay = document.getElementById('authOverlay');
+  document.getElementById('authModalTitle').textContent = 'Unlock Editing';
+  document.getElementById('authModalContent').innerHTML = `
+    <div style="font-size: 13px; color: var(--muted); margin-bottom: 8px;">Enter the committee password to unlock editing:</div>
+    <input type="password" id="authPasswordInput" placeholder="Password" style="margin-bottom: 10px;" onkeydown="if(event.key==='Enter') submitAuthPassword()" />
+    <div id="authError" style="color: var(--rust); font-size: 12px; margin-bottom: 10px; display: none;">Incorrect password.</div>
+    <button type="button" class="fab-primary submit-btn" onclick="submitAuthPassword()">Unlock</button>
+  `;
+  overlay.classList.add('open');
+  setTimeout(() => { document.getElementById('authPasswordInput')?.focus(); }, 100);
+}
+
+function showAuthConfirmModal() {
+  const overlay = document.getElementById('authOverlay');
+  document.getElementById('authModalTitle').textContent = 'Lock Editing';
+  document.getElementById('authModalContent').innerHTML = `
+    <div style="font-size: 14px; color: var(--ink); margin-bottom: 16px;">Lock editing mode back to read-only?</div>
+    <div style="display: flex; gap: 10px;">
+      <button type="button" class="fab-primary submit-btn" style="background: var(--muted); flex: 1; animation: none;" onclick="closeAuthModal()">Cancel</button>
+      <button type="button" class="fab-primary submit-btn" style="background: var(--rust); flex: 1; animation: none;" onclick="confirmLockAuth()">Lock</button>
+    </div>
+  `;
+  overlay.classList.add('open');
+}
+
+function closeAuthModal() { document.getElementById('authOverlay').classList.remove('open'); }
+
+function submitAuthPassword() {
+  const pwd = document.getElementById('authPasswordInput').value;
+  if (pwd === "KaHimi2025!!") {
+    isAuthorized = true;
+    closeAuthModal();
+    render();
+    showStatus("Editing mode unlocked!");
+  } else {
+    const err = document.getElementById('authError');
+    if (err) err.style.display = 'block';
+  }
+}
+
+function confirmLockAuth() {
+  isAuthorized = false;
+  closeAuthModal();
+  closeForm();
+  render();
+  showStatus("Locked to read-only view");
+}
+
+async function loadData() {
+  try {
+    const res = await fetch(API_URL);
+    if (!res.ok) throw new Error('load failed');
+    const raw = await res.json();
+    if (Array.isArray(raw)) {
+      data = { contributions: [], bookings: [], expenses: [], lastModified: 0 };
+    } else {
+      data = { 
+        contributions: raw.contributions || [], 
+        bookings: raw.bookings || [], 
+        expenses: raw.expenses || [],
+        lastModified: raw.lastModified || 0
+      };
+      
+      data.bookings.forEach(b => {
+        if (!b.receiptImages) {
+          b.receiptImages = b.receiptImage ? [b.receiptImage] : [];
+        }
+      });
+    }
+    window.appLoadedAt = data.lastModified;
+  } catch (e) {
+    console.error('Failed to load data', e);
+  }
+
+  const beforeCount = data.contributions.length;
+  [...new Set(data.bookings.map(b => b.date))].forEach(date => {
+    if (date >= CUTOFF_DATE) ensureContributionDraft(date);
+  });
+
+  cleanupEmptyDrafts();
+  if (data.contributions.length !== beforeCount && isAuthorized) saveData();
+
+  render();
+}
+
+async function saveData() {
+  if (!isAuthorized) return;
+  showStatus('Syncing & checking conflicts…');
+  
+  try {
+    const checkRes = await fetch(API_URL);
+    if (checkRes.ok) {
+      const serverRaw = await checkRes.json();
+      const serverLastModified = serverRaw.lastModified || 0;
+      
+      if (window.appLoadedAt && serverLastModified > window.appLoadedAt) {
+        const overwrite = confirm("⚠️ Another committee member updated the fund data just now. Do you want to overwrite their changes, or cancel and reload the latest data?");
+        if (!overwrite) {
+          showStatus('Save cancelled to protect other user changes', true);
+          loadData();
+          return;
+        }
+      }
+    }
+
+    data.lastModified = Date.now();
+    window.appLoadedAt = data.lastModified;
+
+    const res = await fetch(API_URL, { 
+      method: 'PUT', 
+      headers: { 'Content-Type': 'application/json' }, 
+      body: JSON.stringify(data) 
+    });
+    
+    if (!res.ok) throw new Error('save failed');
+    hideStatus();
+  } catch (e) {
+    console.error('Failed to save data', e);
+    showStatus('Save failed — check connection', true);
+  }
+}
+
+function showStatus(text, isError) {
+  const el = document.getElementById('statusBanner');
+  el.textContent = text;
+  el.style.color = isError ? '#FF9A80' : '#E7B26B';
+  el.style.opacity = '1';
+}
+function hideStatus() {
+  const el = document.getElementById('statusBanner');
+  setTimeout(() => { el.style.opacity = '0'; }, 600);
+}
+
+function calcExpected(c) {
+  const base = (c.feePerPerson || 0) * (c.players || 0);
+  const extraColl = c.extraCollections || c.additionalContributions || 0;
+  const deduct = c.deductions || c.additionalExpenses || 0;
+  return base + extraColl - deduct;
+}
+
+function summary() {
+  const accumulated = data.contributions.reduce(
+    (s, c) => s + (contributionNeedsUpdate(c) ? 0 : liveExtra(c)), 0
+  );
+  const expensesTotal = data.expenses.reduce((s, e) => s + e.totalCost, 0);
+  return { accumulated, expensesTotal, remaining: accumulated - expensesTotal };
+}
+
+function animateBalance(target) {
+  const el = document.getElementById('balance');
+  const start = displayedBalance;
+  const startTime = performance.now();
+  const duration = Math.min(800, Math.max(300, Math.abs(target - start) * 4));
+  function tick(now) {
+    const t = Math.min(1, (now - startTime) / duration);
+    const eased = 1 - Math.pow(1 - t, 3);
+    const value = start + (target - start) * eased;
+    el.textContent = fmt(value);
+    el.className = 'balance' + (target < 0 ? ' negative' : '');
+    if (t < 1) requestAnimationFrame(tick);
+    else displayedBalance = target;
+  }
+  requestAnimationFrame(tick);
+}
+
+function renderSparkline() {
+  const events = [
+    ...data.contributions.filter(c => !contributionNeedsUpdate(c)).map(c => ({ date: c.date, createdAt: c.createdAt, delta: liveExtra(c) })),
+    ...data.expenses.map(e => ({ date: e.date, createdAt: e.createdAt, delta: -e.totalCost })),
+  ].sort((a, b) => a.date.localeCompare(b.date) || a.createdAt - b.createdAt);
+
+  const wrap = document.getElementById('sparklineWrap');
+  if (events.length < 2) { wrap.innerHTML = ''; return; }
+
+  let running = 0;
+  const points = events.map(e => (running += e.delta));
+  const w = 300, h = 44, pad = 4;
+  const min = Math.min(0, ...points), max = Math.max(0, ...points);
+  const range = (max - min) || 1;
+  const stepX = (w - pad * 2) / (points.length - 1);
+  const coords = points.map((v, i) => {
+    const x = pad + i * stepX;
+    const y = h - pad - ((v - min) / range) * (h - pad * 2);
+    return [x, y];
+  });
+  const linePath = coords.map((p, i) => (i === 0 ? 'M' : 'L') + p[0].toFixed(1) + ',' + p[1].toFixed(1)).join(' ');
+  const areaPath = linePath + ` L${coords[coords.length - 1][0].toFixed(1)},${h} L${coords[0][0].toFixed(1)},${h} Z`;
+  const trendPositive = points[points.length - 1] >= points[0];
+  const stroke = trendPositive ? '#E7B26B' : '#FF9A80';
+
+  wrap.innerHTML = `
+    <svg viewBox="0 0 ${w} ${h}" preserveAspectRatio="none">
+      <defs>
+        <linearGradient id="sparkFill" x1="0" y1="0" x2="0" y2="1">
+          <stop offset="0%" stop-color="${stroke}" stop-opacity="0.28" />
+          <stop offset="100%" stop-color="${stroke}" stop-opacity="0" />
+        </linearGradient>
+      </defs>
+      <path d="${areaPath}" fill="url(#sparkFill)" />
+      <path d="${linePath}" fill="none" stroke="${stroke}" stroke-width="2" stroke-linejoin="round" stroke-linecap="round" />
+    </svg>`;
+}
+
+function switchTab(tab) {
+  activeTab = tab;
+  document.querySelectorAll('.tab-btn').forEach(b => b.classList.toggle('active', b.dataset.tab === tab));
+  document.getElementById('tabIndicator').style.transform = `translateX(${TAB_ORDER.indexOf(tab) * 100}%)`;
+  document.getElementById('fabRow').style.display = (tab === 'summary' || !isAuthorized) ? 'none' : 'flex';
+  const labels = { contributions: '+ Contribution', bookings: '+ Booking', expenses: '+ Expense' };
+  document.getElementById('fabBtn').textContent = labels[tab] || '+ Add';
+  render();
+}
+
+function render() {
+  const s = summary();
+  animateBalance(s.remaining);
+  renderSparkline();
+  document.getElementById('statAccumulated').textContent = fmt(s.accumulated);
+  document.getElementById('statExpenses').textContent = fmt(s.expensesTotal);
+  document.getElementById('statSessions').textContent = data.contributions.length;
+
+  const authBtn = document.getElementById('authBtn');
+  if (authBtn) {
+    authBtn.textContent = isAuthorized ? '🔓 Unlocked (Lock)' : '🔒 Unlock Editing';
+    authBtn.className = 'auth-btn' + (isAuthorized ? ' unlocked' : '');
+  }
+  document.getElementById('fabRow').style.display = (activeTab === 'summary' || !isAuthorized) ? 'none' : 'flex';
+
+  const body = document.getElementById('panelBody');
+  if (activeTab === 'contributions') body.innerHTML = renderContributions();
+  else if (activeTab === 'bookings') body.innerHTML = renderBookings();
+  else if (activeTab === 'expenses') body.innerHTML = renderExpenses();
+  else body.innerHTML = renderSummary(s);
+}
+
+function applyControls(list, tab, searchFields, amountField) {
+  const st = tabState[tab];
+  let out = list.filter(item => {
+    if (tab === 'bookings' && st.status !== 'all' && (item.status || 'Pending') !== st.status) return false;
+    if (!st.search) return true;
+    const q = st.search.toLowerCase();
+    return searchFields.some(f => (item[f] || '').toString().toLowerCase().includes(q));
+  });
+  out.sort((a, b) => {
+    if (st.sort === 'date_desc') return b.date.localeCompare(a.date) || b.createdAt - a.createdAt;
+    if (st.sort === 'date_asc') return a.date.localeCompare(b.date) || b.createdAt - a.createdAt;
+    if (st.sort === 'amount_desc') return b[amountField] - a[amountField];
+    if (st.sort === 'amount_asc') return a[amountField] - b[amountField];
+    return 0;
+  });
+  return out;
+}
+
+function bookingsTotalForDate(date) {
+  return data.bookings
+    .filter(b => b.date === date && b.status !== 'Cancelled')
+    .reduce((s, b) => s + b.amount, 0);
+}
+
+function hasLinkedBookings(date) {
+  return data.bookings.some(b => b.date === date && b.status !== 'Cancelled');
+}
+
+function liveCcSpent(c) { return c.ccSpent; }
+function liveExtra(c) { return calcExpected(c) - c.ccSpent; }
+
+function controlsBar(tab, searchPlaceholder, extraSelect) {
+  const st = tabState[tab];
+  return `
+    <div class="controls">
+      <input type="text" id="searchInput" placeholder="${searchPlaceholder}" value="${escapeHtml(st.search)}" oninput="setSearch('${tab}', this.value)" />
+      <select onchange="setSort('${tab}', this.value)">
+        <option value="date_desc" ${st.sort === 'date_desc' ? 'selected' : ''}>Newest first</option>
+        <option value="date_asc" ${st.sort === 'date_asc' ? 'selected' : ''}>Oldest first</option>
+        <option value="amount_desc" ${st.sort === 'amount_desc' ? 'selected' : ''}>Amount ↓</option>
+        <option value="amount_asc" ${st.sort === 'amount_asc' ? 'selected' : ''}>Amount ↑</option>
+      </select>
+      ${extraSelect || ''}
+    </div>`;
+}
+
+function setSearch(tab, value) {
+  tabState[tab].search = value;
+  const cursor = document.getElementById('searchInput')?.selectionStart;
+  render();
+  const input = document.getElementById('searchInput');
+  if (input) {
+    input.focus();
+    if (cursor != null) input.setSelectionRange(cursor, cursor);
+  }
+}
+function setSort(tab, value) { tabState[tab].sort = value; render(); }
+function setStatusFilter(value) { tabState.bookings.status = value; render(); }
+function setDateFilter(tab, value) { tabState[tab].dateFilter = value; render(); }
+
+function dateFilterSelect(tab, allEntries) {
+  const dates = [...new Set(allEntries.map(x => x.date))].sort((a, b) => b.localeCompare(a));
+  return `
+    <select onchange="setDateFilter('${tab}', this.value)">
+      <option value="all" ${tabState[tab].dateFilter === 'all' ? 'selected' : ''}>All dates</option>
+      ${dates.map(dt => `<option value="${dt}" ${tabState[tab].dateFilter === dt ? 'selected' : ''}>${fmtDate(dt)}</option>`).join('')}
+    </select>`;
+}
+
+function groupByDate(list) {
+  const order = [];
+  const buckets = new Map();
+  list.forEach(item => {
+    if (!buckets.has(item.date)) { buckets.set(item.date, []); order.push(item.date); }
+    buckets.get(item.date).push(item);
+  });
+  return order.map(dt => ({ date: dt, items: buckets.get(dt) }));
+}
+
+function renderContributions() {
+  const decorated = data.contributions.map(c => ({ ...c, extra: liveExtra(c) }));
+  const list = applyControls(decorated, 'contributions', ['remarks', 'addedBy'], 'extra');
+  const filtered = tabState.contributions.dateFilter === 'all'
+    ? list
+    : list.filter(c => c.date === tabState.contributions.dateFilter);
+  const controls = controlsBar('contributions', 'Search remarks, added by…', dateFilterSelect('contributions', data.contributions));
+
+  if (filtered.length === 0) return `<div class="panel-title">Game Contributions</div>${controls}<div class="empty-state">No games match.</div>`;
+
+  const groupsHtml = groupByDate(filtered).map(({ date, items }) => {
+    const countedTotal = items.reduce((s, c) => s + (contributionNeedsUpdate(c) ? 0 : (calcExpected(c) - liveCcSpent(c))), 0);
+    const tiles = items.map((c, i) => contributionTileHtml(c, i)).join('');
+    return `
+      <div class="date-group">
+        <div class="date-group-header">
+          <span>📅 ${fmtDate(date)}</span>
+          <span class="muted">${items.length} session${items.length > 1 ? 's' : ''} · ${fmt(countedTotal)}</span>
+        </div>
+        <div class="tile-grid">${tiles}</div>
+      </div>`;
+  }).join('');
+
+  return `<div class="panel-title">Game Contributions</div>${controls}${groupsHtml}`;
+}
+
+function contributionTileHtml(c, i) {
+  const ccSpent = liveCcSpent(c);
+  const expected = calcExpected(c);
+  const extra = expected - ccSpent;
+  const incomplete = contributionNeedsUpdate(c);
+  
+  const extraColl = c.extraCollections || c.additionalContributions || 0;
+  const deduct = c.deductions || c.additionalExpenses || 0;
+
+  let actions = '';
+  if (isAuthorized) {
+    const confirming = confirmDeleteId === c.id && confirmDeleteTab === 'contributions';
+    actions = confirming
+      ? `<div class="tile-actions"><button class="link-btn danger" onclick="doDelete('contributions','${c.id}')">Confirm delete</button><button class="link-btn" onclick="cancelDelete()">Cancel</button></div>`
+      : `<div class="tile-actions"><button class="link-btn" onclick="openEdit('contributions','${c.id}')">✎ Edit</button><button class="link-btn danger" onclick="askDelete('contributions','${c.id}')">🗑 Delete</button></div>`;
+  }
+
+  return `
+    <div class="booking-tile ${incomplete ? 'needs-update' : ''}" style="animation-delay:${Math.min(i, 8) * 30}ms">
+      <div class="tile-top">
+        <span class="tile-meta">${c.addedBy ? 'by ' + escapeHtml(c.addedBy) : 'Session'}</span>
+        ${incomplete
+          ? `<span class="tile-amount" style="color:var(--brown-deep)">Not counted yet</span>`
+          : `<span class="tile-amount" style="color:${extra >= 0 ? 'var(--teal)' : 'var(--rust)'}">${extra >= 0 ? '▲' : '▼'}${fmt(extra)}</span>`}
+      </div>
+      ${incomplete
+        ? `<div class="needs-update-banner">⚠ Needs update — add fee &amp; players. CC spent: ${fmt(ccSpent)}</div>`
+        : `<div class="tile-desc" style="white-space:normal">${c.players} × ${fmt(c.feePerPerson)}${extraColl ? ' + ' + fmt(extraColl) : ''}${deduct ? ' - ' + fmt(deduct) : ''} = ${fmt(expected)} expected · CC spent ${fmt(ccSpent)}</div>`}
+      ${c.remarks ? `<div class="tile-meta" style="margin-top:4px; white-space:normal">${escapeHtml(c.remarks)}</div>` : ''}
+      ${actions}
+    </div>`;
+}
+
+function contributionFormFields(c) {
+  const extraColl = c ? (c.extraCollections || c.additionalContributions || '') : '';
+  const deduct = c ? (c.deductions || c.additionalExpenses || '') : '';
+  const feeVal = c && c.feePerPerson ? c.feePerPerson : '';
+  const playersVal = c && c.players ? c.players : '';
+
+  return `
+    <label class="field">Game Date<input type="date" id="fDate" value="${c ? c.date : todayStr()}" oninput="updateContribPreview()" /></label>
+    <div id="linkSuggest"></div>
+    <label class="field">Added by<input type="text" id="fAddedBy" placeholder="e.g. Doreen" value="${c ? escapeHtml(c.addedBy || '') : ''}" /></label>
+    <label class="field">Fee per person ($)<input type="number" step="0.01" min="0" id="fFee" placeholder="e.g. 10" value="${feeVal}" oninput="updateContribPreview()" /></label>
+    <label class="field">Players<input type="number" min="1" id="fPlayers" placeholder="e.g. 4" value="${playersVal}" oninput="updateContribPreview()" /></label>
+    <label class="field">Extra Collections (+) (e.g. cancellation fees, top-ups)<input type="number" step="0.01" min="0" id="fExtraCollections" value="${extraColl}" oninput="updateContribPreview()" /></label>
+    <label class="field">Deductions (-) (e.g. session-specific expenses)<input type="number" step="0.01" min="0" id="fDeductions" value="${deduct}" oninput="updateContribPreview()" /></label>
+    <label class="field">Credit card / actual spent ($)<input type="number" step="0.01" min="0" id="fCcSpent" value="${c ? c.ccSpent : bookingsTotalForDate(c ? c.date : todayStr()).toFixed(2)}" oninput="updateContribPreview()" /></label>
+    <label class="field">Remarks (optional)<input type="text" id="fRemarks" placeholder="e.g. Paid via personal CC" value="${c ? escapeHtml(c.remarks || '') : ''}" /></label>
+    <div class="preview-line" id="contribPreview"></div>
+  `;
+}
+
+function fillCcFromBookings() {
+  const date = document.getElementById('fDate').value;
+  document.getElementById('fCcSpent').value = bookingsTotalForDate(date).toFixed(2);
+  updateContribPreview();
+}
+
+function updateContribPreview() {
+  const date = document.getElementById('fDate').value;
+  const linkEl = document.getElementById('linkSuggest');
+  const linkedCount = date ? data.bookings.filter(b => b.date === date && b.status !== 'Cancelled').length : 0;
+  
+  if (linkEl) {
+    if (linkedCount > 0) {
+      const total = bookingsTotalForDate(date);
+      linkEl.innerHTML = `<div class="link-suggest"><span>${linkedCount} booking${linkedCount > 1 ? 's' : ''} logged for this date, totaling ${fmt(total)}</span><button type="button" onclick="fillCcFromBookings()">Use this</button></div>`;
+    } else {
+      linkEl.innerHTML = date ? `<div class="preview-line">No bookings logged for this date yet.</div>` : '';
+    }
+  }
+
+  const fee = parseFloat(document.getElementById('fFee').value) || 0;
+  const players = parseInt(document.getElementById('fPlayers').value, 10) || 0;
+  const extraColl = parseFloat(document.getElementById('fExtraCollections').value) || 0;
+  const deduct = parseFloat(document.getElementById('fDeductions').value) || 0;
+  const cc = parseFloat(document.getElementById('fCcSpent').value) || 0;
+  const el = document.getElementById('contribPreview');
+  
+  if (fee && players) {
+    const expected = (fee * players) + extraColl - deduct;
+    const extra = expected - cc;
+    const cls = extra >= 0 ? 'pos' : 'neg';
+    el.innerHTML = `Expected collection ${fmt(expected)}, CC spent ${fmt(cc)} → <strong class="${cls}">${fmt(extra)} extra</strong>`;
+  } else {
+    el.textContent = '';
+  }
+}
+
+function submitContribution() {
+  const date = document.getElementById('fDate').value;
+  const fee = parseFloat(document.getElementById('fFee').value);
+  const players = parseInt(document.getElementById('fPlayers').value, 10);
+  const cc = parseFloat(document.getElementById('fCcSpent').value);
+  const errEl = document.getElementById('formError');
+  if (!date) return errEl.textContent = 'Pick a game date.';
+  if (!(fee >= 0)) return errEl.textContent = 'Enter a fee per person.';
+  if (!(players > 0)) return errEl.textContent = 'Enter at least 1 player.';
+  if (!(cc >= 0)) return errEl.textContent = 'Enter the credit card / actual amount spent.';
+
+  const extraColl = parseFloat(document.getElementById('fExtraCollections').value) || 0;
+  const deduct = parseFloat(document.getElementById('fDeductions').value) || 0;
+  const expectedCollection = (fee * players) + extraColl - deduct;
+
+  const entry = {
+    id: editingId || uid(),
+    date,
+    addedBy: document.getElementById('fAddedBy').value.trim(),
+    feePerPerson: fee,
+    players,
+    extraCollections: extraColl,
+    deductions: deduct,
+    expectedCollection,
+    ccSpent: cc,
+    extra: expectedCollection - cc,
+    remarks: document.getElementById('fRemarks').value.trim(),
+    createdAt: editingId ? data.contributions.find(x => x.id === editingId).createdAt : Date.now(),
+  };
+  if (editingId) data.contributions = data.contributions.map(x => x.id === editingId ? entry : x);
+  else data.contributions.push(entry);
+  finishSubmit();
+}
+
+function renderBookings() {
+  const list = applyControls(data.bookings, 'bookings', ['bookedBy', 'description', 'comments'], 'amount');
+  const filtered = tabState.bookings.dateFilter === 'all'
+    ? list
+    : list.filter(b => b.date === tabState.bookings.dateFilter);
+
+  const statusSelect = `
+    <select onchange="setStatusFilter(this.value)">
+      <option value="all" ${tabState.bookings.status === 'all' ? 'selected' : ''}>All statuses</option>
+      <option value="Done" ${tabState.bookings.status === 'Done' ? 'selected' : ''}>Done</option>
+      <option value="Pending" ${tabState.bookings.status === 'Pending' ? 'selected' : ''}>Pending</option>
+      <option value="Cancelled" ${tabState.bookings.status === 'Cancelled' ? 'selected' : ''}>Cancelled</option>
+    </select>`;
+  const controls = controlsBar('bookings', 'Search booked by, description…', statusSelect + dateFilterSelect('bookings', data.bookings));
+
+  if (filtered.length === 0) return `<div class="panel-title">Bookings</div>${controls}<div class="empty-state">No bookings match.</div>`;
+
+  const groupsHtml = groupByDate(filtered).map(({ date, items }) => {
+    const total = items.reduce((s, b) => s + b.amount, 0);
+    const tiles = items.map((b, i) => bookingTileHtml(b, i)).join('');
+    return `
+      <div class="date-group">
+        <div class="date-group-header">
+          <span>📅 ${fmtDate(date)}</span>
+          <span class="muted">${items.length} booking${items.length > 1 ? 's' : ''} · ${fmt(total)}</span>
+        </div>
+        <div class="tile-grid">${tiles}</div>
+      </div>`;
+  }).join('');
+
+  return `<div class="panel-title">Bookings</div>${controls}${groupsHtml}`;
+}
+
+function bookingTileHtml(b, i) {
+  let actions = '';
+  if (isAuthorized) {
+    const confirming = confirmDeleteId === b.id && confirmDeleteTab === 'bookings';
+    actions = confirming
+      ? `<div class="tile-actions"><button class="link-btn danger" onclick="doDelete('bookings','${b.id}')">Confirm delete</button><button class="link-btn" onclick="cancelDelete()">Cancel</button></div>`
+      : `<div class="tile-actions"><button class="link-btn" onclick="openEdit('bookings','${b.id}')">✎ Edit</button><button class="link-btn danger" onclick="askDelete('bookings','${b.id}')">🗑 Delete</button></div>`;
+  }
+
+  const count = b.receiptImages ? b.receiptImages.length : 0;
+  const receiptHtml = count > 0 
+    ? `<a href="javascript:void(0)" class="receipt-link" onclick="openImageModal('${b.id}')">🖼 View Attachments (${count})</a>` 
+    : '';
+
+  return `
+    <div class="booking-tile" style="animation-delay:${Math.min(i, 8) * 30}ms">
+      <div class="tile-top">
+        <span class="status-badge status-${(b.status || 'pending').toLowerCase()}">${escapeHtml(b.status || 'Pending')}</span>
+        <span class="tile-amount">${fmt(b.amount)}</span>
+      </div>
+      <div class="tile-desc" title="${escapeHtml(b.description || '')}">${escapeHtml(b.description || 'Booking')}</div>
+      <div class="tile-meta">${b.bookedBy ? `Booked by ${escapeHtml(b.bookedBy)} · ` : ''}Txn ${fmtDate(b.transactionDate)}</div>
+      ${b.comments ? `<div class="tile-meta" style="margin-top:2px">${escapeHtml(b.comments)}</div>` : ''}
+      ${receiptHtml}
+      ${actions}
+    </div>`;
+}
+
+function openImageModal(bookingId) {
+  const booking = data.bookings.find(b => b.id === bookingId);
+  if (!booking || !booking.receiptImages || booking.receiptImages.length === 0) return;
+  const container = document.getElementById('modalImageContainer');
+  container.innerHTML = booking.receiptImages.map((imgUrl, idx) => `
+    <div>
+      <div style="font-size:11px; color:var(--muted); margin-bottom:4px;">Attachment ${idx + 1} of ${booking.receiptImages.length}</div>
+      <img src="${imgUrl}" alt="Booking Attachment ${idx + 1}" style="max-width:100%; height:auto; border-radius:8px; border:1px solid var(--border);" />
+    </div>
+  `).join('');
+  document.getElementById('imageModalOverlay').classList.add('open');
+}
+
+function closeImageModal() {
+  document.getElementById('imageModalOverlay').classList.remove('open');
+}
+
+function bookingFormFields(b) {
+  currentFormImages = b && b.receiptImages ? [...b.receiptImages] : [];
+  
+  return `
+    <label class="field">Game date<input type="date" id="fDate" value="${b ? b.date : todayStr()}" /></label>
+    <label class="field">Booked by<input type="text" id="fBookedBy" placeholder="e.g. Ian" value="${b ? escapeHtml(b.bookedBy || '') : ''}" /></label>
+    <label class="field">Transaction date<input type="date" id="fTxnDate" value="${b ? (b.transactionDate || '') : ''}" /></label>
+    <label class="field">Description<input type="text" id="fDescription" placeholder="e.g. PLAYTOMIC.IO booking" value="${b ? escapeHtml(b.description || '') : ''}" /></label>
+    <label class="field">Amount ($)<input type="number" step="0.01" id="fAmount" value="${b ? b.amount : ''}" /></label>
+    <label class="field">Status
+      <select id="fStatus">
+        <option value="Done" ${b && b.status === 'Done' ? 'selected' : ''}>Done</option>
+        <option value="Pending" ${!b || b.status === 'Pending' ? 'selected' : ''}>Pending</option>
+        <option value="Cancelled" ${b && b.status === 'Cancelled' ? 'selected' : ''}>Cancelled</option>
+      </select>
+    </label>
+    <label class="field">Comments (optional)<input type="text" id="fComments" value="${b ? escapeHtml(b.comments || '') : ''}" /></label>
+    <label class="field">Attachments / Screenshots (Max 2 allowed)
+      <input type="file" id="fReceiptFiles" accept="image/*" multiple onchange="handleMultipleImageUpload(event)" />
+    </label>
+    <div id="imageThumbsContainer" style="margin-top:4px; display:flex; flex-wrap:wrap; gap:6px;">
+      ${renderFormThumbnails()}
+    </div>
+  `;
+}
+
+function renderFormThumbnails() {
+  return currentFormImages.map((imgUrl, idx) => `
+    <div class="thumb-item">
+      <img src="${imgUrl}" />
+      <button type="button" class="thumb-remove" onclick="removeFormImage(${idx})">×</button>
+    </div>
+  `).join('');
+}
+
+function removeFormImage(idx) {
+  currentFormImages.splice(idx, 1);
+  document.getElementById('imageThumbsContainer').innerHTML = renderFormThumbnails();
+}
+
+function handleMultipleImageUpload(event) {
+  const files = event.target.files;
+  if (!files || files.length === 0) return;
+
+  const remainingSlots = 2 - currentFormImages.length;
+  if (remainingSlots <= 0) {
+    alert("Maximum of 2 attachments allowed per booking.");
+    event.target.value = '';
+    return;
+  }
+
+  const filesToProcess = Array.from(files).slice(0, remainingSlots);
+  if (files.length > remainingSlots) {
+    alert(`Only ${remainingSlots} more attachment(s) can be added (Max 2).`);
+  }
+
+  filesToProcess.forEach(file => {
+    const reader = new FileReader();
+    reader.onload = function(e) {
+      const img = new Image();
+      img.onload = function() {
+        const canvas = document.createElement('canvas');
+        const MAX_WIDTH = 800;
+        const MAX_HEIGHT = 800;
+        let width = img.width;
+        let height = img.height;
+        if (width > height) {
+          if (width > MAX_WIDTH) { height *= MAX_WIDTH / width; width = MAX_WIDTH; }
+        } else {
+          if (height > MAX_HEIGHT) { width *= MAX_HEIGHT / height; height = MAX_HEIGHT; }
+        }
+        canvas.width = width;
+        canvas.height = height;
+        const ctx = canvas.getContext('2d');
+        ctx.drawImage(img, 0, 0, width, height);
+        const dataUrl = canvas.toDataURL('image/jpeg', 0.75);
+        
+        if (currentFormImages.length < 2) {
+          currentFormImages.push(dataUrl);
+          const container = document.getElementById('imageThumbsContainer');
+          if (container) container.innerHTML = renderFormThumbnails();
+        }
+      };
+      img.src = e.target.result;
+    };
+    reader.readAsDataURL(file);
+  });
+  
+  event.target.value = '';
+}
+
+async function submitBooking() {
+  const date = document.getElementById('fDate').value;
+  const amount = parseFloat(document.getElementById('fAmount').value);
+  const errEl = document.getElementById('formError');
+  if (!date) return errEl.textContent = 'Pick a game date.';
+  if (isNaN(amount)) return errEl.textContent = 'Enter an amount.';
+
+  // Upload pending local base64 images to Cloudflare R2 bucket via worker endpoint
+  const uploadedImageUrls = [];
+  for (const img of currentFormImages) {
+    if (img.startsWith('data:image')) {
+      try {
+        const res = await fetch('/api/pickleball/upload-image', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ imageBase64: img, filename: 'receipt.jpg' })
         });
+        if (!res.ok) throw new Error('R2 upload failed');
+        const jsonRes = await res.json();
+        uploadedImageUrls.push(jsonRes.url); // Saves /api/pickleball/images/<key> instead of base64
+      } catch (err) {
+        console.error('Image upload error:', err);
+        alert('Failed to upload image attachment to R2.');
+        return;
+      }
+    } else {
+      uploadedImageUrls.push(img); // Already an R2 URL string
+    }
+  }
 
-        async function syncData(showAlert = false) {
-            const statusEl = document.getElementById('sync-status');
-            statusEl.textContent = "Syncing...";
-            try {
-                const response = await fetch('/api/pickleball/entries');
-                if (!response.ok) throw new Error("Failed to fetch from Cloudflare KV");
-                const rawData = await response.json();
-                
-                // Backward compatibility normalization for legacy records
-                bookings = (Array.isArray(rawData) ? rawData : []).map(b => {
-                    let imgs = b.images || [];
-                    if (b.image && !imgs.includes(b.image)) {
-                        imgs.unshift(b.image);
-                    }
-                    return { ...b, images: imgs.slice(0, 2) };
-                });
+  const oldBooking = editingId ? data.bookings.find(x => x.id === editingId) : null;
+  const oldDate = oldBooking ? oldBooking.date : null;
 
-                statusEl.textContent = "Synced";
-                statusEl.className = "ml-1 text-pickle-600 font-semibold";
-                renderTable();
-                updateDashboardCards();
-                if (showAlert) alert("Data successfully synchronized with Cloudflare KV!");
-            } catch (err) {
-                console.error(err);
-                statusEl.textContent = "Offline / Error";
-                statusEl.className = "ml-1 text-amber-600 font-semibold";
-                renderTable();
-                updateDashboardCards();
-            }
-        }
+  const entry = {
+    id: editingId || uid(),
+    date,
+    bookedBy: document.getElementById('fBookedBy').value.trim(),
+    transactionDate: document.getElementById('fTxnDate').value,
+    description: document.getElementById('fDescription').value.trim(),
+    amount,
+    status: document.getElementById('fStatus').value,
+    comments: document.getElementById('fComments').value.trim(),
+    receiptImages: uploadedImageUrls,
+    createdAt: editingId ? oldBooking.createdAt : Date.now(),
+  };
 
-        async function persistData() {
-            try {
-                const response = await fetch('/api/pickleball/entries', {
-                    method: 'PUT',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify(bookings)
-                });
-                if (!response.ok) throw new Error("Failed to save to KV");
-                document.getElementById('sync-status').textContent = "Synced";
-            } catch (err) {
-                console.error(err);
-                alert("Error saving data to Cloudflare KV. Changes stored locally.");
-                document.getElementById('sync-status').textContent = "Sync Error";
-            }
-        }
+  if (editingId) data.bookings = data.bookings.map(x => x.id === editingId ? entry : x);
+  else data.bookings.push(entry);
 
-        function renderTable() {
-            const query = document.getElementById('search-input').value.toLowerCase();
-            const tbody = document.getElementById('bookings-table-body');
-            tbody.innerHTML = "";
+  if (date >= CUTOFF_DATE) {
+    ensureContributionDraft(date);
+    const contrib = data.contributions.find(c => c.date === date);
+    if (contrib && !contrib._hasCustomCcSpent) {
+      contrib.ccSpent = bookingsTotalForDate(date);
+    }
+  }
 
-            const filtered = bookings.filter(b => 
-                (b.date && b.date.toLowerCase().includes(query)) || 
-                (b.remarks && b.remarks.toLowerCase().includes(query))
-            );
+  if (oldDate && oldDate !== date && oldDate >= CUTOFF_DATE) {
+    const oldContrib = data.contributions.find(c => c.date === oldDate);
+    if (oldContrib && !oldContrib._hasCustomCcSpent) {
+      oldContrib.ccSpent = bookingsTotalForDate(oldDate);
+    }
+  }
 
-            if (filtered.length === 0) {
-                tbody.innerHTML = `<tr><td colspan="8" class="px-6 py-8 text-center text-slate-400">No booking sessions found.</td></tr>`;
-                return;
-            }
+  cleanupEmptyDrafts();
+  finishSubmit();
+}
 
-            filtered.forEach((b, index) => {
-                const expected = (b.players * b.fee) + (b.extra || 0) - (b.deductions || 0);
-                const surplus = expected - b.spent;
-                const surplusClass = surplus >= 0 ? 'text-pickle-600 font-semibold' : 'text-red-600 font-semibold';
+function ensureContributionDraft(date) {
+  if (data.contributions.some(c => c.date === date)) return;
+  const ccSpent = bookingsTotalForDate(date);
+  data.contributions.push({
+    id: uid(),
+    date,
+    addedBy: '',
+    feePerPerson: 0,
+    players: 0,
+    extraCollections: 0,
+    deductions: 0,
+    expectedCollection: 0,
+    ccSpent,
+    extra: -ccSpent,
+    remarks: '',
+    createdAt: Date.now(),
+  });
+}
 
-                let imgHtml = '<span class="text-slate-400 text-xs">None</span>';
-                if (b.images && b.images.length > 0) {
-                    imgHtml = `<div class="flex space-x-1">` + b.images.map((img, i) => `
-                        <img src="${img}" onclick="openImageModal('${img}')" class="w-8 h-8 object-cover rounded-md border border-slate-200 cursor-pointer hover:opacity-80 transition" title="View receipt">
-                    `).join('') + `</div>`;
-                }
+function contributionNeedsUpdate(c) {
+  return !c.players || c.players <= 0;
+}
 
-                const tr = document.createElement('tr');
-                tr.className = "hover:bg-slate-50/80 transition";
-                tr.innerHTML = `
-                    <td class="px-6 py-4 whitespace-nowrap font-medium text-slate-900">${b.date}<br><span class="text-xs font-normal text-slate-400">${b.remarks || 'No remarks'}</span></td>
-                    <td class="px-6 py-4 whitespace-nowrap">${b.players} players @ ₱${b.fee}</td>
-                    <td class="px-6 py-4 whitespace-nowrap text-xs">+₱${b.extra || 0} / -₱${b.deductions || 0}</td>
-                    <td class="px-6 py-4 whitespace-nowrap font-medium">₱${expected.toLocaleString(undefined, {minimumFractionDigits: 2})}</td>
-                    <td class="px-6 py-4 whitespace-nowrap text-slate-600">₱${b.spent.toLocaleString(undefined, {minimumFractionDigits: 2})}</td>
-                    <td class="px-6 py-4 whitespace-nowrap ${surplusClass}">₱${surplus.toLocaleString(undefined, {minimumFractionDigits: 2})}</td>
-                    <td class="px-6 py-4 whitespace-nowrap">${imgHtml}</td>
-                    <td class="px-6 py-4 whitespace-nowrap text-right space-x-2">
-                        <button onclick="editBooking(${index})" class="text-slate-400 hover:text-slate-600 text-xs font-medium">Edit</button>
-                        <button onclick="deleteBooking(${index})" class="text-red-400 hover:text-red-600 text-xs font-medium">Delete</button>
-                    </td>
-                `;
-                tbody.appendChild(tr);
-            });
-        }
+function cleanupEmptyDrafts() {
+  data.contributions = data.contributions.filter(
+    c => !(contributionNeedsUpdate(c) && !hasLinkedBookings(c.date))
+  );
+}
 
-        function updateDashboardCards() {
-            let totalExpected = 0;
-            let totalSpent = 0;
+function renderExpenses() {
+  const list = applyControls(data.expenses, 'expenses', ['item', 'remarks', 'addedBy'], 'totalCost');
+  const filtered = tabState.expenses.dateFilter === 'all'
+    ? list
+    : list.filter(e => e.date === tabState.expenses.dateFilter);
+  const controls = controlsBar('expenses', 'Search item, remarks…', dateFilterSelect('expenses', data.expenses));
 
-            bookings.forEach(b => {
-                const exp = (b.players * b.fee) + (b.extra || 0) - (b.deductions || 0);
-                totalExpected += exp;
-                totalSpent += b.spent;
-            });
+  if (filtered.length === 0) return `<div class="panel-title">Expenses</div>${controls}<div class="empty-state">No expenses match.</div>`;
 
-            const totalSurplus = totalExpected - totalSpent;
+  const groupsHtml = groupByDate(filtered).map(({ date, items }) => {
+    const total = items.reduce((s, e) => s + e.totalCost, 0);
+    const tiles = items.map((e, i) => expenseTileHtml(e, i)).join('');
+    return `
+      <div class="date-group">
+        <div class="date-group-header">
+          <span>📅 ${fmtDate(date)}</span>
+          <span class="muted">${items.length} item${items.length > 1 ? 's' : ''} · ${fmt(total)}</span>
+        </div>
+        <div class="tile-grid">${tiles}</div>
+      </div>`;
+  }).join('');
 
-            document.getElementById('card-expected').textContent = `₱${totalExpected.toLocaleString(undefined, {minimumFractionDigits: 2})}`;
-            document.getElementById('card-spent').textContent = `₱${totalSpent.toLocaleString(undefined, {minimumFractionDigits: 2})}`;
-            
-            const surplusEl = document.getElementById('card-surplus');
-            surplusEl.textContent = `₱${totalSurplus.toLocaleString(undefined, {minimumFractionDigits: 2})}`;
-            surplusEl.className = totalSurplus >= 0 ? "text-2xl font-bold text-pickle-600 mt-1" : "text-2xl font-bold text-red-600 mt-1";
+  return `<div class="panel-title">Expenses</div>${controls}${groupsHtml}`;
+}
 
-            document.getElementById('card-sessions').textContent = bookings.length;
-        }
+function expenseTileHtml(e, i) {
+  let actions = '';
+  if (isAuthorized) {
+    const confirming = confirmDeleteId === e.id && confirmDeleteTab === 'expenses';
+    actions = confirming
+      ? `<div class="tile-actions"><button class="link-btn danger" onclick="doDelete('expenses','${e.id}')">Confirm delete</button><button class="link-btn" onclick="cancelDelete()">Cancel</button></div>`
+      : `<div class="tile-actions"><button class="link-btn" onclick="openEdit('expenses','${e.id}')">✎ Edit</button><button class="link-btn danger" onclick="askDelete('expenses','${e.id}')">🗑 Delete</button></div>`;
+  }
 
-        function openBookingModal(editIdx = null) {
-            document.getElementById('booking-modal').classList.remove('hidden');
-            if (editIdx !== null) {
-                document.getElementById('modal-title').textContent = "Edit Booking Session";
-                document.getElementById('edit-index').value = editIdx;
-                const b = bookings[editIdx];
-                document.getElementById('form-date').value = b.date;
-                document.getElementById('form-players').value = b.players;
-                document.getElementById('form-fee').value = b.fee;
-                document.getElementById('form-extra').value = b.extra || 0;
-                document.getElementById('form-deductions').value = b.deductions || 0;
-                document.getElementById('form-spent').value = b.spent;
-                document.getElementById('form-remarks').value = b.remarks || '';
-                currentFormImages = [...(b.images || [])];
-            } else {
-                document.getElementById('modal-title').textContent = "Log New Pickleball Session";
-                document.getElementById('edit-index').value = '';
-                document.getElementById('form-date').valueAsDate = new Date();
-                document.getElementById('form-players').value = 8;
-                document.getElementById('form-fee').value = 150;
-                document.getElementById('form-extra').value = 0;
-                document.getElementById('form-deductions').value = 0;
-                document.getElementById('form-spent').value = 1000;
-                document.getElementById('form-remarks').value = '';
-                currentFormImages = [];
-            }
-            renderFormImagePreviews();
-            calculateModalPreview();
-        }
+  return `
+    <div class="booking-tile" style="animation-delay:${Math.min(i, 8) * 30}ms">
+      <div class="tile-top">
+        <span class="tile-meta">${e.addedBy ? 'by ' + escapeHtml(e.addedBy) : ''}</span>
+        <span class="tile-amount" style="color:var(--rust)">▼ ${fmt(e.totalCost)}</span>
+      </div>
+      <div class="tile-desc">${escapeHtml(e.item)}${e.quantity ? ` × ${e.quantity}` : ''}</div>
+      ${e.remarks ? `<div class="tile-meta" style="margin-top:4px; white-space:normal">${escapeHtml(e.remarks)}</div>` : ''}
+      ${actions}
+    </div>`;
+}
 
-        function closeBookingModal() {
-            document.getElementById('booking-modal').classList.add('hidden');
-        }
+function expenseFormFields(e) {
+  return `
+    <label class="field">Date<input type="date" id="fDate" value="${e ? e.date : todayStr()}" /></label>
+    <label class="field">Added by<input type="text" id="fAddedBy" placeholder="e.g. Doreen" value="${e ? escapeHtml(e.addedBy || '') : ''}" /></label>
+    <label class="field">Item<input type="text" id="fItem" placeholder="e.g. Franklin balls" value="${e ? escapeHtml(e.item || '') : ''}" /></label>
+    <label class="field">Quantity (optional)<input type="number" min="0" id="fQuantity" value="${e ? (e.quantity || '') : ''}" /></label>
+    <label class="field">Total cost ($)<input type="number" step="0.01" min="0" id="fTotalCost" value="${e ? e.totalCost : ''}" /></label>
+    <label class="field">Remarks (optional)<input type="text" id="fRemarks" value="${e ? escapeHtml(e.remarks || '') : ''}" /></label>
+  `;
+}
 
-        function calculateModalPreview() {
-            const players = parseFloat(document.getElementById('form-players').value) || 0;
-            const fee = parseFloat(document.getElementById('form-fee').value) || 0;
-            const extra = parseFloat(document.getElementById('form-extra').value) || 0;
-            const deductions = parseFloat(document.getElementById('form-deductions').value) || 0;
-            const spent = parseFloat(document.getElementById('form-spent').value) || 0;
+function submitExpense() {
+  const date = document.getElementById('fDate').value;
+  const item = document.getElementById('fItem').value.trim();
+  const totalCost = parseFloat(document.getElementById('fTotalCost').value);
+  const errEl = document.getElementById('formError');
+  if (!date) return errEl.textContent = 'Pick a date.';
+  if (!item) return errEl.textContent = 'Enter what the expense was for.';
+  if (!(totalCost > 0)) return errEl.textContent = 'Enter a total cost greater than 0.';
 
-            const expected = (players * fee) + extra - deductions;
-            const surplus = expected - spent;
+  const qtyRaw = document.getElementById('fQuantity').value;
+  const entry = {
+    id: editingId || uid(),
+    date,
+    addedBy: document.getElementById('fAddedBy').value.trim(),
+    item,
+    quantity: qtyRaw ? parseInt(qtyRaw, 10) : null,
+    totalCost,
+    remarks: document.getElementById('fRemarks').value.trim(),
+    createdAt: editingId ? data.expenses.find(x => x.id === editingId).createdAt : Date.now(),
+  };
+  if (editingId) data.expenses = data.expenses.map(x => x.id === editingId ? entry : x);
+  else data.expenses.push(entry);
+  finishSubmit();
+}
 
-            document.getElementById('preview-expected').textContent = `₱${expected.toLocaleString(undefined, {minimumFractionDigits: 2})}`;
-            const surplusEl = document.getElementById('preview-surplus');
-            surplusEl.textContent = `₱${surplus.toLocaleString(undefined, {minimumFractionDigits: 2})}`;
-            surplusEl.className = surplus >= 0 ? "font-bold text-pickle-700 text-sm" : "font-bold text-red-600 text-sm";
-        }
+function renderSummary(s) {
+  return `
+    <div class="panel-title">Funds Summary</div>
+    <div class="summary-card">
+      <div class="summary-row"><div class="summary-label">Accumulated funds</div><div class="summary-value">${fmt(s.accumulated)}</div></div>
+      <div class="summary-row"><div class="summary-label">Expenses (aside from bookings)</div><div class="summary-value">${fmt(s.expensesTotal)}</div></div>
+      <div class="summary-row total"><div class="summary-label">Remaining funds</div><div class="summary-value" style="color:${s.remaining < 0 ? '#C4442A' : '#37503F'}">${fmt(s.remaining)}</div></div>
+    </div>
+    <div style="font-size:12.5px; color:var(--muted); padding: 0 4px">
+      Accumulated funds = sum of "extra" across all game contributions. Bookings are logged for reference and don't affect this total on their own — their cost is captured in each contribution's "CC spent" figure.
+    </div>
+  `;
+}
 
-        function handleFileSelection(event) {
-            const files = Array.from(event.target.files);
-            if (currentFormImages.length + files.length > 2) {
-                alert("Maximum 2 receipt attachments allowed per session.");
-                return;
-            }
+function askDelete(tab, id) { if (!isAuthorized) return; confirmDeleteId = id; confirmDeleteTab = tab; render(); }
+function cancelDelete() { confirmDeleteId = null; confirmDeleteTab = null; render(); }
+function doDelete(tab, id) {
+  if (!isAuthorized) return;
+  const itemToDelete = data[tab].find(x => x.id === id);
+  data[tab] = data[tab].filter(x => x.id !== id);
+  
+  if (tab === 'bookings' && itemToDelete && itemToDelete.date >= CUTOFF_DATE) {
+    const contrib = data.contributions.find(c => c.date === itemToDelete.date);
+    if (contrib && !contrib._hasCustomCcSpent) {
+      contrib.ccSpent = bookingsTotalForDate(itemToDelete.date);
+    }
+    cleanupEmptyDrafts();
+  }
+  confirmDeleteId = null; confirmDeleteTab = null;
+  render();
+  saveData();
+}
 
-            files.forEach(file => {
-                if (file.size > 2 * 1024 * 1024) {
-                    alert(`File ${file.name} exceeds 2MB limit.`);
-                    return;
-                }
-                const reader = new FileReader();
-                reader.onload = (e) => {
-                    compressImage(e.target.result, (compressedBase64) => {
-                        if (currentFormImages.length < 2) {
-                            currentFormImages.push(compressedBase64);
-                            renderFormImagePreviews();
-                        }
-                    });
-                };
-                reader.readAsDataURL(file);
-            });
-            event.target.value = '';
-        }
+function openForm() {
+  if (!isAuthorized) return;
+  editingId = null;
+  currentFormImages = [];
+  document.getElementById('formError').textContent = '';
+  const titles = { contributions: 'New game contribution', bookings: 'New booking', expenses: 'New expense' };
+  document.getElementById('sheetTitle').textContent = titles[activeTab];
+  document.getElementById('submitBtn').textContent = 'Add';
+  const fields = document.getElementById('formFields');
+  if (activeTab === 'contributions') { fields.innerHTML = contributionFormFields(null); updateContribPreview(); }
+  else if (activeTab === 'bookings') fields.innerHTML = bookingFormFields(null);
+  else fields.innerHTML = expenseFormFields(null);
+  document.getElementById('overlay').classList.add('open');
+}
 
-        function compressImage(base64Str, callback) {
-            const img = new Image();
-            img.src = base64Str;
-            img.onload = () => {
-                const canvas = document.createElement('canvas');
-                let width = img.width;
-                let height = img.height;
-                const maxDim = 800;
-                if (width > height && width > maxDim) {
-                    height *= maxDim / width;
-                    width = maxDim;
-                } else if (height > maxDim) {
-                    width *= maxDim / height;
-                    height = maxDim;
-                }
-                canvas.width = width;
-                canvas.height = height;
-                const ctx = canvas.getContext('2d');
-                ctx.drawImage(img, 0, 0, width, height);
-                callback(canvas.toDataURL('image/jpeg', 0.7));
-            };
-        }
+function openEdit(tab, id) {
+  if (!isAuthorized) return;
+  const entry = data[tab].find(x => x.id === id);
+  if (!entry) return;
+  activeTab = tab;
+  editingId = id;
+  document.getElementById('formError').textContent = '';
+  const titles = { contributions: 'Edit game contribution', bookings: 'Edit booking', expenses: 'Edit expense' };
+  document.getElementById('sheetTitle').textContent = titles[tab];
+  document.getElementById('submitBtn').textContent = 'Save changes';
+  const fields = document.getElementById('formFields');
+  if (tab === 'contributions') { fields.innerHTML = contributionFormFields(entry); updateContribPreview(); }
+  else if (tab === 'bookings') fields.innerHTML = bookingFormFields(entry);
+  else fields.innerHTML = expenseFormFields(entry);
+  document.getElementById('overlay').classList.add('open');
+}
 
-        function renderFormImagePreviews() {
-            const container = document.getElementById('image-preview-container');
-            container.innerHTML = "";
-            currentFormImages.forEach((img, idx) => {
-                const div = document.createElement('div');
-                div.className = "relative inline-block";
-                div.innerHTML = `
-                    <img src="${img}" class="w-16 h-16 object-cover rounded-lg border border-slate-300">
-                    <button type="button" onclick="removeFormImage(${idx})" class="absolute -top-1 -right-1 bg-red-500 text-white rounded-full w-4 h-4 text-xs flex items-center justify-center hover:bg-red-600">×</button>
-                `;
-                container.appendChild(div);
-            });
-        }
+function closeForm() { document.getElementById('overlay').classList.remove('open'); }
 
-        function removeFormImage(index) {
-            currentFormImages.splice(index, 1);
-            renderFormImagePreviews();
-        }
+function submitForm(ev) {
+  ev.preventDefault();
+  if (!isAuthorized) return;
+  document.getElementById('formError').textContent = '';
+  if (activeTab === 'contributions') submitContribution();
+  else if (activeTab === 'bookings') submitBooking();
+  else if (activeTab === 'expenses') submitExpense();
+}
 
-        async function handleFormSubmit(event) {
-            event.preventDefault();
-            const saveBtn = document.getElementById('save-btn');
-            saveBtn.textContent = "Uploading & Saving...";
-            saveBtn.disabled = true;
+function finishSubmit() {
+  closeForm();
+  editingId = null;
+  currentFormImages = [];
+  render();
+  saveData();
+}
 
-            try {
-                // Upload any new base64 images to Cloudflare R2 via Worker
-                const uploadedImageUrls = [];
-                for (const img of currentFormImages) {
-                    if (img.startsWith('data:image')) {
-                        const res = await fetch('/api/pickleball/upload-image', {
-                            method: 'POST',
-                            headers: { 'Content-Type': 'application/json' },
-                            body: JSON.stringify({ imageBase64: img, filename: 'receipt.jpg' })
-                        });
-                        if (!res.ok) throw new Error("Failed to upload image to R2");
-                        const data = await res.json();
-                        uploadedImageUrls.push(data.url);
-                    } else {
-                        // Already an R2 URL string
-                        uploadedImageUrls.push(img);
-                    }
-                }
-
-                const entry = {
-                    date: document.getElementById('form-date').value,
-                    players: parseInt(document.getElementById('form-players').value),
-                    fee: parseFloat(document.getElementById('form-fee').value),
-                    extra: parseFloat(document.getElementById('form-extra').value) || 0,
-                    deductions: parseFloat(document.getElementById('form-deductions').value) || 0,
-                    spent: parseFloat(document.getElementById('form-spent').value),
-                    remarks: document.getElementById('form-remarks').value,
-                    images: uploadedImageUrls
-                };
-
-                const editIdx = document.getElementById('edit-index').value;
-                if (editIdx !== "") {
-                    bookings[editIdx] = entry;
-                } else {
-                    bookings.unshift(entry);
-                }
-
-                await persistData();
-                closeBookingModal();
-                renderTable();
-                updateDashboardCards();
-            } catch (err) {
-                console.error(err);
-                alert("Error saving booking session: " + err.message);
-            } finally {
-                saveBtn.textContent = "Save Session";
-                saveBtn.disabled = false;
-            }
-        }
-
-        function editBooking(index) {
-            openBookingModal(index);
-        }
-
-        async function deleteBooking(index) {
-            if (confirm("Are you sure you want to delete this session record?")) {
-                bookings.splice(index, 1);
-                await persistData();
-                renderTable();
-                updateDashboardCards();
-            }
-        }
-
-        function openImageModal(url) {
-            document.getElementById('modal-img').src = url;
-            document.getElementById('image-modal').classList.remove('hidden');
-        }
-
-        function closeImageModal() {
-            document.getElementById('image-modal').classList.add('hidden');
-        }
-    </script>
+loadData();
+</script>
 </body>
 </html>
