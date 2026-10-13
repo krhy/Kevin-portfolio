@@ -211,7 +211,7 @@
   .thumb-remove {
     position: absolute; top: -6px; right: -6px; background: var(--rust); color: #fff;
     border: none; border-radius: 50%; width: 20px; height: 20px; font-size: 11px;
-    display: flex; align-items: center; justify-content: center; cursor: pointer; font-weight: 700;
+    display: flex; align-items: center; justify-content: center; cursor: pointer; font-weight: 700; z-index: 5;
   }
 </style>
 </head>
@@ -854,7 +854,7 @@ function bookingTileHtml(b, i) {
 
   const count = b.receiptImages ? b.receiptImages.length : 0;
   const receiptHtml = count > 0 
-    ? `<a href="javascript:void(0)" class="receipt-link" onclick="openImageModal('${b.id}')">🖼 View Attachments (${count})</a>` 
+    ? `<a href="javascript:void(0)" class="receipt-link" onclick="openImageModal('${b.id}')">🖼 View Attachment/s (${count})</a>` 
     : '';
 
   return `
@@ -905,7 +905,7 @@ function bookingFormFields(b) {
       </select>
     </label>
     <label class="field">Comments (optional)<input type="text" id="fComments" value="${b ? escapeHtml(b.comments || '') : ''}" /></label>
-    <label class="field">Attachments / Screenshots (Max 2 allowed)
+    <label class="field">Receipt Attachments (Max 5 allowed)
       <input type="file" id="fReceiptFiles" accept="image/*" multiple onchange="handleMultipleImageUpload(event)" />
     </label>
     <div id="imageThumbsContainer" style="margin-top:4px; display:flex; flex-wrap:wrap; gap:6px;">
@@ -925,23 +925,25 @@ function renderFormThumbnails() {
 
 function removeFormImage(idx) {
   currentFormImages.splice(idx, 1);
-  document.getElementById('imageThumbsContainer').innerHTML = renderFormThumbnails();
+  const container = document.getElementById('imageThumbsContainer');
+  if (container) container.innerHTML = renderFormThumbnails();
 }
 
 function handleMultipleImageUpload(event) {
   const files = event.target.files;
   if (!files || files.length === 0) return;
 
-  const remainingSlots = 2 - currentFormImages.length;
+  const MAX_ATTACHMENTS = 5;
+  const remainingSlots = MAX_ATTACHMENTS - currentFormImages.length;
   if (remainingSlots <= 0) {
-    alert("Maximum of 2 attachments allowed per booking.");
+    alert("Maximum of 5 attachments allowed per booking.");
     event.target.value = '';
     return;
   }
 
   const filesToProcess = Array.from(files).slice(0, remainingSlots);
   if (files.length > remainingSlots) {
-    alert(`Only ${remainingSlots} more attachment(s) can be added (Max 2).`);
+    alert(`Only ${remainingSlots} more attachment(s) can be added (Max 5).`);
   }
 
   filesToProcess.forEach(file => {
@@ -965,7 +967,7 @@ function handleMultipleImageUpload(event) {
         ctx.drawImage(img, 0, 0, width, height);
         const dataUrl = canvas.toDataURL('image/jpeg', 0.75);
         
-        if (currentFormImages.length < 2) {
+        if (currentFormImages.length < MAX_ATTACHMENTS) {
           currentFormImages.push(dataUrl);
           const container = document.getElementById('imageThumbsContainer');
           if (container) container.innerHTML = renderFormThumbnails();
