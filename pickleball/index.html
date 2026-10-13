@@ -130,7 +130,7 @@
     padding: 12px 14px; margin-bottom: 8px; font-size: 12.5px;
   }
   .log-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 4px; font-size: 11px; color: var(--muted); }
-  .log-desc { font-weight: 500; color: var(--ink); margin-bottom: 6px; }
+  .log-desc { font-weight: 600; color: var(--ink); margin-bottom: 6px; font-size: 13px; }
   .log-meta { font-family: 'IBM Plex Mono', monospace; font-size: 10.5px; color: var(--muted-2); display: flex; gap: 12px; flex-wrap: wrap; }
 
   .fab { position: fixed; bottom: 20px; left: 0; right: 0; display: flex; justify-content: center; z-index: 5; }
@@ -466,7 +466,6 @@ function logActivity(actionDesc) {
     deviceId: deviceId,
     userAgent: navigator.userAgent.substring(0, 60) + '...',
     description: actionDesc,
-    // Snapshot state for revert capability
     snapshot: JSON.parse(JSON.stringify({
       contributions: data.contributions,
       bookings: data.bookings,
@@ -475,7 +474,6 @@ function logActivity(actionDesc) {
   };
   
   data.activityLogs.unshift(logEntry);
-  // Cap strictly at 20 entries
   if (data.activityLogs.length > 20) {
     data.activityLogs = data.activityLogs.slice(0, 20);
   }
@@ -857,6 +855,7 @@ function submitContribution() {
   const extraColl = parseFloat(document.getElementById('fExtraCollections').value) || 0;
   const deduct = parseFloat(document.getElementById('fDeductions').value) || 0;
   const expectedCollection = (fee * players) + extraColl - deduct;
+  const extra = expectedCollection - cc;
 
   const isEdit = !!editingId;
   const entry = {
@@ -869,14 +868,15 @@ function submitContribution() {
     deductions: deduct,
     expectedCollection,
     ccSpent: cc,
-    extra: expectedCollection - cc,
+    extra,
     remarks: document.getElementById('fRemarks').value.trim(),
     createdAt: isEdit ? data.contributions.find(x => x.id === editingId).createdAt : Date.now(),
   };
   if (isEdit) data.contributions = data.contributions.map(x => x.id === editingId ? entry : x);
   else data.contributions.push(entry);
 
-  logActivity(`${isEdit ? 'Updated' : 'Added'} contribution for ${date} ($${expectedCollection.toFixed(2)})`);
+  const detailStr = `${isEdit ? 'Updated' : 'Added'} Contribution for ${date}: ${players} players × $${fee.toFixed(2)} = Expected $${expectedCollection.toFixed(2)}, CC Spent $${cc.toFixed(2)} (${extra >= 0 ? '+' : ''}$${extra.toFixed(2)} extra)`;
+  logActivity(detailStr);
   finishSubmit();
 }
 
@@ -1083,15 +1083,18 @@ async function submitBooking() {
   const isEdit = !!editingId;
   const oldBooking = isEdit ? data.bookings.find(x => x.id === editingId) : null;
   const oldDate = oldBooking ? oldBooking.date : null;
+  const bookedBy = document.getElementById('fBookedBy').value.trim() || 'Someone';
+  const desc = document.getElementById('fDescription').value.trim() || 'Booking';
+  const status = document.getElementById('fStatus').value;
 
   const entry = {
     id: editingId || uid(),
     date,
-    bookedBy: document.getElementById('fBookedBy').value.trim(),
+    bookedBy,
     transactionDate: document.getElementById('fTxnDate').value,
-    description: document.getElementById('fDescription').value.trim(),
+    description: desc,
     amount,
-    status: document.getElementById('fStatus').value,
+    status,
     comments: document.getElementById('fComments').value.trim(),
     receiptImages: uploadedImageUrls,
     createdAt: isEdit ? oldBooking.createdAt : Date.now(),
@@ -1116,7 +1119,8 @@ async function submitBooking() {
   }
 
   cleanupEmptyDrafts();
-  logActivity(`${isEdit ? 'Updated' : 'Added'} booking for ${date} ($${amount.toFixed(2)})`);
+  const detailStr = `${isEdit ? 'Updated' : 'Added'} Booking for ${date} — "${desc}" by ${bookedBy}: $${amount.toFixed(2)} [${status}]`;
+  logActivity(detailStr);
   finishSubmit();
 }
 
@@ -1216,13 +1220,16 @@ function submitExpense() {
   if (!(totalCost > 0)) return errEl.textContent = 'Enter a total cost greater than 0.';
 
   const qtyRaw = document.getElementById('fQuantity').value;
+  const qty = qtyRaw ? parseInt(qtyRaw, 10) : null;
   const isEdit = !!editingId;
+  const addedBy = document.getElementById('fAddedBy').value.trim() || 'Someone';
+
   const entry = {
     id: editingId || uid(),
     date,
-    addedBy: document.getElementById('fAddedBy').value.trim(),
+    addedBy,
     item,
-    quantity: qtyRaw ? parseInt(qtyRaw, 10) : null,
+    quantity: qty,
     totalCost,
     remarks: document.getElementById('fRemarks').value.trim(),
     createdAt: isEdit ? data.expenses.find(x => x.id === editingId).createdAt : Date.now(),
@@ -1230,7 +1237,8 @@ function submitExpense() {
   if (isEdit) data.expenses = data.expenses.map(x => x.id === editingId ? entry : x);
   else data.expenses.push(entry);
 
-  logActivity(`${isEdit ? 'Updated' : 'Added'} expense: ${item} ($${totalCost.toFixed(2)})`);
+  const detailStr = `${isEdit ? 'Updated' : 'Added'} Expense on ${date} — "${item}"${qty ? ' (Qty: ' + qty + ')' : ''} by ${addedBy}: $${totalCost.toFixed(2)}`;
+  logActivity(detailStr);
   finishSubmit();
 }
 
@@ -1238,7 +1246,6 @@ function exportToExcel() {
   try {
     const wb = XLSX.utils.book_new();
 
-    // 1. Bookings Sheet
     const bookingsData = data.bookings.map(b => ({
       Date: b.date,
       'Booked By': b.bookedBy || '',
@@ -1251,7 +1258,6 @@ function exportToExcel() {
     const wsBookings = XLSX.utils.json_to_sheet(bookingsData);
     XLSX.utils.book_append_sheet(wb, wsBookings, "Bookings");
 
-    // 2. Contributions Sheet
     const contribData = data.contributions.map(c => ({
       Date: c.date,
       'Added By': c.addedBy || '',
@@ -1267,7 +1273,6 @@ function exportToExcel() {
     const wsContrib = XLSX.utils.json_to_sheet(contribData);
     XLSX.utils.book_append_sheet(wb, wsContrib, "Contributions");
 
-    // 3. Expenses Sheet
     const expensesData = data.expenses.map(e => ({
       Date: e.date,
       'Added By': e.addedBy || '',
@@ -1279,9 +1284,8 @@ function exportToExcel() {
     const wsExpenses = XLSX.utils.json_to_sheet(expensesData);
     XLSX.utils.book_append_sheet(wb, wsExpenses, "Expenses");
 
-    // Trigger download
     XLSX.writeFile(wb, "Pickleball_Fund_Report.xlsx");
-    logActivity("Exported ledger to Excel (.xlsx)");
+    logActivity("Exported complete fund ledger to Excel (.xlsx)");
     saveData();
   } catch (err) {
     console.error("Excel export failed:", err);
@@ -1302,7 +1306,7 @@ function renderSummaryAndLogs(s) {
             </div>
             <div class="log-desc">${escapeHtml(l.description)}</div>
             <div class="log-meta">
-              <span>Device: ${escapeHtml(l.deviceId)}</span>
+              <span>Device ID: ${escapeHtml(l.deviceId)}</span>
               <span>Browser: ${escapeHtml(l.userAgent)}</span>
             </div>
           </div>`;
@@ -1326,7 +1330,7 @@ function renderSummaryAndLogs(s) {
 
     <div class="panel-title" style="margin-top:24px;">Activity Log & Audit Trail (Last 20)</div>
     <div style="font-size:12px; color:var(--muted); margin-bottom:12px; padding:0 2px;">
-      Tracks system modifications, device IDs, timestamps, and allows authorized users to instantly revert states.
+      Detailed audit trail showing concrete figures, amounts, names, and timestamps for every change.
     </div>
     <div>${logsHtml}</div>
   `;
@@ -1347,7 +1351,10 @@ function doDelete(tab, id) {
     cleanupEmptyDrafts();
   }
 
-  logActivity(`Deleted ${tab.slice(0, -1)} item`);
+  const itemName = itemToDelete.description || itemToDelete.item || itemToDelete.date || 'item';
+  const itemVal = itemToDelete.amount || itemToDelete.totalCost || itemToDelete.expectedCollection || 0;
+  logActivity(`Deleted ${tab.slice(0, -1)} — "${itemName}" ($${Number(itemVal).toFixed(2)})`);
+
   confirmDeleteId = null; confirmDeleteTab = null;
   render();
   saveData();
