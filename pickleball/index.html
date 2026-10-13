@@ -715,7 +715,7 @@ function contributionFormFields(c) {
     <label class="field">Players<input type="number" min="1" id="fPlayers" value="${c ? c.players : ''}" oninput="updateContribPreview()" /></label>
     <label class="field">Extra Collections (+) (e.g. cancellation fees, top-ups)<input type="number" step="0.01" min="0" id="fExtraCollections" value="${extraColl}" oninput="updateContribPreview()" /></label>
     <label class="field">Deductions (-) (e.g. session-specific expenses)<input type="number" step="0.01" min="0" id="fDeductions" value="${deduct}" oninput="updateContribPreview()" /></label>
-    <label class="field">Credit card / actual spent ($)<input type="number" step="0.01" min="0" id="fCcSpent" value="${c ? c.ccSpent : ''}" oninput="updateContribPreview()" /></label>
+    <label class="field">Credit card / actual spent ($)<input type="number" step="0.01" min="0" id="fCcSpent" value="${c ? c.ccSpent : bookingsTotalForDate(c ? c.date : todayStr()).toFixed(2)}" oninput="updateContribPreview()" /></label>
     <label class="field">Remarks (optional)<input type="text" id="fRemarks" placeholder="e.g. Paid via personal CC" value="${c ? escapeHtml(c.remarks || '') : ''}" /></label>
     <div class="preview-line" id="contribPreview"></div>
   `;
@@ -928,6 +928,7 @@ function submitBooking() {
   if (isNaN(amount)) return errEl.textContent = 'Enter an amount.';
 
   const oldBooking = editingId ? data.bookings.find(x => x.id === editingId) : null;
+  const oldDate = oldBooking ? oldBooking.date : null;
 
   const entry = {
     id: editingId || uid(),
@@ -947,6 +948,18 @@ function submitBooking() {
 
   if (date >= CUTOFF_DATE) {
     ensureContributionDraft(date);
+    // Automatically update ccSpent if a contribution already exists for this date
+    const contrib = data.contributions.find(c => c.date === date);
+    if (contrib && !contrib._hasCustomCcSpent) {
+      contrib.ccSpent = bookingsTotalForDate(date);
+    }
+  }
+
+  if (oldDate && oldDate !== date && oldDate >= CUTOFF_DATE) {
+    const oldContrib = data.contributions.find(c => c.date === oldDate);
+    if (oldContrib && !oldContrib._hasCustomCcSpent) {
+      oldContrib.ccSpent = bookingsTotalForDate(oldDate);
+    }
   }
 
   cleanupEmptyDrafts();
@@ -1086,6 +1099,10 @@ function doDelete(tab, id) {
   data[tab] = data[tab].filter(x => x.id !== id);
   
   if (tab === 'bookings' && itemToDelete && itemToDelete.date >= CUTOFF_DATE) {
+    const contrib = data.contributions.find(c => c.date === itemToDelete.date);
+    if (contrib && !contrib._hasCustomCcSpent) {
+      contrib.ccSpent = bookingsTotalForDate(itemToDelete.date);
+    }
     cleanupEmptyDrafts();
   }
   confirmDeleteId = null; confirmDeleteTab = null;
