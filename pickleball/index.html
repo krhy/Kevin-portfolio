@@ -102,32 +102,6 @@
   .panel-title { font-family: 'Space Grotesk', sans-serif; font-size: 12px; letter-spacing: 0.1em; text-transform: uppercase; color: var(--muted); margin-bottom: 12px; padding: 0 4px; font-weight: 600; }
   .empty-state { text-align: center; padding: 44px 20px; color: var(--muted); font-size: 14px; }
 
-  .card {
-    background: var(--surface); backdrop-filter: blur(10px); -webkit-backdrop-filter: blur(10px);
-    border: 1px solid var(--border); border-left: 3px solid var(--border-strong);
-    border-radius: 14px; padding: 14px 16px; margin-bottom: 10px;
-    box-shadow: 0 1px 3px rgba(36,29,22,0.05);
-    animation: fadeSlideIn 0.35s ease both;
-  }
-  .card.pos { border-left-color: var(--teal); }
-  .card.neg { border-left-color: var(--rust); }
-  .card-top { display: flex; justify-content: space-between; align-items: flex-start; gap: 10px; }
-  .card-meta { display: flex; flex-wrap: wrap; align-items: center; gap: 4px; font-size: 12px; color: var(--muted); margin-bottom: 3px; }
-  .card-detail { font-size: 14px; color: var(--ink); }
-  .card-detail .muted { color: var(--muted); }
-  .card-right { text-align: right; flex-shrink: 0; }
-  .card-delta { font-family: 'IBM Plex Mono', monospace; font-weight: 600; font-size: 15px; display: flex; align-items: center; gap: 3px; justify-content: flex-end; }
-  .card-delta.pos { color: var(--teal); }
-  .card-delta.neg { color: var(--rust); }
-  .card-amount { font-family: 'IBM Plex Mono', monospace; font-weight: 600; font-size: 15px; color: var(--ink); }
-  .status-badge { display: inline-block; font-size: 10px; font-weight: 600; padding: 2px 9px; border-radius: 999px; text-transform: uppercase; letter-spacing: 0.04em; margin-top: 5px; }
-  .status-done { background: rgba(46,125,79,0.12); color: #2E7D4F; }
-  .status-pending { background: rgba(201,138,45,0.14); color: #A9682E; }
-  .status-cancelled { background: rgba(138,127,110,0.14); color: var(--muted); }
-  .card-actions { display: flex; gap: 14px; margin-top: 8px; padding-top: 8px; border-top: 1px solid var(--border); }
-  .link-btn { background: none; border: none; font-size: 12px; cursor: pointer; display: flex; align-items: center; gap: 4px; padding: 0; color: var(--muted); }
-  .link-btn.danger { color: var(--rust); }
-
   .summary-card {
     background: var(--surface-solid); border: 1px solid var(--border);
     border-radius: 16px; padding: 20px; margin-bottom: 12px;
@@ -159,13 +133,13 @@
   }
   .overlay.open .sheet { transform: translateY(0); }
   
-  .overlay#authOverlay { align-items: center; justify-content: center; padding: 20px; }
-  .overlay#authOverlay .sheet {
-    max-width: 360px; border-radius: 22px; transform: scale(0.95); opacity: 0;
+  .overlay#authOverlay, .overlay#imageModalOverlay { align-items: center; justify-content: center; padding: 20px; }
+  .overlay#authOverlay .sheet, .overlay#imageModalOverlay .sheet {
+    max-width: 380px; border-radius: 22px; transform: scale(0.95); opacity: 0;
     transition: transform 0.25s cubic-bezier(0.34, 1.2, 0.4, 1), opacity 0.25s ease;
     box-shadow: 0 10px 30px rgba(36,29,22,0.2);
   }
-  .overlay#authOverlay.open .sheet { transform: scale(1); opacity: 1; }
+  .overlay#authOverlay.open .sheet, .overlay#imageModalOverlay.open .sheet { transform: scale(1); opacity: 1; }
 
   .drag-handle { width: 36px; height: 4px; border-radius: 999px; background: var(--border-strong); margin: 4px auto 14px; }
   .sheet-head { display: flex; justify-content: space-between; align-items: center; margin-bottom: 14px; }
@@ -174,21 +148,14 @@
 
   form { display: flex; flex-direction: column; gap: 12px; }
   label.field { display: flex; flex-direction: column; gap: 5px; font-size: 12.5px; color: var(--muted); }
-  input[type="text"], input[type="number"], input[type="date"], input[type="password"], select {
+  input[type="text"], input[type="number"], input[type="date"], input[type="password"], input[type="file"], select {
     padding: 10px 12px; border-radius: 10px; border: 1px solid var(--border-strong); font-size: 15px;
     font-family: 'Inter', sans-serif; background: #fff; color: var(--ink); width: 100%;
   }
+  input[type="file"] { padding: 8px; font-size: 13px; background: var(--paper); }
   .preview-line { font-size: 13px; color: var(--muted); }
-  .preview-line strong.pos { color: var(--teal); }
-  .preview-line strong.neg { color: var(--rust); }
   .form-error { color: var(--rust); font-size: 13px; font-weight: 600; }
   .submit-btn { width: 100%; justify-content: center; margin-top: 8px; }
-
-  .status-banner {
-    position: fixed; top: 14px; right: 14px; font-size: 11px; font-family: 'Space Grotesk', sans-serif;
-    font-weight: 600; transition: opacity 0.3s; z-index: 20;
-    background: rgba(0,0,0,0.22); padding: 4px 10px; border-radius: 999px;
-  }
 
   .controls { display: flex; gap: 8px; margin-bottom: 14px; flex-wrap: wrap; }
   .controls input[type="text"] { flex: 1 1 100%; padding: 8px 12px; font-size: 13.5px; }
@@ -199,7 +166,6 @@
     display: flex; justify-content: space-between; align-items: center; gap: 8px;
   }
   .link-suggest button { background: var(--teal); color: #fff; border: none; border-radius: 6px; padding: 4px 10px; font-size: 12px; font-weight: 700; flex-shrink: 0; }
-  .card.needs-update { border-left-color: var(--brown); background: rgba(201,138,45,0.05); }
   .needs-update-banner {
     font-size: 13px; font-weight: 600; color: var(--brown-deep);
     background: rgba(201,138,45,0.12); border: 1px dashed var(--brown);
@@ -227,6 +193,13 @@
   }
   .tile-meta { font-size: 11px; color: var(--muted); }
   .tile-actions { display: flex; gap: 12px; margin-top: 7px; padding-top: 6px; border-top: 1px solid var(--border); }
+  
+  .receipt-link {
+    display: inline-flex; align-items: center; gap: 4px; font-size: 11px; font-weight: 600;
+    color: var(--teal); background: var(--teal-wash); padding: 2px 8px; border-radius: 999px;
+    margin-top: 4px; border: 1px solid var(--border-strong); text-decoration: none;
+  }
+  .receipt-link:hover { background: var(--border); }
 </style>
 </head>
 <body>
@@ -294,7 +267,7 @@
   </div>
 </div>
 
-<!-- Centered Unlock/Lock Auth Modal for Messenger -->
+<!-- Centered Unlock/Lock Auth Modal -->
 <div class="overlay" id="authOverlay" onclick="if(event.target===this) closeAuthModal()">
   <div class="sheet">
     <div class="sheet-head">
@@ -305,6 +278,19 @@
   </div>
 </div>
 
+<!-- Image / Receipt Preview Modal -->
+<div class="overlay" id="imageModalOverlay" onclick="closeImageModal()">
+  <div class="sheet" style="text-align:center;" onclick="event.stopPropagation()">
+    <div class="drag-handle"></div>
+    <div class="sheet-head">
+      <div class="sheet-title">Booking Receipt / Screenshot</div>
+      <button class="close-btn" onclick="closeImageModal()">✕</button>
+    </div>
+    <div id="modalImageContainer" style="margin-bottom: 14px; max-height: 60vh; overflow: auto;"></div>
+    <button type="button" class="fab-primary submit-btn" style="background:var(--muted); animation:none;" onclick="closeImageModal()">Close</button>
+  </div>
+</div>
+
 <div class="status-banner" id="statusBanner" style="opacity:0">Saving…</div>
 
 <script>
@@ -312,7 +298,7 @@ const API_URL = '/api/pickleball/entries';
 const TAB_ORDER = ['bookings', 'contributions', 'expenses', 'summary'];
 const CUTOFF_DATE = '2026-09-16';
 
-let data = { contributions: [], bookings: [], expenses: [] };
+let data = { contributions: [], bookings: [], expenses: [], lastModified: 0 };
 let activeTab = 'bookings';
 let editingId = null;
 let confirmDeleteId = null;
@@ -340,37 +326,27 @@ function todayStr() { return new Date().toISOString().slice(0, 10); }
 function escapeHtml(s) { const d = document.createElement('div'); d.textContent = s || ''; return d.innerHTML; }
 
 function toggleAuth() {
-  if (isAuthorized) {
-    showAuthConfirmModal();
-  } else {
-    showAuthPasswordModal();
-  }
+  if (isAuthorized) showAuthConfirmModal();
+  else showAuthPasswordModal();
 }
 
 function showAuthPasswordModal() {
   const overlay = document.getElementById('authOverlay');
-  const title = document.getElementById('authModalTitle');
-  const content = document.getElementById('authModalContent');
-  title.textContent = 'Unlock Editing';
-  content.innerHTML = `
+  document.getElementById('authModalTitle').textContent = 'Unlock Editing';
+  document.getElementById('authModalContent').innerHTML = `
     <div style="font-size: 13px; color: var(--muted); margin-bottom: 8px;">Enter the committee password to unlock editing:</div>
     <input type="password" id="authPasswordInput" placeholder="Password" style="margin-bottom: 10px;" onkeydown="if(event.key==='Enter') submitAuthPassword()" />
     <div id="authError" style="color: var(--rust); font-size: 12px; margin-bottom: 10px; display: none;">Incorrect password.</div>
     <button type="button" class="fab-primary submit-btn" onclick="submitAuthPassword()">Unlock</button>
   `;
   overlay.classList.add('open');
-  setTimeout(() => {
-    const input = document.getElementById('authPasswordInput');
-    if (input) input.focus();
-  }, 100);
+  setTimeout(() => { document.getElementById('authPasswordInput')?.focus(); }, 100);
 }
 
 function showAuthConfirmModal() {
   const overlay = document.getElementById('authOverlay');
-  const title = document.getElementById('authModalTitle');
-  const content = document.getElementById('authModalContent');
-  title.textContent = 'Lock Editing';
-  content.innerHTML = `
+  document.getElementById('authModalTitle').textContent = 'Lock Editing';
+  document.getElementById('authModalContent').innerHTML = `
     <div style="font-size: 14px; color: var(--ink); margin-bottom: 16px;">Lock editing mode back to read-only?</div>
     <div style="display: flex; gap: 10px;">
       <button type="button" class="fab-primary submit-btn" style="background: var(--muted); flex: 1; animation: none;" onclick="closeAuthModal()">Cancel</button>
@@ -380,9 +356,7 @@ function showAuthConfirmModal() {
   overlay.classList.add('open');
 }
 
-function closeAuthModal() {
-  document.getElementById('authOverlay').classList.remove('open');
-}
+function closeAuthModal() { document.getElementById('authOverlay').classList.remove('open'); }
 
 function submitAuthPassword() {
   const pwd = document.getElementById('authPasswordInput').value;
@@ -411,23 +385,24 @@ async function loadData() {
     if (!res.ok) throw new Error('load failed');
     const raw = await res.json();
     if (Array.isArray(raw)) {
-      data = { contributions: [], bookings: [], expenses: [] };
+      data = { contributions: [], bookings: [], expenses: [], lastModified: 0 };
     } else {
-      data = { contributions: raw.contributions || [], bookings: raw.bookings || [], expenses: raw.expenses || [] };
+      data = { 
+        contributions: raw.contributions || [], 
+        bookings: raw.bookings || [], 
+        expenses: raw.expenses || [],
+        lastModified: raw.lastModified || 0
+      };
     }
+    window.appLoadedAt = data.lastModified;
   } catch (e) {
     console.error('Failed to load data', e);
   }
 
   const beforeCount = data.contributions.length;
+  // Only auto-create drafts when new bookings appear and no contribution exists yet
   [...new Set(data.bookings.map(b => b.date))].forEach(date => {
     if (date >= CUTOFF_DATE) ensureContributionDraft(date);
-  });
-  
-  data.contributions.forEach(c => {
-    if (c.date >= CUTOFF_DATE) {
-      c.ccSpent = bookingsTotalForDate(c.date);
-    }
   });
 
   cleanupEmptyDrafts();
@@ -438,16 +413,39 @@ async function loadData() {
 
 async function saveData() {
   if (!isAuthorized) return;
-  showStatus('Saving…');
+  showStatus('Syncing & checking conflicts…');
+  
   try {
-    const res = await fetch(API_URL, { method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(data) });
+    const checkRes = await fetch(API_URL);
+    if (checkRes.ok) {
+      const serverRaw = await checkRes.json();
+      const serverLastModified = serverRaw.lastModified || 0;
+      
+      if (window.appLoadedAt && serverLastModified > window.appLoadedAt) {
+        const overwrite = confirm("⚠️ Another committee member updated the fund data just now. Do you want to overwrite their changes, or cancel and reload the latest data?");
+        if (!overwrite) {
+          showStatus('Save cancelled to protect other user changes', true);
+          loadData();
+          return;
+        }
+      }
+    }
+
+    data.lastModified = Date.now();
+    window.appLoadedAt = data.lastModified;
+
+    const res = await fetch(API_URL, { 
+      method: 'PUT', 
+      headers: { 'Content-Type': 'application/json' }, 
+      body: JSON.stringify(data) 
+    });
+    
     if (!res.ok) throw new Error('save failed');
+    hideStatus();
   } catch (e) {
     console.error('Failed to save data', e);
     showStatus('Save failed — check connection', true);
-    return;
   }
-  hideStatus();
 }
 
 function showStatus(text, isError) {
@@ -810,6 +808,10 @@ function bookingTileHtml(b, i) {
       : `<div class="tile-actions"><button class="link-btn" onclick="openEdit('bookings','${b.id}')">✎ Edit</button><button class="link-btn" onclick="askDelete('bookings','${b.id}')">🗑 Delete</button></div>`;
   }
 
+  const receiptHtml = b.receiptImage 
+    ? `<a href="javascript:void(0)" class="receipt-link" onclick="openImageModal('${b.id}')">🖼 View Receipt</a>` 
+    : '';
+
   return `
     <div class="booking-tile" style="animation-delay:${Math.min(i, 8) * 30}ms">
       <div class="tile-top">
@@ -819,8 +821,21 @@ function bookingTileHtml(b, i) {
       <div class="tile-desc" title="${escapeHtml(b.description || '')}">${escapeHtml(b.description || 'Booking')}</div>
       <div class="tile-meta">${b.bookedBy ? `Booked by ${escapeHtml(b.bookedBy)} · ` : ''}Txn ${fmtDate(b.transactionDate)}</div>
       ${b.comments ? `<div class="tile-meta" style="margin-top:2px">${escapeHtml(b.comments)}</div>` : ''}
+      ${receiptHtml}
       ${actions}
     </div>`;
+}
+
+function openImageModal(bookingId) {
+  const booking = data.bookings.find(b => b.id === bookingId);
+  if (!booking || !booking.receiptImage) return;
+  const container = document.getElementById('modalImageContainer');
+  container.innerHTML = `<img src="${booking.receiptImage}" alt="Receipt Screenshot" style="max-width:100%; height:auto; border-radius:8px; border:1px solid var(--border);" />`;
+  document.getElementById('imageModalOverlay').classList.add('open');
+}
+
+function closeImageModal() {
+  document.getElementById('imageModalOverlay').classList.remove('open');
 }
 
 function bookingFormFields(b) {
@@ -838,7 +853,45 @@ function bookingFormFields(b) {
       </select>
     </label>
     <label class="field">Comments (optional)<input type="text" id="fComments" value="${b ? escapeHtml(b.comments || '') : ''}" /></label>
+    <label class="field">Screenshot / Receipt (optional)
+      <input type="file" id="fReceiptFile" accept="image/*" onchange="handleImageUpload(event)" />
+      <input type="hidden" id="fReceiptBase64" value="${b && b.receiptImage ? b.receiptImage : ''}" />
+    </label>
+    <div id="imageThumbPreview" style="margin-top:-4px;">
+      ${b && b.receiptImage ? `<img src="${b.receiptImage}" style="max-height:80px; border-radius:6px; border:1px solid var(--border);" />` : ''}
+    </div>
   `;
+}
+
+function handleImageUpload(event) {
+  const file = event.target.files[0];
+  if (!file) return;
+  const reader = new FileReader();
+  reader.onload = function(e) {
+    const img = new Image();
+    img.onload = function() {
+      const canvas = document.createElement('canvas');
+      const MAX_WIDTH = 800;
+      const MAX_HEIGHT = 800;
+      let width = img.width;
+      let height = img.height;
+      if (width > height) {
+        if (width > MAX_WIDTH) { height *= MAX_WIDTH / width; width = MAX_WIDTH; }
+      } else {
+        if (height > MAX_HEIGHT) { width *= MAX_HEIGHT / height; height = MAX_HEIGHT; }
+      }
+      canvas.width = width;
+      canvas.height = height;
+      const ctx = canvas.getContext('2d');
+      ctx.drawImage(img, 0, 0, width, height);
+      const dataUrl = canvas.toDataURL('image/jpeg', 0.75);
+      
+      document.getElementById('fReceiptBase64').value = dataUrl;
+      document.getElementById('imageThumbPreview').innerHTML = `<img src="${dataUrl}" style="max-height:80px; border-radius:6px; border:1px solid var(--border);" />`;
+    };
+    img.src = e.target.result;
+  };
+  reader.readAsDataURL(file);
 }
 
 function submitBooking() {
@@ -848,9 +901,7 @@ function submitBooking() {
   if (!date) return errEl.textContent = 'Pick a game date.';
   if (isNaN(amount)) return errEl.textContent = 'Enter an amount.';
 
-  // Capture old date if editing an existing booking so we can sync both if date changed
   const oldBooking = editingId ? data.bookings.find(x => x.id === editingId) : null;
-  const oldDate = oldBooking ? oldBooking.date : null;
 
   const entry = {
     id: editingId || uid(),
@@ -861,23 +912,17 @@ function submitBooking() {
     amount,
     status: document.getElementById('fStatus').value,
     comments: document.getElementById('fComments').value.trim(),
+    receiptImage: document.getElementById('fReceiptBase64').value || (oldBooking ? oldBooking.receiptImage : ''),
     createdAt: editingId ? oldBooking.createdAt : Date.now(),
   };
 
   if (editingId) data.bookings = data.bookings.map(x => x.id === editingId ? entry : x);
   else data.bookings.push(entry);
 
-  // Sync new date if >= CUTOFF_DATE
+  // Only auto-create contribution draft if none exists yet for this date. 
+  // We no longer force-overwrite ccSpent on existing contributions.
   if (date >= CUTOFF_DATE) {
     ensureContributionDraft(date);
-    const contrib = data.contributions.find(c => c.date === date);
-    if (contrib) contrib.ccSpent = bookingsTotalForDate(date);
-  }
-
-  // If date was changed during edit, also sync the old date
-  if (oldDate && oldDate !== date && oldDate >= CUTOFF_DATE) {
-    const oldContrib = data.contributions.find(c => c.date === oldDate);
-    if (oldContrib) oldContrib.ccSpent = bookingsTotalForDate(oldDate);
   }
 
   cleanupEmptyDrafts();
@@ -1016,10 +1061,6 @@ function doDelete(tab, id) {
   data[tab] = data[tab].filter(x => x.id !== id);
   
   if (tab === 'bookings' && itemToDelete && itemToDelete.date >= CUTOFF_DATE) {
-    const contrib = data.contributions.find(c => c.date === itemToDelete.date);
-    if (contrib) {
-      contrib.ccSpent = bookingsTotalForDate(itemToDelete.date);
-    }
     cleanupEmptyDrafts();
   }
   confirmDeleteId = null; confirmDeleteTab = null;
