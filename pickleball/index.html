@@ -192,7 +192,13 @@
     white-space: nowrap; margin-bottom: 2px;
   }
   .tile-meta { font-size: 11px; color: var(--muted); }
-  .tile-actions { display: flex; gap: 12px; margin-top: 7px; padding-top: 6px; border-top: 1px solid var(--border); }
+  
+  /* Restored Classic Link Button Styles */
+  .tile-actions { display: flex; gap: 14px; margin-top: 8px; padding-top: 8px; border-top: 1px solid var(--border); }
+  .link-btn { background: none; border: none; font-size: 12px; cursor: pointer; display: flex; align-items: center; gap: 4px; padding: 0; color: var(--muted); font-family: inherit; }
+  .link-btn:hover { color: var(--ink); }
+  .link-btn.danger { color: var(--rust); }
+  .link-btn.danger:hover { opacity: 0.8; }
   
   .receipt-link {
     display: inline-flex; align-items: center; gap: 4px; font-size: 11px; font-weight: 600;
@@ -400,7 +406,6 @@ async function loadData() {
   }
 
   const beforeCount = data.contributions.length;
-  // Only auto-create drafts when new bookings appear and no contribution exists yet
   [...new Set(data.bookings.map(b => b.date))].forEach(date => {
     if (date >= CUTOFF_DATE) ensureContributionDraft(date);
   });
@@ -669,7 +674,7 @@ function contributionTileHtml(c, i) {
     const confirming = confirmDeleteId === c.id && confirmDeleteTab === 'contributions';
     actions = confirming
       ? `<div class="tile-actions"><button class="link-btn danger" onclick="doDelete('contributions','${c.id}')">Confirm delete</button><button class="link-btn" onclick="cancelDelete()">Cancel</button></div>`
-      : `<div class="tile-actions"><button class="link-btn" onclick="openEdit('contributions','${c.id}')">✎ Edit</button><button class="link-btn" onclick="askDelete('contributions','${c.id}')">🗑 Delete</button></div>`;
+      : `<div class="tile-actions"><button class="link-btn" onclick="openEdit('contributions','${c.id}')">✎ Edit</button><button class="link-btn danger" onclick="askDelete('contributions','${c.id}')">🗑 Delete</button></div>`;
   }
 
   return `
@@ -805,7 +810,7 @@ function bookingTileHtml(b, i) {
     const confirming = confirmDeleteId === b.id && confirmDeleteTab === 'bookings';
     actions = confirming
       ? `<div class="tile-actions"><button class="link-btn danger" onclick="doDelete('bookings','${b.id}')">Confirm delete</button><button class="link-btn" onclick="cancelDelete()">Cancel</button></div>`
-      : `<div class="tile-actions"><button class="link-btn" onclick="openEdit('bookings','${b.id}')">✎ Edit</button><button class="link-btn" onclick="askDelete('bookings','${b.id}')">🗑 Delete</button></div>`;
+      : `<div class="tile-actions"><button class="link-btn" onclick="openEdit('bookings','${b.id}')">✎ Edit</button><button class="link-btn danger" onclick="askDelete('bookings','${b.id}')">🗑 Delete</button></div>`;
   }
 
   const receiptHtml = b.receiptImage 
@@ -919,8 +924,6 @@ function submitBooking() {
   if (editingId) data.bookings = data.bookings.map(x => x.id === editingId ? entry : x);
   else data.bookings.push(entry);
 
-  // Only auto-create contribution draft if none exists yet for this date. 
-  // We no longer force-overwrite ccSpent on existing contributions.
   if (date >= CUTOFF_DATE) {
     ensureContributionDraft(date);
   }
@@ -988,7 +991,7 @@ function expenseTileHtml(e, i) {
     const confirming = confirmDeleteId === e.id && confirmDeleteTab === 'expenses';
     actions = confirming
       ? `<div class="tile-actions"><button class="link-btn danger" onclick="doDelete('expenses','${e.id}')">Confirm delete</button><button class="link-btn" onclick="cancelDelete()">Cancel</button></div>`
-      : `<div class="tile-actions"><button class="link-btn" onclick="openEdit('expenses','${e.id}')">✎ Edit</button><button class="link-btn" onclick="askDelete('expenses','${e.id}')">🗑 Delete</button></div>`;
+      : `<div class="tile-actions"><button class="link-btn" onclick="openEdit('expenses','${e.id}')">✎ Edit</button><button class="link-btn danger" onclick="askDelete('expenses','${e.id}')">🗑 Delete</button></div>`;
   }
 
   return `
