@@ -78,7 +78,6 @@
   .balance { font-family: 'IBM Plex Mono', monospace; font-weight: 700; font-size: 42px; line-height: 1; color: var(--amber-on-teal); text-shadow: 0 0 26px rgba(231,178,124,0.3); margin-bottom: 12px; }
   .balance.negative { color: var(--coral-on-teal); text-shadow: 0 0 26px rgba(255,154,128,0.3); }
 
-  /* Monthly Games Frequency Strip Widget (Space-Between Alignment) */
   .monthly-strip {
     background: rgba(0,0,0,0.15);
     border: 1px solid var(--on-teal-border);
@@ -284,7 +283,6 @@
     display: flex; align-items: center; justify-content: center; cursor: pointer; font-weight: 700; z-index: 5;
   }
 
-  /* Booking Status Badges (Interactive 1-Tap Toggle) */
   .status-badge {
     display: inline-flex;
     align-items: center;
@@ -317,7 +315,6 @@
     border: 1px solid rgba(196, 68, 42, 0.25);
   }
 
-  /* Toast Notification Bar */
   .toast {
     position: fixed; bottom: 24px; left: 50%; transform: translateX(-50%) translateY(100px);
     background: var(--header-1); color: white; padding: 12px 20px; border-radius: 999px;
@@ -329,7 +326,6 @@
   .toast-action { background: var(--amber-on-teal); color: var(--header-1); border: none; padding: 4px 10px; border-radius: 999px; font-weight: 700; font-size: 11px; cursor: pointer; }
   .toast-action:hover { opacity: 0.9; }
 
-  /* Date Quick-Pills */
   .date-pills { display: flex; gap: 6px; margin-bottom: 6px; flex-wrap: wrap; }
   .date-pill {
     background: var(--teal-wash); border: 1px solid var(--border); border-radius: 6px; padding: 4px 8px;
@@ -360,7 +356,6 @@
   </div>
   <div id="balance" class="balance">$0</div>
 
-  <!-- Monthly Games Frequency Strip Widget (Exact Per-Session Counting) -->
   <div class="monthly-strip" id="monthlyGamesStrip">
     <div class="monthly-strip-label">Games / Month</div>
     <div class="monthly-bars" id="monthlyBarsContainer"></div>
@@ -394,7 +389,6 @@
   <button class="fab-primary" id="fabBtn" onclick="openForm()">+ Add</button>
 </div>
 
-<!-- Main Entry/Edit Overlay -->
 <div class="overlay" id="overlay" onclick="if(event.target===this) closeForm()">
   <div class="sheet">
     <div class="drag-handle"></div>
@@ -410,7 +404,6 @@
   </div>
 </div>
 
-<!-- Centered Unlock/Lock Auth Modal -->
 <div class="overlay" id="authOverlay" onclick="if(event.target===this) closeAuthModal()">
   <div class="sheet">
     <div class="sheet-head">
@@ -421,7 +414,6 @@
   </div>
 </div>
 
-<!-- Activity Log Detail Modal -->
 <div class="overlay" id="logDetailOverlay" onclick="closeLogDetailModal()">
   <div class="sheet" onclick="event.stopPropagation()">
     <div class="drag-handle"></div>
@@ -434,7 +426,6 @@
   </div>
 </div>
 
-<!-- Image / Attachment Preview Modal -->
 <div class="overlay" id="imageModalOverlay" onclick="closeImageModal()">
   <div class="sheet" style="text-align:center;" onclick="event.stopPropagation()">
     <div class="drag-handle"></div>
@@ -447,7 +438,6 @@
   </div>
 </div>
 
-<!-- Toast Notification Bar with Undo -->
 <div class="toast" id="toastNotification">
   <span id="toastText">Action completed</span>
   <button class="toast-action" id="toastUndoBtn" style="display:none;" onclick="executeUndoAction()">UNDO</button>
@@ -472,7 +462,6 @@ let lastDeletedItem = null;
 let lastDeletedTab = null;
 let toastTimeout = null;
 
-// Persistent Device ID generator
 let deviceId = localStorage.getItem('pickle_device_id');
 if (!deviceId) {
   deviceId = 'dev_' + Math.random().toString(36).substring(2, 9);
@@ -537,7 +526,6 @@ function uid() { return Date.now().toString(36) + Math.random().toString(36).sli
 function todayStr() { return new Date().toISOString().slice(0, 10); }
 function escapeHtml(s) { const d = document.createElement('div'); d.textContent = s || ''; return d.innerHTML; }
 
-// Quick date pill helper
 function setFormDate(dateStr) {
   const dateInput = document.getElementById('fDate');
   if (dateInput) {
@@ -868,7 +856,7 @@ function renderMonthlyGamesStrip() {
   const container = document.getElementById('monthlyBarsContainer');
   if (!container) return;
 
-  // Exact per-session counting: each contribution record represents 1 game session
+  // Counts every individual contribution record (session) per month
   const countsByMonth = {};
   data.contributions.forEach(c => {
     if (c.date) {
@@ -1246,7 +1234,6 @@ function renderBookings() {
   return `<div class="panel-title">Bookings</div>${controls}${groupsHtml}`;
 }
 
-// 1-Tap Booking Status Toggling Function
 function toggleBookingStatus(bookingId) {
   if (!isAuthorized) return;
   const b = data.bookings.find(x => x.id === bookingId);
@@ -1346,7 +1333,7 @@ function bookingFormFields(b) {
     <label class="field">Receipt Attachments (Max 5 allowed)
       <div style="display:flex; align-items:center; justify-content:space-between; margin-bottom:4px;">
         <span id="fileCountIndicator" style="font-size:11.5px; font-weight:600; color:var(--teal);">
-          ${currentFormImages.length > 0 ? `${currentFormImages.length} file(s) selected` : 'Files selected'}
+          ${currentFormImages.length > 0 ? `${currentFormImages.length} file(s) selected` : 'Files Selected'}
         </span>
       </div>
       <input type="file" id="fReceiptFiles" accept="image/*" multiple onchange="handleMultipleImageUpload(event)" />
@@ -1373,7 +1360,7 @@ function removeFormImage(idx) {
   
   const countEl = document.getElementById('fileCountIndicator');
   if (countEl) {
-    countEl.textContent = currentFormImages.length > 0 ? `${currentFormImages.length} file(s) selected` : 'Files selected';
+    countEl.textContent = currentFormImages.length > 0 ? `${currentFormImages.length} file(s) selected` : 'Files Selected';
   }
 }
 
@@ -1729,7 +1716,6 @@ function renderSummaryAndLogs(s) {
 function askDelete(tab, id) { if (!isAuthorized) return; confirmDeleteId = id; confirmDeleteTab = tab; render(); }
 function cancelDelete() { confirmDeleteId = null; confirmDeleteTab = null; render(); }
 
-// Deletion with Toast + Undo Support
 function doDelete(tab, id) {
   if (!isAuthorized) return;
   const itemIndex = data[tab].findIndex(x => x.id === id);
