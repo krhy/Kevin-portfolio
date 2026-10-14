@@ -360,7 +360,7 @@
   </div>
   <div id="balance" class="balance">$0</div>
 
-  <!-- Monthly Games Frequency Strip Widget (Space-Between Alignment & Session Counting) -->
+  <!-- Monthly Games Frequency Strip Widget (Space-Between Alignment & Unique Session Date Counting) -->
   <div class="monthly-strip" id="monthlyGamesStrip">
     <div class="monthly-strip-label">Games / Month</div>
     <div class="monthly-bars" id="monthlyBarsContainer"></div>
@@ -868,11 +868,11 @@ function renderMonthlyGamesStrip() {
   const container = document.getElementById('monthlyBarsContainer');
   if (!container) return;
 
+  const uniqueDates = [...new Set(data.contributions.filter(c => c.date).map(c => c.date))];
   const countsByMonth = {};
-  // Count per session (contribution record)
-  data.contributions.forEach(c => {
-    if (!c.date) return;
-    const monthKey = c.date.slice(0, 7);
+  
+  uniqueDates.forEach(dateStr => {
+    const monthKey = dateStr.slice(0, 7);
     countsByMonth[monthKey] = (countsByMonth[monthKey] || 0) + 1;
   });
 
@@ -893,7 +893,7 @@ function renderMonthlyGamesStrip() {
   container.innerHTML = months.map(m => {
     const heightPx = Math.max(3, Math.round((m.count / maxCount) * maxHeightPx));
     return `
-      <div class="m-bar-col" title="${m.label}: ${m.count} session${m.count !== 1 ? 's' : ''}">
+      <div class="m-bar-col" title="${m.label}: ${m.count} game session${m.count !== 1 ? 's' : ''}">
         <span class="m-bar-count">${m.count}</span>
         <div class="m-bar" style="height: ${heightPx}px;"></div>
         <span class="m-bar-label">${m.label}</span>
