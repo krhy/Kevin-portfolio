@@ -233,17 +233,23 @@
     display: flex; align-items: center; justify-content: center; cursor: pointer; font-weight: 700; z-index: 5;
   }
 
-  /* Booking Status Badges */
+  /* Booking Status Badges (Interactive 1-Tap Toggle) */
   .status-badge {
-    display: inline-block;
-    padding: 3px 9px;
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    padding: 4px 10px;
     border-radius: 999px;
     font-size: 10.5px;
     font-weight: 700;
     font-family: 'Space Grotesk', sans-serif;
     text-transform: uppercase;
     letter-spacing: 0.04em;
+    cursor: pointer;
+    user-select: none;
+    transition: transform 0.15s, opacity 0.2s;
   }
+  .status-badge:hover { transform: scale(1.06); opacity: 0.88; }
   .status-done {
     background: rgba(79, 114, 89, 0.15);
     color: #37503F;
@@ -259,6 +265,26 @@
     color: #C4442A;
     border: 1px solid rgba(196, 68, 42, 0.25);
   }
+
+  /* Toast Notification Bar */
+  .toast {
+    position: fixed; bottom: 24px; left: 50%; transform: translateX(-50%) translateY(100px);
+    background: var(--header-1); color: white; padding: 12px 20px; border-radius: 999px;
+    font-size: 13px; font-family: 'Space Grotesk', sans-serif; box-shadow: 0 6px 20px rgba(0,0,0,0.25);
+    display: flex; align-items: center; gap: 14px; transition: transform 0.3s cubic-bezier(0.34, 1.2, 0.4, 1);
+    z-index: 1000; white-space: nowrap; border: 1px solid var(--on-teal-border);
+  }
+  .toast.show { transform: translateX(-50%) translateY(0); }
+  .toast-action { background: var(--amber-on-teal); color: var(--header-1); border: none; padding: 4px 10px; border-radius: 999px; font-weight: 700; font-size: 11px; cursor: pointer; }
+  .toast-action:hover { opacity: 0.9; }
+
+  /* Date Quick-Pills */
+  .date-pills { display: flex; gap: 6px; margin-bottom: 6px; flex-wrap: wrap; }
+  .date-pill {
+    background: var(--teal-wash); border: 1px solid var(--border); border-radius: 6px; padding: 4px 8px;
+    font-size: 11px; font-weight: 600; color: var(--teal); cursor: pointer; font-family: 'Space Grotesk', sans-serif;
+  }
+  .date-pill:hover { background: rgba(79,114,89,0.15); }
 </style>
 </head>
 <body>
@@ -363,7 +389,13 @@
   </div>
 </div>
 
-<div class="status-banner" id="statusBanner" style="opacity:0">Saving…</div>
+<!-- Toast Notification Bar with Undo -->
+<div class="toast" id="toastNotification">
+  <span id="toastText">Action completed</span>
+  <button class="toast-action" id="toastUndoBtn" style="display:none;" onclick="executeUndoAction()">UNDO</button>
+</div>
+
+<div class="status-banner" id="statusBanner" style="opacity:0; position:fixed; top:14px; right:14px; font-size:11px; font-family:'Space Grotesk',sans-serif; font-weight:600; transition:opacity 0.3s; z-index:20; background:rgba(0,0,0,0.22); padding:4px 10px; border-radius:999px;">Saving…</div>
 
 <script>
 const API_URL = '/api/pickleball/entries';
@@ -377,6 +409,10 @@ let confirmDeleteId = null;
 let confirmDeleteTab = null;
 let displayedBalance = 0;
 let isAuthorized = false;
+
+let lastDeletedItem = null;
+let lastDeletedTab = null;
+let toastTimeout = null;
 
 // Persistent Device ID generator
 let deviceId = localStorage.getItem('pickle_device_id');
@@ -393,6 +429,43 @@ let tabState = {
 
 let currentFormImages = [];
 
+function showToast(message, canUndo = false) {
+  const toast = document.getElementById('toastNotification');
+  const textEl = document.getElementById('toastText');
+  const undoBtn = document.getElementById('toastUndoBtn');
+  
+  textEl.textContent = message;
+  undoBtn.style.display = canUndo ? 'inline-block' : 'none';
+  toast.classList.add('show');
+
+  if (toastTimeout) clearTimeout(toastTimeout);
+  toastTimeout = setTimeout(() => {
+    toast.classList.remove('show');
+    if (!canUndo) lastDeletedItem = null;
+  }, canUndo ? 6000 : 3500);
+}
+
+function executeUndoAction() {
+  if (!lastDeletedItem || !lastDeletedTab) return;
+  data[lastDeletedTab].push(lastDeletedItem);
+  
+  if (lastDeletedTab === 'bookings' && lastDeletedItem.date >= CUTOFF_DATE) {
+    ensureContributionDraft(lastDeletedItem.date);
+    const contrib = data.contributions.find(c => c.date === lastDeletedItem.date);
+    if (contrib && !contrib._hasCustomCcSpent) {
+      contrib.ccSpent = bookingsTotalForDate(lastDeletedItem.date);
+    }
+  }
+
+  logActivity(`Undone deletion of ${lastDeletedTab.slice(0, -1)} item`);
+  lastDeletedItem = null;
+  lastDeletedTab = null;
+  document.getElementById('toastNotification').classList.remove('show');
+  render();
+  saveData();
+  showToast("Action undone successfully!");
+}
+
 function fmt(n) {
   const sign = n < 0 ? '-' : '';
   return sign + '$' + Math.abs(n).toFixed(2).replace(/\.00$/, '');
@@ -405,6 +478,38 @@ function fmtDate(d) {
 function uid() { return Date.now().toString(36) + Math.random().toString(36).slice(2, 7); }
 function todayStr() { return new Date().toISOString().slice(0, 10); }
 function escapeHtml(s) { const d = document.createElement('div'); d.textContent = s || ''; return d.innerHTML; }
+
+// Quick date pill helper
+function setFormDate(dateStr) {
+  const dateInput = document.getElementById('fDate');
+  if (dateInput) {
+    dateInput.value = dateStr;
+    if (typeof updateContribPreview === 'function') updateContribPreview();
+  }
+}
+
+function getQuickDatePillsHtml() {
+  const today = new Date();
+  const todayStrVal = today.toISOString().slice(0, 10);
+  
+  // Calculate next Saturday
+  const sat = new Date(today);
+  sat.setDate(today.getDate() + ((6 - today.getDay() + 7) % 7));
+  const satStr = sat.toISOString().slice(0, 10);
+
+  // Calculate next Sunday
+  const sun = new Date(today);
+  sun.setDate(today.getDate() + ((7 - today.getDay() + 7) % 7));
+  const sunStr = sun.toISOString().slice(0, 10);
+
+  return `
+    <div class="date-pills">
+      <button type="button" class="date-pill" onclick="setFormDate('${todayStrVal}')">Today</button>
+      <button type="button" class="date-pill" onclick="setFormDate('${satStr}')">Next Saturday</button>
+      <button type="button" class="date-pill" onclick="setFormDate('${sunStr}')">Next Sunday</button>
+    </div>
+  `;
+}
 
 function toggleAuth() {
   if (isAuthorized) showAuthConfirmModal();
@@ -589,7 +694,7 @@ function revertToLog(logId) {
     logActivity(`Reverted system state to: ${targetLog.description}`);
     render();
     saveData();
-    alert("System successfully reverted!");
+    showToast("System successfully reverted!");
   }
 }
 
@@ -888,7 +993,10 @@ function contributionFormFields(c) {
   const playersVal = c && c.players ? c.players : '';
 
   return `
-    <label class="field">Game Date<input type="date" id="fDate" value="${c ? c.date : todayStr()}" oninput="updateContribPreview()" /></label>
+    <label class="field">Game Date
+      ${getQuickDatePillsHtml()}
+      <input type="date" id="fDate" value="${c ? c.date : todayStr()}" oninput="updateContribPreview()" />
+    </label>
     <div id="linkSuggest"></div>
     <label class="field">Added by<input type="text" id="fAddedBy" placeholder="e.g. Doreen" value="${c ? escapeHtml(c.addedBy || '') : ''}" /></label>
     <label class="field">Fee per person ($)<input type="number" step="0.01" min="0" id="fFee" placeholder="e.g. 10" value="${feeVal}" oninput="updateContribPreview()" /></label>
@@ -976,6 +1084,7 @@ function submitContribution() {
   const detailStr = `${isEdit ? 'Updated' : 'Added'} Contribution for ${date} by ${addedBy}: ${players} players × $${fee.toFixed(2)} = Expected $${expectedCollection.toFixed(2)}, CC Spent $${cc.toFixed(2)} (${extra >= 0 ? '+' : ''}$${extra.toFixed(2)} extra)`;
   logActivity(detailStr);
   finishSubmit();
+  showToast(isEdit ? 'Contribution updated successfully!' : 'Contribution added successfully!');
 }
 
 function renderBookings() {
@@ -1011,6 +1120,31 @@ function renderBookings() {
   return `<div class="panel-title">Bookings</div>${controls}${groupsHtml}`;
 }
 
+// 1-Tap Booking Status Toggling Function
+function toggleBookingStatus(bookingId) {
+  if (!isAuthorized) return;
+  const b = data.bookings.find(x => x.id === bookingId);
+  if (!b) return;
+
+  const statuses = ['Pending', 'Done', 'Cancelled'];
+  const currentIndex = statuses.indexOf(b.status || 'Pending');
+  const nextStatus = statuses[(currentIndex + 1) % statuses.length];
+
+  b.status = nextStatus;
+  
+  if (b.date >= CUTOFF_DATE) {
+    const contrib = data.contributions.find(c => c.date === b.date);
+    if (contrib && !contrib._hasCustomCcSpent) {
+      contrib.ccSpent = bookingsTotalForDate(b.date);
+    }
+  }
+
+  logActivity(`Changed status of booking "${b.description}" on ${b.date} to ${nextStatus}`);
+  render();
+  saveData();
+  showToast(`Booking status changed to ${nextStatus}`);
+}
+
 function bookingTileHtml(b, i) {
   let actions = '';
   if (isAuthorized) {
@@ -1026,11 +1160,16 @@ function bookingTileHtml(b, i) {
     : '';
 
   const statusClass = (b.status || 'pending').toLowerCase();
+  
+  // Interactive 1-tap badge
+  const statusBadgeHtml = isAuthorized
+    ? `<span class="status-badge status-${statusClass}" onclick="toggleBookingStatus('${b.id}')" title="Click to instantly toggle status">${escapeHtml(b.status || 'Pending')} ⟳</span>`
+    : `<span class="status-badge status-${statusClass}">${escapeHtml(b.status || 'Pending')}</span>`;
 
   return `
     <div class="booking-tile" style="animation-delay:${Math.min(i, 8) * 30}ms">
       <div class="tile-top">
-        <span class="status-badge status-${statusClass}">${escapeHtml(b.status || 'Pending')}</span>
+        ${statusBadgeHtml}
         <span class="tile-amount">${fmt(b.amount)}</span>
       </div>
       <div class="tile-desc" title="${escapeHtml(b.description || '')}">${escapeHtml(b.description || 'Booking')}</div>
@@ -1062,7 +1201,10 @@ function bookingFormFields(b) {
   currentFormImages = b && b.receiptImages ? [...b.receiptImages] : [];
   
   return `
-    <label class="field">Game date<input type="date" id="fDate" value="${b ? b.date : todayStr()}" /></label>
+    <label class="field">Game date
+      ${getQuickDatePillsHtml()}
+      <input type="date" id="fDate" value="${b ? b.date : todayStr()}" />
+    </label>
     <label class="field">Booked by<input type="text" id="fBookedBy" placeholder="e.g. Ian" value="${b ? escapeHtml(b.bookedBy || '') : ''}" /></label>
     <label class="field">Transaction date<input type="date" id="fTxnDate" value="${b ? (b.transactionDate || '') : ''}" /></label>
     <label class="field">Description<input type="text" id="fDescription" placeholder="e.g. PLAYTOMIC.IO booking" value="${b ? escapeHtml(b.description || '') : ''}" /></label>
@@ -1222,6 +1364,7 @@ async function submitBooking() {
   const detailStr = `${isEdit ? 'Updated' : 'Added'} Booking on ${date} — "${desc}" by ${bookedBy}: $${amount.toFixed(2)} [Status: ${status}]`;
   logActivity(detailStr);
   finishSubmit();
+  showToast(isEdit ? 'Booking updated successfully!' : 'Booking added successfully!');
 }
 
 function ensureContributionDraft(date) {
@@ -1301,7 +1444,10 @@ function expenseTileHtml(e, i) {
 
 function expenseFormFields(e) {
   return `
-    <label class="field">Date<input type="date" id="fDate" value="${e ? e.date : todayStr()}" /></label>
+    <label class="field">Date
+      ${getQuickDatePillsHtml()}
+      <input type="date" id="fDate" value="${e ? e.date : todayStr()}" />
+    </label>
     <label class="field">Added by<input type="text" id="fAddedBy" placeholder="e.g. Doreen" value="${e ? escapeHtml(e.addedBy || '') : ''}" /></label>
     <label class="field">Item<input type="text" id="fItem" placeholder="e.g. Franklin balls" value="${e ? escapeHtml(e.item || '') : ''}" /></label>
     <label class="field">Quantity (optional)<input type="number" min="0" id="fQuantity" value="${e ? (e.quantity || '') : ''}" /></label>
@@ -1340,6 +1486,7 @@ function submitExpense() {
   const detailStr = `${isEdit ? 'Updated' : 'Added'} Expense on ${date} — "${item}"${qty ? ' (Qty: ' + qty + ')' : ''} by ${addedBy}: $${totalCost.toFixed(2)}`;
   logActivity(detailStr);
   finishSubmit();
+  showToast(isEdit ? 'Expense updated successfully!' : 'Expense added successfully!');
 }
 
 function exportToExcel() {
@@ -1387,6 +1534,7 @@ function exportToExcel() {
     XLSX.writeFile(wb, "Pickleball_Fund_Report.xlsx");
     logActivity("Exported complete fund ledger to Excel (.xlsx)");
     saveData();
+    showToast("Excel file downloaded!");
   } catch (err) {
     console.error("Excel export failed:", err);
     alert("Failed to generate Excel file.");
@@ -1439,30 +1587,39 @@ function renderSummaryAndLogs(s) {
 
 function askDelete(tab, id) { if (!isAuthorized) return; confirmDeleteId = id; confirmDeleteTab = tab; render(); }
 function cancelDelete() { confirmDeleteId = null; confirmDeleteTab = null; render(); }
+
+// Deletion with Toast + Undo Support
 function doDelete(tab, id) {
   if (!isAuthorized) return;
-  const itemToDelete = data[tab].find(x => x.id === id);
-  data[tab] = data[tab].filter(x => x.id !== id);
+  const itemIndex = data[tab].findIndex(x => x.id === id);
+  if (itemIndex === -1) return;
+
+  lastDeletedItem = data[tab][itemIndex];
+  lastDeletedTab = tab;
+  data[tab].splice(itemIndex, 1);
   
-  if (tab === 'bookings' && itemToDelete && itemToDelete.date >= CUTOFF_DATE) {
-    const contrib = data.contributions.find(c => c.date === itemToDelete.date);
+  if (tab === 'bookings' && lastDeletedItem.date >= CUTOFF_DATE) {
+    const contrib = data.contributions.find(c => c.date === lastDeletedItem.date);
     if (contrib && !contrib._hasCustomCcSpent) {
-      contrib.ccSpent = bookingsTotalForDate(itemToDelete.date);
+      contrib.ccSpent = bookingsTotalForDate(lastDeletedItem.date);
     }
     cleanupEmptyDrafts();
   }
 
   if (tab === 'contributions') {
-    logActivity(`Deleted Contribution for ${itemToDelete.date} — Players: ${itemToDelete.players}, Fee: $${Number(itemToDelete.feePerPerson || 0).toFixed(2)}, Expected: $${Number(itemToDelete.expectedCollection || 0).toFixed(2)}, CC Spent: $${Number(itemToDelete.ccSpent || 0).toFixed(2)}`);
+    logActivity(`Deleted Contribution for ${lastDeletedItem.date}`);
   } else if (tab === 'bookings') {
-    logActivity(`Deleted Booking on ${itemToDelete.date} — "${itemToDelete.description}" by ${itemToDelete.bookedBy}: $${Number(itemToDelete.amount || 0).toFixed(2)} [Status: ${itemToDelete.status}]`);
+    logActivity(`Deleted Booking on ${lastDeletedItem.date} — "${lastDeletedItem.description}"`);
   } else if (tab === 'expenses') {
-    logActivity(`Deleted Expense on ${itemToDelete.date} — "${itemToDelete.item}" by ${itemToDelete.addedBy}: $${Number(itemToDelete.totalCost || 0).toFixed(2)}`);
+    logActivity(`Deleted Expense on ${lastDeletedItem.date} — "${lastDeletedItem.item}"`);
   }
 
-  confirmDeleteId = null; confirmDeleteTab = null;
+  confirmDeleteId = null; 
+  confirmDeleteTab = null;
   render();
   saveData();
+  
+  showToast(`Deleted ${tab.slice(0, -1)} successfully`, true);
 }
 
 function openForm() {
