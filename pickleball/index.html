@@ -217,7 +217,6 @@
   .link-btn { background: none; border: none; font-size: 12px; cursor: pointer; display: flex; align-items: center; gap: 4px; padding: 0; color: var(--muted); font-family: inherit; }
   .link-btn:hover { color: var(--ink); }
   .link-btn.danger { color: var(--rust); }
-  .link-btn.danger.hover { opacity: 0.8; }
   
   .receipt-link {
     display: inline-flex; align-items: center; gap: 4px; font-size: 11px; font-weight: 600;
@@ -232,6 +231,33 @@
     position: absolute; top: -6px; right: -6px; background: var(--rust); color: #fff;
     border: none; border-radius: 50%; width: 20px; height: 20px; font-size: 11px;
     display: flex; align-items: center; justify-content: center; cursor: pointer; font-weight: 700; z-index: 5;
+  }
+
+  /* Booking Status Badges */
+  .status-badge {
+    display: inline-block;
+    padding: 3px 9px;
+    border-radius: 999px;
+    font-size: 10.5px;
+    font-weight: 700;
+    font-family: 'Space Grotesk', sans-serif;
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+  }
+  .status-done {
+    background: rgba(79, 114, 89, 0.15);
+    color: #37503F;
+    border: 1px solid rgba(79, 114, 89, 0.3);
+  }
+  .status-pending {
+    background: rgba(201, 138, 45, 0.15);
+    color: #8C5A28;
+    border: 1px solid rgba(201, 138, 45, 0.3);
+  }
+  .status-cancelled {
+    background: rgba(196, 68, 42, 0.12);
+    color: #C4442A;
+    border: 1px solid rgba(196, 68, 42, 0.25);
   }
 </style>
 </head>
@@ -474,11 +500,26 @@ async function loadData() {
 
 function logActivity(actionDesc) {
   if (!data.activityLogs) data.activityLogs = [];
+  
+  const nav = navigator;
+  const conn = nav.connection || nav.mozConnection || nav.webkitConnection;
+  const networkType = conn ? (conn.effectiveType || conn.type || 'unknown') : 'unknown';
+  const screenRes = `${window.screen.width}x${window.screen.height} (${window.innerWidth > window.innerHeight ? 'Landscape' : 'Portrait'})`;
+  const timezone = Intl.DateTimeFormat().resolvedOptions().timeZone || 'unknown';
+  const language = nav.language || 'unknown';
+
   const logEntry = {
     id: uid(),
     timestamp: Date.now(),
     deviceId: deviceId,
-    userAgent: navigator.userAgent.substring(0, 60) + '...',
+    userAgent: nav.userAgent,
+    environment: {
+      screen: screenRes,
+      timezone: timezone,
+      language: language,
+      network: networkType,
+      platform: nav.platform || 'unknown'
+    },
     description: actionDesc,
     snapshot: JSON.parse(JSON.stringify({
       contributions: data.contributions,
@@ -499,12 +540,21 @@ function openLogDetailModal(logId) {
 
   const timeStr = new Date(targetLog.timestamp).toLocaleString();
   const isExcel = targetLog.description.includes('Excel');
+  const env = targetLog.environment || {};
 
   document.getElementById('logDetailContent').innerHTML = `
     <div style="margin-bottom: 8px;"><strong>Timestamp:</strong> ${timeStr}</div>
-    <div style="margin-bottom: 8px;"><strong>Action / Details:</strong><br/><span style="color:var(--teal-deep); font-weight:600;">${escapeHtml(targetLog.description)}</span></div>
-    <div style="margin-bottom: 8px;"><strong>Device ID:</strong> ${escapeHtml(targetLog.deviceId)}</div>
-    <div style="margin-bottom: 12px;"><strong>Browser:</strong> ${escapeHtml(targetLog.userAgent)}</div>
+    <div style="margin-bottom: 10px;"><strong>Action / Details:</strong><br/><span style="color:var(--teal-deep); font-weight:600; font-size:14px;">${escapeHtml(targetLog.description)}</span></div>
+    <hr style="border:0; border-top:1px solid var(--border); margin: 10px 0;" />
+    <div style="font-size: 12px; color: var(--muted); display: flex; flex-direction: column; gap: 4px;">
+      <div><strong>Device ID:</strong> ${escapeHtml(targetLog.deviceId)}</div>
+      <div><strong>Platform / OS:</strong> ${escapeHtml(env.platform || 'N/A')}</div>
+      <div><strong>Screen Resolution:</strong> ${escapeHtml(env.screen || 'N/A')}</div>
+      <div><strong>Timezone:</strong> ${escapeHtml(env.timezone || 'N/A')}</div>
+      <div><strong>Language:</strong> ${escapeHtml(env.language || 'N/A')}</div>
+      <div><strong>Network Type:</strong> ${escapeHtml(env.network || 'N/A')}</div>
+      <div style="word-break: break-all; margin-top:4px;"><strong>User Agent:</strong> ${escapeHtml(targetLog.userAgent)}</div>
+    </div>
   `;
 
   const actionsEl = document.getElementById('logDetailActions');
@@ -975,10 +1025,12 @@ function bookingTileHtml(b, i) {
     ? `<a href="javascript:void(0)" class="receipt-link" onclick="openImageModal('${b.id}')">🖼 View Attachment/s (${count})</a>` 
     : '';
 
+  const statusClass = (b.status || 'pending').toLowerCase();
+
   return `
     <div class="booking-tile" style="animation-delay:${Math.min(i, 8) * 30}ms">
       <div class="tile-top">
-        <span class="status-badge status-${(b.status || 'pending').toLowerCase()}">${escapeHtml(b.status || 'Pending')}</span>
+        <span class="status-badge status-${statusClass}">${escapeHtml(b.status || 'Pending')}</span>
         <span class="tile-amount">${fmt(b.amount)}</span>
       </div>
       <div class="tile-desc" title="${escapeHtml(b.description || '')}">${escapeHtml(b.description || 'Booking')}</div>
