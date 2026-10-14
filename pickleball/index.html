@@ -75,8 +75,51 @@
   }
   .auth-btn.unlocked { background: rgba(231,178,124,0.3); border-color: var(--amber-on-teal); color: var(--amber-on-teal); }
 
-  .balance { font-family: 'IBM Plex Mono', monospace; font-weight: 700; font-size: 44px; line-height: 1; color: var(--amber-on-teal); text-shadow: 0 0 26px rgba(231,178,124,0.3); }
+  .balance { font-family: 'IBM Plex Mono', monospace; font-weight: 700; font-size: 42px; line-height: 1; color: var(--amber-on-teal); text-shadow: 0 0 26px rgba(231,178,124,0.3); margin-bottom: 12px; }
   .balance.negative { color: var(--coral-on-teal); text-shadow: 0 0 26px rgba(255,154,128,0.3); }
+
+  /* Monthly Games Strip Widget */
+  .monthly-strip {
+    background: rgba(0,0,0,0.15);
+    border: 1px solid var(--on-teal-border);
+    border-radius: 12px;
+    padding: 10px 14px;
+    margin-bottom: 14px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+  }
+  .monthly-strip-label {
+    font-family: 'Space Grotesk', sans-serif;
+    font-size: 10px;
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+    color: var(--on-teal-muted);
+    font-weight: 600;
+  }
+  .monthly-bars {
+    display: flex;
+    align-items: flex-end;
+    gap: 10px;
+    height: 28px;
+  }
+  .m-bar-col {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 2px;
+  }
+  .m-bar {
+    width: 12px;
+    background: var(--amber-on-teal);
+    border-radius: 3px 3px 0 0;
+    min-height: 3px;
+  }
+  .m-bar-label {
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 8.5px;
+    color: var(--on-teal-muted);
+  }
 
   .sparkline-wrap { margin: 6px 0 10px; height: 46px; }
   .sparkline-wrap svg { width: 100%; height: 100%; display: block; overflow: visible; }
@@ -308,6 +351,13 @@
     <button class="auth-btn" id="authBtn" onclick="toggleAuth()">🔒 Unlock Editing</button>
   </div>
   <div id="balance" class="balance">$0</div>
+
+  <!-- Monthly Games Frequency Strip Widget -->
+  <div class="monthly-strip" id="monthlyGamesStrip">
+    <div class="monthly-strip-label">Games / Month</div>
+    <div class="monthly-bars" id="monthlyBarsContainer"></div>
+  </div>
+
   <div class="sparkline-wrap" id="sparklineWrap"></div>
 
   <div class="divider"></div>
@@ -492,12 +542,10 @@ function getQuickDatePillsHtml() {
   const today = new Date();
   const todayStrVal = today.toISOString().slice(0, 10);
   
-  // Calculate next Saturday
   const sat = new Date(today);
   sat.setDate(today.getDate() + ((6 - today.getDay() + 7) % 7));
   const satStr = sat.toISOString().slice(0, 10);
 
-  // Calculate next Sunday
   const sun = new Date(today);
   sun.setDate(today.getDate() + ((7 - today.getDay() + 7) % 7));
   const sunStr = sun.toISOString().slice(0, 10);
@@ -778,6 +826,45 @@ function animateBalance(target) {
   requestAnimationFrame(tick);
 }
 
+// Render Monthly Games Frequency Strip
+function renderMonthlyGamesStrip() {
+  const container = document.getElementById('monthlyBarsContainer');
+  if (!container) return;
+
+  // Aggregate session counts by month (YYYY-MM) from contributions
+  const countsByMonth = {};
+  data.contributions.forEach(c => {
+    if (!c.date) return;
+    const monthKey = c.date.slice(0, 7); // "YYYY-MM"
+    countsByMonth[monthKey] = (countsByMonth[monthKey] || 0) + 1;
+  });
+
+  // Generate the last 5 months up to current month
+  const months = [];
+  const now = new Date();
+  for (let i = 4; i >= 0; i--) {
+    const d = new Date(now.getFullYear(), now.getMonth() - i, 1);
+    const yyyy = d.getFullYear();
+    const mm = String(d.getMonth() + 1).padStart(2, '0');
+    const key = `${yyyy}-${mm}`;
+    const label = d.toLocaleString('default', { month: 'short' });
+    months.push({ key, label, count: countsByMonth[key] || 0 });
+  }
+
+  const maxCount = Math.max(1, ...months.map(m => m.count));
+  const maxHeightPx = 22;
+
+  container.innerHTML = months.map(m => {
+    const heightPx = Math.max(4, Math.round((m.count / maxCount) * maxHeightPx));
+    return `
+      <div class="m-bar-col" title="${m.label}: ${m.count} game${m.count !== 1 ? 's' : ''}">
+        <div class="m-bar" style="height: ${heightPx}px;"></div>
+        <span class="m-bar-label">${m.label}</span>
+      </div>
+    `;
+  }).join('');
+}
+
 function renderSparkline() {
   const events = [
     ...data.contributions.filter(c => !contributionNeedsUpdate(c)).map(c => ({ date: c.date, createdAt: c.createdAt, delta: liveExtra(c) })),
@@ -829,6 +916,7 @@ function switchTab(tab) {
 function render() {
   const s = summary();
   animateBalance(s.remaining);
+  renderMonthlyGamesStrip();
   renderSparkline();
   document.getElementById('statAccumulated').textContent = fmt(s.accumulated);
   document.getElementById('statExpenses').textContent = fmt(s.expensesTotal);
@@ -1161,7 +1249,6 @@ function bookingTileHtml(b, i) {
 
   const statusClass = (b.status || 'pending').toLowerCase();
   
-  // Interactive 1-tap badge
   const statusBadgeHtml = isAuthorized
     ? `<span class="status-badge status-${statusClass}" onclick="toggleBookingStatus('${b.id}')" title="Click to instantly toggle status">${escapeHtml(b.status || 'Pending')} ⟳</span>`
     : `<span class="status-badge status-${statusClass}">${escapeHtml(b.status || 'Pending')}</span>`;
