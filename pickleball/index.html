@@ -78,7 +78,7 @@
   .balance { font-family: 'IBM Plex Mono', monospace; font-weight: 700; font-size: 42px; line-height: 1; color: var(--amber-on-teal); text-shadow: 0 0 26px rgba(231,178,124,0.3); margin-bottom: 12px; }
   .balance.negative { color: var(--coral-on-teal); text-shadow: 0 0 26px rgba(255,154,128,0.3); }
 
-  /* Monthly Games Strip Widget */
+  /* Monthly Games Strip Widget - Left Aligned */
   .monthly-strip {
     background: rgba(0,0,0,0.15);
     border: 1px solid var(--on-teal-border);
@@ -87,7 +87,8 @@
     margin-bottom: 14px;
     display: flex;
     align-items: center;
-    justify-content: space-between;
+    justify-content: flex-start;
+    gap: 18px;
   }
   .monthly-strip-label {
     font-family: 'Space Grotesk', sans-serif;
@@ -96,11 +97,12 @@
     letter-spacing: 0.08em;
     color: var(--on-teal-muted);
     font-weight: 600;
+    white-space: nowrap;
   }
   .monthly-bars {
     display: flex;
     align-items: flex-end;
-    gap: 10px;
+    gap: 12px;
     height: 28px;
   }
   .m-bar-col {
@@ -352,7 +354,7 @@
   </div>
   <div id="balance" class="balance">$0</div>
 
-  <!-- Monthly Games Frequency Strip Widget -->
+  <!-- Monthly Games Frequency Strip Widget (Left Aligned) -->
   <div class="monthly-strip" id="monthlyGamesStrip">
     <div class="monthly-strip-label">Games / Month</div>
     <div class="monthly-bars" id="monthlyBarsContainer"></div>
@@ -452,7 +454,7 @@ const API_URL = '/api/pickleball/entries';
 const TAB_ORDER = ['bookings', 'contributions', 'expenses', 'summary'];
 const CUTOFF_DATE = '2026-09-16';
 
-let data = { contributions: [], bookings: [], expenses: [], activityLogs: [], lastModified: 0 };
+let data = { contributions: [], bookings: [], expenses: [], activityLogs: [], lastModified: 0, version: 1 };
 let activeTab = 'bookings';
 let editingId = null;
 let confirmDeleteId = null;
@@ -619,14 +621,15 @@ async function loadData() {
     if (!res.ok) throw new Error('load failed');
     const raw = await res.json();
     if (Array.isArray(raw)) {
-      data = { contributions: [], bookings: [], expenses: [], activityLogs: [], lastModified: 0 };
+      data = { contributions: [], bookings: [], expenses: [], activityLogs: [], lastModified: 0, version: 1 };
     } else {
       data = { 
         contributions: raw.contributions || [], 
         bookings: raw.bookings || [], 
         expenses: raw.expenses || [],
         activityLogs: raw.activityLogs || [],
-        lastModified: raw.lastModified || 0
+        lastModified: raw.lastModified || 0,
+        version: raw.version || 1
       };
       
       data.bookings.forEach(b => {
@@ -636,6 +639,7 @@ async function loadData() {
       });
     }
     window.appLoadedAt = data.lastModified;
+    window.appVersion = data.version;
   } catch (e) {
     console.error('Failed to load data', e);
   }
@@ -746,6 +750,34 @@ function revertToLog(logId) {
   }
 }
 
+// Intelligent Entity-Level Merge Function for Concurrent Saves
+function intelligentMerge(serverData, localData) {
+  function mergeArray(serverArr = [], localArr = []) {
+    const map = new Map();
+    serverArr.forEach(item => map.set(item.id, { ...item, source: 'server' }));
+    
+    localArr.forEach(item => {
+      if (!map.has(item.id)) {
+        map.set(item.id, { ...item, source: 'local_new' });
+      } else {
+        if (item.createdAt && item.createdAt > (window.appLoadedAt || 0)) {
+          map.set(item.id, { ...item, source: 'local_updated' });
+        }
+      }
+    });
+    return Array.from(map.values());
+  }
+
+  return {
+    contributions: mergeArray(serverData.contributions, localData.contributions),
+    bookings: mergeArray(serverData.bookings, localData.bookings),
+    expenses: mergeArray(serverData.expenses, localData.expenses),
+    activityLogs: [...(localData.activityLogs || []), ...(serverData.activityLogs || [])].slice(0, 20),
+    version: (serverData.version || 1) + 1,
+    lastModified: Date.now()
+  };
+}
+
 async function saveData() {
   if (!isAuthorized) return;
   showStatus('Syncing & checking conflicts…');
@@ -754,19 +786,20 @@ async function saveData() {
     const checkRes = await fetch(API_URL);
     if (checkRes.ok) {
       const serverRaw = await checkRes.json();
-      const serverLastModified = serverRaw.lastModified || 0;
+      const serverVersion = serverRaw.version || 1;
       
-      if (window.appLoadedAt && serverLastModified > window.appLoadedAt) {
-        const overwrite = confirm("⚠️ Another committee member updated the fund data just now. Do you want to overwrite their changes, or cancel and reload the latest data?");
-        if (!overwrite) {
-          showStatus('Save cancelled to protect other user changes', true);
-          loadData();
-          return;
-        }
+      if (window.appVersion && serverVersion > window.appVersion) {
+        const merged = intelligentMerge(serverRaw, data);
+        data = merged;
+        window.appVersion = data.version;
+        window.appLoadedAt = data.lastModified;
+        showToast("Merged concurrent updates automatically!");
       }
     }
 
     data.lastModified = Date.now();
+    data.version = (window.appVersion || 1) + 1;
+    window.appVersion = data.version;
     window.appLoadedAt = data.lastModified;
 
     const res = await fetch(API_URL, { 
@@ -826,20 +859,17 @@ function animateBalance(target) {
   requestAnimationFrame(tick);
 }
 
-// Render Monthly Games Frequency Strip
 function renderMonthlyGamesStrip() {
   const container = document.getElementById('monthlyBarsContainer');
   if (!container) return;
 
-  // Aggregate session counts by month (YYYY-MM) from contributions
   const countsByMonth = {};
   data.contributions.forEach(c => {
     if (!c.date) return;
-    const monthKey = c.date.slice(0, 7); // "YYYY-MM"
+    const monthKey = c.date.slice(0, 7);
     countsByMonth[monthKey] = (countsByMonth[monthKey] || 0) + 1;
   });
 
-  // Generate the last 5 months up to current month
   const months = [];
   const now = new Date();
   for (let i = 4; i >= 0; i--) {
@@ -1304,7 +1334,13 @@ function bookingFormFields(b) {
       </select>
     </label>
     <label class="field">Comments (optional)<input type="text" id="fComments" value="${b ? escapeHtml(b.comments || '') : ''}" /></label>
+    
     <label class="field">Receipt Attachments (Max 5 allowed)
+      <div style="display:flex; align-items:center; justify-content:space-between; margin-bottom:4px;">
+        <span id="fileCountIndicator" style="font-size:12px; font-weight:600; color:var(--teal);">
+          ${currentFormImages.length > 0 ? `${currentFormImages.length} file(s) attached` : 'No file chosen'}
+        </span>
+      </div>
       <input type="file" id="fReceiptFiles" accept="image/*" multiple onchange="handleMultipleImageUpload(event)" />
     </label>
     <div id="imageThumbsContainer" style="margin-top:4px; display:flex; flex-wrap:wrap; gap:6px;">
@@ -1326,6 +1362,11 @@ function removeFormImage(idx) {
   currentFormImages.splice(idx, 1);
   const container = document.getElementById('imageThumbsContainer');
   if (container) container.innerHTML = renderFormThumbnails();
+  
+  const countEl = document.getElementById('fileCountIndicator');
+  if (countEl) {
+    countEl.textContent = currentFormImages.length > 0 ? `${currentFormImages.length} file(s) attached` : 'No file chosen';
+  }
 }
 
 function handleMultipleImageUpload(event) {
@@ -1370,6 +1411,11 @@ function handleMultipleImageUpload(event) {
           currentFormImages.push(dataUrl);
           const container = document.getElementById('imageThumbsContainer');
           if (container) container.innerHTML = renderFormThumbnails();
+          
+          const countEl = document.getElementById('fileCountIndicator');
+          if (countEl) {
+            countEl.textContent = `${currentFormImages.length} file(s) attached`;
+          }
         }
       };
       img.src = e.target.result;
