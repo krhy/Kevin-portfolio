@@ -357,7 +357,7 @@
   <div id="balance" class="balance">$0</div>
 
   <div class="monthly-strip" id="monthlyGamesStrip">
-    <div class="monthly-strip-label">Games / Month</div>
+    <div class="monthly-strip-label">Game Days / Month</div>
     <div class="monthly-bars" id="monthlyBarsContainer"></div>
   </div>
 
@@ -856,7 +856,6 @@ function renderMonthlyGamesStrip() {
   const container = document.getElementById('monthlyBarsContainer');
   if (!container) return;
 
-  // Counts every individual contribution record (session) per month
   const countsByMonth = {};
   data.contributions.forEach(c => {
     if (c.date) {
