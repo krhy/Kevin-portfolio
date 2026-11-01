@@ -1,4 +1,7 @@
+import { json, requireAdmin, isSameOrigin, readBodyLimited } from "./auth.js";
+
 const INVENTORY_KV_KEY = "inventory:items";
+const MAX_BODY_BYTES = 5 * 1024 * 1024; // 5 MB
 
 export async function handleInventoryApi(request, env) {
   const url = new URL(request.url);
@@ -7,30 +10,35 @@ export async function handleInventoryApi(request, env) {
     return null; // not our route
   }
 
-  const corsHeaders = {
-    "Content-Type": "application/json",
-    "Access-Control-Allow-Origin": "*",
-  };
-
+  // Reading the inventory stays public (the page is a read-only view by default).
   if (request.method === "GET") {
     const data = await env.INVENTORY_KV.get(INVENTORY_KV_KEY);
-    return new Response(data || "[]", { headers: corsHeaders });
+    return new Response(data || "[]", {
+      headers: { "Content-Type": "application/json", "Cache-Control": "no-store" },
+    });
   }
 
   if (request.method === "POST" || request.method === "PUT") {
-    let body;
+    if (!isSameOrigin(request)) return json({ error: "Forbidden" }, 403);
+    const denied = await requireAdmin(request, env, "inventory");
+    if (denied) return denied;
+
+    const { text, error } = await readBodyLimited(request, MAX_BODY_BYTES);
+    if (error) return error;
+
+    let parsed;
     try {
-      body = await request.text();
-      JSON.parse(body); // validate before storing
+      parsed = JSON.parse(text);
     } catch {
-      return new Response(JSON.stringify({ error: "Invalid JSON" }), {
-        status: 400,
-        headers: corsHeaders,
-      });
+      return json({ error: "Invalid JSON" }, 400);
     }
-    await env.INVENTORY_KV.put(INVENTORY_KV_KEY, body);
-    return new Response(JSON.stringify({ ok: true }), { headers: corsHeaders });
+    if (!Array.isArray(parsed)) {
+      return json({ error: "Inventory must be a list of items" }, 400);
+    }
+
+    await env.INVENTORY_KV.put(INVENTORY_KV_KEY, text);
+    return json({ ok: true });
   }
 
-  return new Response("Method not allowed", { status: 405, headers: corsHeaders });
+  return json({ error: "Method not allowed" }, 405);
 }

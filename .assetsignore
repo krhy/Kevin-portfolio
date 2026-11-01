@@ -1,2 +1,6 @@
 wrangler.jsonc
 _worker.js
+auth.js
+inventory-api.js
+.git
+.dev.vars

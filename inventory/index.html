@@ -319,6 +319,16 @@
 <script>
 let items = [];
 let isAuthorized = false;
+// Kept in memory only (never saved to the device); cleared on lock or reload.
+let adminPassword = '';
+
+// Ask the server to verify the password. The password is not in this page.
+async function verifyAdminPassword(pwd) {
+  try {
+    const res = await fetch('/api/auth/check?app=inventory', { method: 'POST', headers: { 'X-Admin-Password': pwd } });
+    return res.ok;
+  } catch { return false; }
+}
 let searchQuery = '';
 let categoryFilter = 'all';
 let editingId = null;
@@ -359,6 +369,7 @@ function toggleAuth() {
   if (isAuthorized) {
     if (confirm("Lock inventory editing back to read-only?")) {
       isAuthorized = false;
+      adminPassword = '';
       closeForm();
       closeSaleForm();
       closeRestockForm();
@@ -379,11 +390,12 @@ function closeAuthForm() {
   document.getElementById('authOverlay').classList.remove('open');
 }
 
-function submitAuth(e) {
+async function submitAuth(e) {
   e.preventDefault();
   const pwd = document.getElementById('authPassword').value;
-  if (pwd === "Sadueste123") {
+  if (pwd && await verifyAdminPassword(pwd)) {
     isAuthorized = true;
+    adminPassword = pwd;
     closeAuthForm();
     render();
     showStatus("Editing mode unlocked!");
@@ -413,9 +425,16 @@ async function saveData() {
   try {
     const response = await fetch('/api/inventory/items', {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
+      headers: { 'Content-Type': 'application/json', 'X-Admin-Password': adminPassword },
       body: JSON.stringify(items)
     });
+    if (response.status === 401) {
+      isAuthorized = false;
+      adminPassword = '';
+      render();
+      showStatus('Session locked — please unlock editing again', true);
+      return;
+    }
     if (response.ok) {
       hideStatus();
     } else {

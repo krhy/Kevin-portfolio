@@ -457,6 +457,24 @@ let confirmDeleteId = null;
 let confirmDeleteTab = null;
 let displayedBalance = 0;
 let isAuthorized = false;
+// Kept in memory only (never saved to the device); cleared on lock or reload.
+let adminPassword = '';
+
+// Ask the server to verify the password. The password is not in this page.
+async function verifyAdminPassword(pwd) {
+  try {
+    const res = await fetch('/api/auth/check?app=pickleball', { method: 'POST', headers: { 'X-Admin-Password': pwd } });
+    return res.ok;
+  } catch { return false; }
+}
+
+function handleAuthExpired() {
+  isAuthorized = false;
+  adminPassword = '';
+  closeForm();
+  render();
+  showStatus('Session locked — please unlock editing again', true);
+}
 
 let lastDeletedItem = null;
 let lastDeletedTab = null;
@@ -588,10 +606,11 @@ function showAuthConfirmModal() {
 
 function closeAuthModal() { document.getElementById('authOverlay').classList.remove('open'); }
 
-function submitAuthPassword() {
+async function submitAuthPassword() {
   const pwd = document.getElementById('authPasswordInput').value;
-  if (pwd === "KaHimi2025!!") {
+  if (pwd && await verifyAdminPassword(pwd)) {
     isAuthorized = true;
+    adminPassword = pwd;
     closeAuthModal();
     render();
     showStatus("Editing mode unlocked!");
@@ -603,6 +622,7 @@ function submitAuthPassword() {
 
 function confirmLockAuth() {
   isAuthorized = false;
+  adminPassword = '';
   closeAuthModal();
   closeForm();
   render();
@@ -797,10 +817,11 @@ async function saveData() {
 
     const res = await fetch(API_URL, { 
       method: 'PUT', 
-      headers: { 'Content-Type': 'application/json' }, 
+      headers: { 'Content-Type': 'application/json', 'X-Admin-Password': adminPassword }, 
       body: JSON.stringify(data) 
     });
     
+    if (res.status === 401) return handleAuthExpired();
     if (!res.ok) throw new Error('save failed');
     hideStatus();
   } catch (e) {
@@ -1298,7 +1319,7 @@ function openImageModal(bookingId) {
   container.innerHTML = booking.receiptImages.map((imgUrl, idx) => `
     <div>
       <div style="font-size:11px; color:var(--muted); margin-bottom:4px;">Attachment ${idx + 1} of ${booking.receiptImages.length}</div>
-      <img src="${imgUrl}" alt="Booking Attachment ${idx + 1}" style="max-width:100%; height:auto; border-radius:8px; border:1px solid var(--border);" />
+      <img src="${escapeHtml(imgUrl)}" alt="Booking Attachment ${idx + 1}" style="max-width:100%; height:auto; border-radius:8px; border:1px solid var(--border);" />
     </div>
   `).join('');
   document.getElementById('imageModalOverlay').classList.add('open');
@@ -1433,9 +1454,10 @@ async function submitBooking() {
       try {
         const res = await fetch('/api/pickleball/upload-image', {
           method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ imageBase64: img, filename: 'receipt.jpg' })
+          headers: { 'Content-Type': 'application/json', 'X-Admin-Password': adminPassword },
+          body: JSON.stringify({ imageBase64: img })
         });
+        if (res.status === 401) return handleAuthExpired();
         if (!res.ok) throw new Error('R2 upload failed');
         const jsonRes = await res.json();
         uploadedImageUrls.push(jsonRes.url);
