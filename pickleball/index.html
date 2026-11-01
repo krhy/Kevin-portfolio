@@ -332,6 +332,12 @@
     font-size: 11px; font-weight: 600; color: var(--teal); cursor: pointer; font-family: 'Space Grotesk', sans-serif;
   }
   .date-pill:hover { background: rgba(79,114,89,0.15); }
+
+  /* Phones: 16px text in form fields stops iPhones from auto-zooming
+     the page when a field is tapped (which pushed popups off-screen). */
+  @media (max-width: 640px) {
+    input, select, textarea { font-size: 16px !important; }
+  }
 </style>
 </head>
 <body>

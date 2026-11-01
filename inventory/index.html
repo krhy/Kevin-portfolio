@@ -169,6 +169,12 @@
     background: rgba(15, 23, 42, 0.85); backdrop-filter: blur(6px); color: var(--accent-glow); 
     padding: 6px 14px; border-radius: 999px;
   }
+
+  /* Phones: 16px text in form fields stops iPhones from auto-zooming
+     the page when a field is tapped (which pushed popups off-screen). */
+  @media (max-width: 640px) {
+    input, select, textarea { font-size: 16px !important; }
+  }
 </style>
 </head>
 <body>
