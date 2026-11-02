@@ -2,6 +2,10 @@
   "name": "kevin-portfolio",
   "main": "_worker.js",
   "compatibility_date": "2026-08-17",
+  // Daily pickleball backup + cleanup at 19:23 UTC (03:23 Philippine time).
+  "triggers": {
+    "crons": ["23 19 * * *"]
+  },
   "assets": {
     "directory": "./",
     "binding": "ASSETS"

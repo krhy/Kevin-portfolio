@@ -203,13 +203,13 @@
   }
   .overlay.open .sheet { transform: translateY(0); }
   
-  .overlay#authOverlay, .overlay#imageModalOverlay, .overlay#logDetailOverlay { align-items: center; justify-content: center; padding: 20px; }
-  .overlay#authOverlay .sheet, .overlay#imageModalOverlay .sheet, .overlay#logDetailOverlay .sheet {
+  .overlay#authOverlay, .overlay#imageModalOverlay, .overlay#logDetailOverlay, .overlay#backupsOverlay { align-items: center; justify-content: center; padding: 20px; }
+  .overlay#authOverlay .sheet, .overlay#imageModalOverlay .sheet, .overlay#logDetailOverlay .sheet, .overlay#backupsOverlay .sheet {
     max-width: 440px; border-radius: 22px; transform: scale(0.95); opacity: 0;
     transition: transform 0.25s cubic-bezier(0.34, 1.2, 0.4, 1), opacity 0.25s ease;
     box-shadow: 0 10px 30px rgba(36,29,22,0.2);
   }
-  .overlay#authOverlay.open .sheet, .overlay#imageModalOverlay.open .sheet, .overlay#logDetailOverlay.open .sheet { transform: scale(1); opacity: 1; }
+  .overlay#authOverlay.open .sheet, .overlay#imageModalOverlay.open .sheet, .overlay#logDetailOverlay.open .sheet, .overlay#backupsOverlay.open .sheet { transform: scale(1); opacity: 1; }
 
   .drag-handle { width: 36px; height: 4px; border-radius: 999px; background: var(--border-strong); margin: 4px auto 14px; }
   .sheet-head { display: flex; justify-content: space-between; align-items: center; margin-bottom: 14px; }
@@ -333,6 +333,13 @@
   }
   .date-pill:hover { background: rgba(79,114,89,0.15); }
 
+  .backup-row { border: 1px solid var(--border); border-radius: 12px; padding: 10px 12px; margin-bottom: 8px; cursor: pointer; background: #fff; }
+  .backup-row:active { background: var(--paper); }
+  .backup-when { font-weight: 600; color: var(--ink); }
+  .backup-meta { font-size: 12px; color: var(--muted); margin-top: 2px; }
+  .backup-compare { display: grid; grid-template-columns: 1fr auto auto; gap: 4px 12px; font-size: 13px; margin: 10px 0 14px; }
+  .backup-compare .h { font-size: 11px; color: var(--muted); text-transform: uppercase; letter-spacing: .04em; }
+
   /* Phones: 16px text in form fields stops iPhones from auto-zooming
      the page when a field is tapped (which pushed popups off-screen). */
   @media (max-width: 640px) {
@@ -432,6 +439,17 @@
   </div>
 </div>
 
+<div class="overlay" id="backupsOverlay" onclick="closeBackups()">
+  <div class="sheet" onclick="event.stopPropagation()">
+    <div class="drag-handle"></div>
+    <div class="sheet-head">
+      <div class="sheet-title" id="backupsTitle">Server Backups</div>
+      <button class="close-btn" onclick="closeBackups()">✕</button>
+    </div>
+    <div id="backupsContent" style="font-size: 13.5px; color: var(--ink); line-height: 1.5;"></div>
+  </div>
+</div>
+
 <div class="overlay" id="imageModalOverlay" onclick="closeImageModal()">
   <div class="sheet" style="text-align:center;" onclick="event.stopPropagation()">
     <div class="drag-handle"></div>
@@ -472,6 +490,11 @@ async function verifyAdminPassword(pwd) {
     const res = await fetch('/api/auth/check?app=pickleball', { method: 'POST', headers: { 'X-Admin-Password': pwd } });
     return res.ok;
   } catch { return false; }
+}
+
+// Send the password with requests while unlocked (shows device details in the log).
+function authHeaders() {
+  return isAuthorized && adminPassword ? { 'X-Admin-Password': adminPassword } : {};
 }
 
 function handleAuthExpired() {
@@ -620,6 +643,7 @@ async function submitAuthPassword() {
     closeAuthModal();
     render();
     showStatus("Editing mode unlocked!");
+    loadData(); // fetch the committee view (includes device details)
   } else {
     const err = document.getElementById('authError');
     if (err) err.style.display = 'block';
@@ -631,13 +655,15 @@ function confirmLockAuth() {
   adminPassword = '';
   closeAuthModal();
   closeForm();
+  closeBackups();
   render();
   showStatus("Locked to read-only view");
+  loadData(); // back to the public view (no device details)
 }
 
 async function loadData() {
   try {
-    const res = await fetch(API_URL);
+    const res = await fetch(API_URL, { headers: authHeaders() });
     if (!res.ok) throw new Error('load failed');
     const raw = await res.json();
     if (Array.isArray(raw)) {
@@ -724,13 +750,14 @@ function openLogDetailModal(logId) {
     <div style="margin-bottom: 10px;"><strong>Action / Details:</strong><br/><span style="color:var(--teal-deep); font-weight:600; font-size:14px;">${escapeHtml(targetLog.description)}</span></div>
     <hr style="border:0; border-top:1px solid var(--border); margin: 10px 0;" />
     <div style="font-size: 12px; color: var(--muted); display: flex; flex-direction: column; gap: 4px;">
+      ${targetLog.deviceId === undefined && targetLog.userAgent === undefined ? `<div style="font-style:italic;">Device details are visible to committee members after unlocking editing.</div>` : `
       <div><strong>Device ID:</strong> ${escapeHtml(targetLog.deviceId)}</div>
       <div><strong>Platform / OS:</strong> ${escapeHtml(env.platform || 'N/A')}</div>
       <div><strong>Screen Resolution:</strong> ${escapeHtml(env.screen || 'N/A')}</div>
       <div><strong>Timezone:</strong> ${escapeHtml(env.timezone || 'N/A')}</div>
       <div><strong>Language:</strong> ${escapeHtml(env.language || 'N/A')}</div>
       <div><strong>Network Type:</strong> ${escapeHtml(env.network || 'N/A')}</div>
-      <div style="word-break: break-all; margin-top:4px;"><strong>User Agent:</strong> ${escapeHtml(targetLog.userAgent)}</div>
+      <div style="word-break: break-all; margin-top:4px;"><strong>User Agent:</strong> ${escapeHtml(targetLog.userAgent)}</div>`}
     </div>
   `;
 
@@ -770,6 +797,122 @@ function revertToLog(logId) {
   }
 }
 
+// ---------- Server backups (list / preview / restore) ----------
+const BACKUP_REASONS = { 'before-save': 'Before a save', 'daily': 'Daily backup', 'before-restore': 'Before a restore' };
+let backupItems = [];
+let backupCursor = null;
+
+function closeBackups() { document.getElementById('backupsOverlay')?.classList.remove('open'); }
+
+// Work out totals for any ledger using the app's own summary() rules.
+function summaryFor(ledger) {
+  const saved = data;
+  try {
+    data = { ...data, contributions: ledger.contributions || [], bookings: ledger.bookings || [], expenses: ledger.expenses || [] };
+    return summary();
+  } finally {
+    data = saved;
+  }
+}
+
+async function openBackups() {
+  if (!isAuthorized) return;
+  backupItems = []; backupCursor = null;
+  document.getElementById('backupsTitle').textContent = 'Server Backups';
+  document.getElementById('backupsContent').innerHTML = '<div class="empty-state" style="padding:16px;">Loading backups…</div>';
+  document.getElementById('backupsOverlay').classList.add('open');
+  await loadMoreBackups();
+}
+
+async function loadMoreBackups() {
+  try {
+    const url = '/api/pickleball/backups' + (backupCursor ? '?cursor=' + encodeURIComponent(backupCursor) : '');
+    const res = await fetch(url, { headers: authHeaders() });
+    if (res.status === 401) { closeBackups(); return handleAuthExpired(); }
+    if (!res.ok) throw new Error('list failed');
+    const out = await res.json();
+    backupItems = backupItems.concat(out.items || []);
+    backupCursor = out.cursor || null;
+    renderBackupsList();
+  } catch (e) {
+    document.getElementById('backupsContent').innerHTML = '<div class="empty-state" style="padding:16px;">Could not load backups. Check your connection and try again.</div>';
+  }
+}
+
+function renderBackupsList() {
+  document.getElementById('backupsTitle').textContent = 'Server Backups';
+  const rows = backupItems.map(b => `
+    <div class="backup-row" onclick="previewBackup('${escapeHtml(b.id)}')">
+      <div class="backup-when">${escapeHtml(new Date(b.savedAt).toLocaleString())}</div>
+      <div class="backup-meta">${escapeHtml(BACKUP_REASONS[b.reason] || b.reason)} · ${b.contributions} games · ${b.bookings} bookings · ${b.expenses} expenses</div>
+    </div>`).join('');
+  document.getElementById('backupsContent').innerHTML = `
+    <div style="font-size:12px; color:var(--muted); margin-bottom:10px;">
+      A copy is kept every time the ledger is saved, plus once a day. Every copy from the last 90 days is kept, then one per month for a year. Tap a backup to preview it.
+    </div>
+    <div style="max-height:55vh; overflow-y:auto;">
+      ${rows || '<div class="empty-state" style="padding:16px;">No backups yet. One is made the next time anyone saves.</div>'}
+    </div>
+    ${backupCursor ? `<button type="button" class="fab-primary submit-btn" style="background: var(--muted); width:100%; margin-top:8px; animation:none;" onclick="loadMoreBackups()">Show older backups</button>` : ''}
+  `;
+}
+
+async function previewBackup(id) {
+  const info = backupItems.find(b => b.id === id);
+  if (!info) return;
+  document.getElementById('backupsContent').innerHTML = '<div class="empty-state" style="padding:16px;">Loading backup…</div>';
+  try {
+    const res = await fetch('/api/pickleball/backups/' + encodeURIComponent(id), { headers: authHeaders() });
+    if (res.status === 401) { closeBackups(); return handleAuthExpired(); }
+    if (!res.ok) throw new Error('get failed');
+    const ledger = await res.json();
+    const then = summaryFor(ledger), now = summary();
+    const n = l => ({ c: (l.contributions || []).length, b: (l.bookings || []).length, e: (l.expenses || []).length });
+    const a = n(ledger), cur = n(data);
+    document.getElementById('backupsTitle').textContent = 'Backup Preview';
+    document.getElementById('backupsContent').innerHTML = `
+      <div class="backup-when">${escapeHtml(new Date(info.savedAt).toLocaleString())}</div>
+      <div class="backup-meta">${escapeHtml(BACKUP_REASONS[info.reason] || info.reason)}</div>
+      <div class="backup-compare">
+        <span class="h"></span><span class="h">Backup</span><span class="h">Now</span>
+        <span>Remaining funds</span><strong>${fmt(then.remaining)}</strong><span>${fmt(now.remaining)}</span>
+        <span>Accumulated funds</span><span>${fmt(then.accumulated)}</span><span>${fmt(now.accumulated)}</span>
+        <span>Expenses</span><span>${fmt(then.expensesTotal)}</span><span>${fmt(now.expensesTotal)}</span>
+        <span>Games</span><span>${a.c}</span><span>${cur.c}</span>
+        <span>Bookings</span><span>${a.b}</span><span>${cur.b}</span>
+        <span>Expenses entries</span><span>${a.e}</span><span>${cur.e}</span>
+      </div>
+      <div style="font-size:12px; color:var(--muted); margin-bottom:12px;">
+        Restoring replaces all games, bookings and expenses with this backup. The current data is backed up first, so you can undo this. The activity log is kept.
+      </div>
+      <div style="display:flex; gap:10px;">
+        <button type="button" class="fab-primary submit-btn" style="background: var(--muted); flex:1; animation:none;" onclick="renderBackupsList()">Back</button>
+        <button type="button" class="fab-primary submit-btn" style="background: var(--brown); flex:1; animation:none;" onclick="restoreBackup('${escapeHtml(id)}')">↺ Restore this</button>
+      </div>`;
+  } catch (e) {
+    document.getElementById('backupsContent').innerHTML = '<div class="empty-state" style="padding:16px;">Could not load this backup.</div><button type="button" class="fab-primary submit-btn" style="background: var(--muted); width:100%; animation:none;" onclick="renderBackupsList()">Back</button>';
+  }
+}
+
+async function restoreBackup(id) {
+  if (!isAuthorized) return;
+  const info = backupItems.find(b => b.id === id);
+  const when = info ? new Date(info.savedAt).toLocaleString() : 'this backup';
+  if (!confirm(`Restore the ledger to the backup from ${when}? The current data will be backed up first.`)) return;
+  showStatus('Restoring backup…');
+  try {
+    const res = await fetch('/api/pickleball/backups/' + encodeURIComponent(id) + '/restore', { method: 'POST', headers: authHeaders() });
+    if (res.status === 401) { closeBackups(); return handleAuthExpired(); }
+    if (!res.ok) throw new Error('restore failed');
+    closeBackups();
+    await loadData();
+    hideStatus();
+    showToast('Backup restored! The previous data was backed up.');
+  } catch (e) {
+    showStatus('Restore failed — nothing was changed', true);
+  }
+}
+
 function intelligentMerge(serverData, localData) {
   function mergeArray(serverArr = [], localArr = []) {
     const map = new Map();
@@ -802,7 +945,7 @@ async function saveData() {
   showStatus('Syncing & checking conflicts…');
   
   try {
-    const checkRes = await fetch(API_URL);
+    const checkRes = await fetch(API_URL, { headers: authHeaders() });
     if (checkRes.ok) {
       const serverRaw = await checkRes.json();
       const serverVersion = serverRaw.version || 1;
@@ -1709,10 +1852,10 @@ function renderSummaryAndLogs(s) {
               ${revertBtn}
             </div>
             <div class="log-desc">${escapeHtml(l.description)}</div>
-            <div class="log-meta">
+            ${l.deviceId !== undefined || l.userAgent !== undefined ? `<div class="log-meta">
               <span>Device ID: ${escapeHtml(l.deviceId)}</span>
               <span>Browser: ${escapeHtml(l.userAgent)}</span>
-            </div>
+            </div>` : ''}
           </div>`;
       }).join('')
     : `<div class="empty-state" style="padding:20px;">No activity logs recorded yet.</div>`;
@@ -1726,6 +1869,7 @@ function renderSummaryAndLogs(s) {
     </div>
 
     <div class="action-buttons">
+      ${isAuthorized ? `<button class="action-btn" onclick="openBackups()">🗂 Server Backups</button>` : ''}
       <button class="action-btn" onclick="exportToExcel()">
         <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
         Download Excel (.xlsx)

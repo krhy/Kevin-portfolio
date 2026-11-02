@@ -4,3 +4,5 @@ auth.js
 inventory-api.js
 .git
 .dev.vars
+pickleball-backups.js
+tests

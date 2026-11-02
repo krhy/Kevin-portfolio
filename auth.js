@@ -53,6 +53,15 @@ export async function requireAdmin(request, env, app) {
   return null;
 }
 
+// True when the request carries the correct password for this app.
+// Never returns an error response; used where unlocking is optional.
+export async function isAdmin(request, env, app) {
+  const secretName = Object.hasOwn(APP_SECRETS, app) ? APP_SECRETS[app] : null;
+  const expected = secretName && env[secretName];
+  const given = request.headers.get("X-Admin-Password") || "";
+  return Boolean(expected && given && (await safeEqual(given, expected)));
+}
+
 // Blocks writes that come from other websites (basic CSRF protection).
 // Browsers always send Origin on cross-site POST/PUT requests.
 export function isSameOrigin(request) {

@@ -1,9 +1,15 @@
 import { handleInventoryApi } from "./inventory-api.js";
-import { handleAuthApi, requireAdmin, isSameOrigin, readBodyLimited, json } from "./auth.js";
+import { handleAuthApi, requireAdmin, isAdmin, isSameOrigin, readBodyLimited, json } from "./auth.js";
+import {
+  BACKUP_ID_RE, saveBackup, listBackups, getBackupText, runDailyBackup,
+  buildRestoredLedger, stripDeviceDetails, restoreDeviceDetails,
+} from "./pickleball-backups.js";
 
 const PICKLEBALL_KV_KEY = "pickleball:entries";
 
-const MAX_LEDGER_BYTES = 5 * 1024 * 1024; // 5 MB
+// Cloudflare KV allows values up to 25 MiB. The ledger carries 20 activity-log
+// snapshots, so it is many times larger than the entries alone.
+const MAX_LEDGER_BYTES = 24 * 1024 * 1024; // 24 MiB
 const MAX_IMAGE_BYTES = 8 * 1024 * 1024;  // 8 MB per receipt image
 
 // Identify the real image type from the file's first bytes,
@@ -78,15 +84,29 @@ async function handlePickleballApi(request, env) {
     return new Response(object.body, { headers });
   }
 
-  // 3. CORE KV API ROUTE FOR ENTRIES
+  // 3. SERVER BACKUPS (committee only): list, preview, restore
+  if (url.pathname === "/api/pickleball/backups" || url.pathname.startsWith("/api/pickleball/backups/")) {
+    return handleBackupsApi(request, env, url);
+  }
+
+  // 4. CORE KV API ROUTE FOR ENTRIES
   if (url.pathname !== "/api/pickleball/entries") {
     return null;
   }
 
-  // Reading the ledger stays public (the page is a read-only view by default).
+  // Reading the ledger stays public (the page is a read-only view by default),
+  // but device details in the activity log are only shown to the committee.
   if (request.method === "GET") {
     const data = await env.PICKLEBALL_FUND.get(PICKLEBALL_KV_KEY);
-    return new Response(data || "[]", {
+    let body = data || "[]";
+    if (data && !(await isAdmin(request, env, "pickleball"))) {
+      try {
+        body = JSON.stringify(stripDeviceDetails(JSON.parse(data)));
+      } catch {
+        body = "[]";
+      }
+    }
+    return new Response(body, {
       headers: { "Content-Type": "application/json", "Cache-Control": "no-store" },
     });
   }
@@ -109,14 +129,80 @@ async function handlePickleballApi(request, env) {
       return json({ error: "Invalid ledger format" }, 400);
     }
 
-    await env.PICKLEBALL_FUND.put(PICKLEBALL_KV_KEY, text);
+    const current = await env.PICKLEBALL_FUND.get(PICKLEBALL_KV_KEY);
+    let stored = null;
+    try { stored = current ? JSON.parse(current) : null; } catch { stored = null; }
+    const toSave = JSON.stringify(restoreDeviceDetails(parsed, stored));
+
+    // Keep a copy of the previous ledger before replacing it. A failed backup
+    // must not block the committee from saving, so it is logged instead.
+    if (current && current !== toSave) {
+      try {
+        await saveBackup(env, current, "before-save");
+      } catch (err) {
+        console.error("Pickleball backup before save failed:", err);
+      }
+    }
+
+    await env.PICKLEBALL_FUND.put(PICKLEBALL_KV_KEY, toSave);
     return json({ ok: true });
   }
 
   return json({ error: "Method not allowed" }, 405);
 }
 
+async function handleBackupsApi(request, env, url) {
+  const denied = await requireAdmin(request, env, "pickleball");
+  if (denied) return denied;
+
+  const rest = url.pathname.slice("/api/pickleball/backups".length).replace(/^\//, "");
+
+  // GET /api/pickleball/backups?cursor=...  -> newest first
+  if (rest === "") {
+    if (request.method !== "GET") return json({ error: "Method not allowed" }, 405);
+    const cursor = url.searchParams.get("cursor") || undefined;
+    return json(await listBackups(env, { cursor, limit: 30 }));
+  }
+
+  const [id, action] = rest.split("/");
+  if (!BACKUP_ID_RE.test(id || "")) return json({ error: "Backup not found" }, 404);
+
+  // GET /api/pickleball/backups/<id>  -> the backed-up ledger, for preview
+  if (!action && request.method === "GET") {
+    const text = await getBackupText(env, id);
+    if (text === null) return json({ error: "Backup not found" }, 404);
+    return new Response(text, { headers: { "Content-Type": "application/json", "Cache-Control": "no-store" } });
+  }
+
+  // POST /api/pickleball/backups/<id>/restore
+  if (action === "restore" && request.method === "POST") {
+    if (!isSameOrigin(request)) return json({ error: "Forbidden" }, 403);
+    const text = await getBackupText(env, id);
+    if (text === null) return json({ error: "Backup not found" }, 404);
+    let backup;
+    try { backup = JSON.parse(text); } catch { return json({ error: "Backup is damaged" }, 422); }
+
+    const current = await env.PICKLEBALL_FUND.get(PICKLEBALL_KV_KEY);
+    let currentLedger = null;
+    try { currentLedger = current ? JSON.parse(current) : null; } catch { currentLedger = null; }
+
+    // Back up what is there now, so the restore can be undone. Unlike a normal
+    // save, a restore is refused if this safety copy cannot be made.
+    const undoId = current ? await saveBackup(env, current, "before-restore") : null;
+    const restored = buildRestoredLedger(currentLedger, backup, id);
+    await env.PICKLEBALL_FUND.put(PICKLEBALL_KV_KEY, JSON.stringify(restored));
+    return json({ ok: true, undoBackupId: undoId, version: restored.version });
+  }
+
+  return json({ error: "Method not allowed" }, 405);
+}
+
 export default {
+  // Daily backup + cleanup (schedule is in wrangler.jsonc "triggers").
+  async scheduled(event, env, ctx) {
+    ctx.waitUntil(runDailyBackup(env, PICKLEBALL_KV_KEY));
+  },
+
   async fetch(request, env) {
     const url = new URL(request.url);
 
