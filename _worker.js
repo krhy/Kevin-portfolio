@@ -59,14 +59,44 @@ async function handlePickleballApi(request, env) {
     return json({ url: `/api/pickleball/images/${key}` });
   }
 
-  // 2. SERVE IMAGE FROM R2 (public, same as before)
+  // 2. SERVE IMAGE FROM R2 (public) / DELETE IT (committee only)
   if (url.pathname.startsWith("/api/pickleball/images/")) {
-    if (request.method !== "GET" && request.method !== "HEAD") {
-      return json({ error: "Method not allowed" }, 405);
+    let key;
+    try {
+      key = decodeURIComponent(url.pathname.slice("/api/pickleball/images/".length));
+    } catch {
+      return new Response("Image not found", { status: 404 });
     }
-    const key = decodeURIComponent(url.pathname.slice("/api/pickleball/images/".length));
     if (!/^[A-Za-z0-9._-]{1,200}$/.test(key)) {
       return new Response("Image not found", { status: 404 });
+    }
+
+    // Delete a screenshot the committee removed. Refused while the saved
+    // ledger still uses it (e.g. the save that removed it failed, or it is a
+    // booking receipt), so a delete can never break current data.
+    if (request.method === "DELETE") {
+      if (!isSameOrigin(request)) return json({ error: "Forbidden" }, 403);
+      const denied = await requireAdmin(request, env, "pickleball");
+      if (denied) return denied;
+      // Only the CURRENT entries count. Activity-log snapshots (history used
+      // for "Revert") may still mention an image that has since been removed.
+      const raw = (await env.PICKLEBALL_FUND.get(PICKLEBALL_KV_KEY)) || "";
+      let current = raw;
+      try {
+        const { activityLogs, ...entries } = JSON.parse(raw) || {};
+        current = JSON.stringify(entries);
+      } catch {
+        // unreadable data: be safe and check the whole text
+      }
+      if (current.includes("/api/pickleball/images/" + key)) {
+        return json({ error: "Image is still in use" }, 409);
+      }
+      await env.MY_BUCKET.delete(key);
+      return json({ ok: true });
+    }
+
+    if (request.method !== "GET" && request.method !== "HEAD") {
+      return json({ error: "Method not allowed" }, 405);
     }
     const object = await env.MY_BUCKET.get(key);
     if (!object) {

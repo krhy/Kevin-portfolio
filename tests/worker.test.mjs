@@ -223,3 +223,55 @@ test("existing security still holds: uploads, other sites, static files", async 
   assert.equal((await call(env, "/api/auth/check?app=pickleball", { method: "POST", password: INV_PW })).status, 401);
   assert.equal((await call(env, "/pickleball/")).status, 200, "static pages still served");
 });
+
+test("committee can delete a screenshot no longer used by the ledger", async () => {
+  const env = mockEnv();
+  await env.MY_BUCKET.put("1793000000000-a.jpg", "img");
+  await save(env, ledger(1));
+  const del = (key, opts = {}) => call(env, "/api/pickleball/images/" + key, { method: "DELETE", password: PB_PW, ...opts });
+  assert.equal((await del("1793000000000-a.jpg", { password: "" })).status, 401, "no password");
+  assert.equal((await del("1793000000000-a.jpg", { password: INV_PW })).status, 401, "inventory password");
+  assert.equal((await del("1793000000000-a.jpg", { origin: "https://evil.example" })).status, 403, "other website");
+  assert.ok(env.MY_BUCKET.objects.has("1793000000000-a.jpg"), "still there after refused deletes");
+  assert.equal((await del("1793000000000-a.jpg")).status, 200);
+  assert.ok(!env.MY_BUCKET.objects.has("1793000000000-a.jpg"));
+  assert.equal((await call(env, "/api/pickleball/images/1793000000000-a.jpg")).status, 404);
+});
+
+test("a screenshot or receipt still used by the ledger cannot be deleted", async () => {
+  const env = mockEnv();
+  await env.MY_BUCKET.put("1793000000000-shot.jpg", "img");
+  await env.MY_BUCKET.put("1793000000000-receipt.jpg", "img");
+  await save(env, ledger(1, {
+    contributions: [{ id: "g", reclub: { people: [], screenshots: ["/api/pickleball/images/1793000000000-shot.jpg"] } }],
+    bookings: [{ id: "b", receiptImages: ["/api/pickleball/images/1793000000000-receipt.jpg"] }],
+  }));
+  for (const key of ["1793000000000-shot.jpg", "1793000000000-receipt.jpg"]) {
+    const r = await call(env, "/api/pickleball/images/" + key, { method: "DELETE", password: PB_PW });
+    assert.equal(r.status, 409, key);
+    assert.ok(env.MY_BUCKET.objects.has(key), key + " kept");
+  }
+});
+
+test("backups and odd paths can never be deleted through the image link", async () => {
+  const env = mockEnv();
+  await save(env, ledger(1)); await save(env, ledger(2));
+  const key = backupKeys(env)[0];
+  for (const p of ["/api/pickleball/images/" + key, "/api/pickleball/images/" + encodeURIComponent(key), "/api/pickleball/images/%E0%A4%A", "/api/pickleball/images/..%2F" + key]) {
+    const r = await call(env, p, { method: "DELETE", password: PB_PW });
+    assert.equal(r.status, 404, p);
+  }
+  assert.ok(env.MY_BUCKET.objects.has(key), "backup untouched");
+});
+
+test("an image only mentioned in activity-log history can be deleted", async () => {
+  const env = mockEnv();
+  await env.MY_BUCKET.put("1793000000000-old.jpg", "img");
+  await save(env, ledger(1, {
+    contributions: [{ id: "g", reclub: { people: [], screenshots: [] } }],
+    activityLogs: [{ id: "l1", description: "x", snapshot: { contributions: [{ id: "g", reclub: { screenshots: ["/api/pickleball/images/1793000000000-old.jpg"] } }] } }],
+  }));
+  const r = await call(env, "/api/pickleball/images/1793000000000-old.jpg", { method: "DELETE", password: PB_PW });
+  assert.equal(r.status, 200);
+  assert.ok(!env.MY_BUCKET.objects.has("1793000000000-old.jpg"));
+});
