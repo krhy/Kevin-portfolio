@@ -365,10 +365,18 @@
   .rc-shot .rc-new { position: absolute; bottom: 0; left: 0; right: 0; font-size: 10px; text-align: center; background: rgba(255,255,255,.85); color: var(--ink); }
   .rc-tools { display: flex; justify-content: space-between; align-items: center; gap: 10px; margin-top: 4px; }
   .tile-hint { font-size: 11px; color: var(--muted); margin-top: 6px; }
+  .owes-bar { margin: 0 0 12px; border-radius: 12px; border: 1px solid #F0C9B8; background: #FDF1EC; color: var(--ink); }
+  .owes-head { display: flex; justify-content: space-between; align-items: center; gap: 8px; padding: 10px 12px; cursor: pointer; font-size: 13.5px; font-weight: 600; }
+  .owes-list { padding: 0 12px 10px; }
+  .owes-row { display: grid; grid-template-columns: 1fr auto; gap: 2px 10px; padding: 7px 0; border-top: 1px solid #F0D8CD; font-size: 13px; }
+  .owes-row .owes-amt { font-weight: 700; text-align: right; }
+  .owes-row .owes-games { grid-column: 1 / -1; font-size: 11.5px; color: var(--muted); }
+  .owes-note { font-size: 11.5px; color: var(--muted); padding-top: 6px; }
   @keyframes rcFlash { 0% { box-shadow: 0 0 0 0 rgba(212,160,23,.0); } 30% { box-shadow: 0 0 0 4px rgba(212,160,23,.55); } 100% { box-shadow: 0 0 0 0 rgba(212,160,23,0); } }
   .rc-flash { animation: rcFlash 1.6s ease 2; }
   .tour-bubble { position: absolute; z-index: 9; width: min(300px, calc(100vw - 24px)); background: #1E3B38; color: #fff; border-radius: 14px; padding: 12px 14px; box-shadow: 0 10px 28px rgba(0,0,0,.28); font-size: 13px; line-height: 1.45; animation: tourPop .35s cubic-bezier(.34,1.4,.5,1); }
   .tour-bubble[hidden] { display: none; }
+  .tour-step { font-size: 11px; letter-spacing: .05em; text-transform: uppercase; opacity: .7; margin-bottom: 4px; }
   .tour-arrow { position: absolute; top: -7px; width: 14px; height: 14px; background: #1E3B38; transform: rotate(45deg); border-radius: 2px; }
   .tour-actions { display: flex; gap: 8px; justify-content: flex-end; align-items: center; margin-top: 10px; }
   .tour-actions .tour-go { background: #E7B26B; color: #1E3B38; border: none; border-radius: 999px; padding: 7px 14px; font-weight: 700; font-size: 13px; cursor: pointer; font-family: inherit; }
@@ -490,10 +498,11 @@
 
 <div id="tourBubble" class="tour-bubble" role="dialog" aria-label="New feature" hidden>
   <div class="tour-arrow" id="tourArrow"></div>
-  <div><strong>✨ New: Reclub attendance</strong><br>See who paid, who has the fee waived and who hasn't paid — straight from a Reclub screenshot.</div>
+  <div class="tour-step" id="tourStep"></div>
+  <div id="tourText"></div>
   <div class="tour-actions">
-    <button type="button" class="tour-x" onclick="dismissWhatsNew()">Dismiss</button>
-    <button type="button" class="tour-go" onclick="tourShowMe()">Show me</button>
+    <button type="button" class="tour-x" onclick="dismissWhatsNew()">Skip</button>
+    <button type="button" class="tour-go" id="tourNext" onclick="tourNext()">Next</button>
   </div>
 </div>
 
@@ -505,7 +514,13 @@
       <button class="close-btn" onclick="closeWhatsNew()">✕</button>
     </div>
     <div class="wn-body" style="font-size: 13.5px; color: var(--ink); line-height: 1.5; max-height: 65vh; overflow-y: auto;">
-      <div style="font-weight:700;">👥 Reclub attendance (November 2026)</div>
+      <div style="font-weight:700;">❌ Who still owes &amp; 🔓 stay unlocked (November 2026)</div>
+      <ul style="margin-top:6px;">
+        <li>At the top of <strong>Contributions</strong>, a bar shows how many people still owe and the total, e.g. “❌ 3 people still owe · $30”. Tap it to see each person, how many games and which dates.</li>
+        <li>It comes from the Reclub lists: when someone pays, the committee taps the game and sets them to ✅ Paid, and they drop off the list.</li>
+        <li>After entering the committee password, <strong>this phone stays unlocked for 7 days</strong>. Tap <strong>Lock</strong> to end it sooner. Changing the password signs out every phone.</li>
+      </ul>
+      <div style="font-weight:700; margin-top:16px;">👥 Reclub attendance (November 2026)</div>
       <div style="color:var(--muted); font-size:12.5px;">Each game can now show who paid, who has the fee waived and who hasn't paid yet, read straight from a Reclub screenshot.</div>
       <h4>For everyone</h4>
       <ul>
@@ -568,21 +583,65 @@ let isAuthorized = false;
 let adminPassword = '';
 
 // Ask the server to verify the password. The password is not in this page.
+// ---- Stay unlocked for 7 days on this phone ----
+// The server checks the password once and returns a signed key that expires
+// after 7 days. Only the key is kept on the phone, never the password.
+const SESSION_STORE = 'pb_admin_session';
+let adminToken = '';
+let adminTokenExpires = 0;
+function saveSession(token, expires) {
+  adminToken = token; adminTokenExpires = expires;
+  try { localStorage.setItem(SESSION_STORE, JSON.stringify({ token, expires })); } catch { /* storage blocked: unlocked for this visit only */ }
+}
+function clearSession() {
+  adminToken = ''; adminTokenExpires = 0;
+  try { localStorage.removeItem(SESSION_STORE); } catch { /* ignore */ }
+}
+function loadSession() {
+  try {
+    const s = JSON.parse(localStorage.getItem(SESSION_STORE) || 'null');
+    if (s && s.token && s.expires > Date.now()) return s;
+    if (s) localStorage.removeItem(SESSION_STORE);
+  } catch { /* ignore */ }
+  return null;
+}
+function unlockedUntilText() {
+  return adminTokenExpires ? new Date(adminTokenExpires).toLocaleString(undefined, { weekday: 'short', day: 'numeric', month: 'short', hour: 'numeric', minute: '2-digit' }) : '';
+}
+
 async function verifyAdminPassword(pwd) {
   try {
     const res = await fetch('/api/auth/check?app=pickleball', { method: 'POST', headers: { 'X-Admin-Password': pwd } });
-    return res.ok;
+    if (!res.ok) return false;
+    const out = await res.json().catch(() => ({}));
+    if (out.token) saveSession(out.token, out.expires);
+    return true;
   } catch { return false; }
 }
 
-// Send the password with requests while unlocked (shows device details in the log).
+// Send the key (or, as a fallback, the password) with requests while unlocked.
 function authHeaders() {
-  return isAuthorized && adminPassword ? { 'X-Admin-Password': adminPassword } : {};
+  if (!isAuthorized) return {};
+  if (adminToken) return { 'X-Admin-Token': adminToken };
+  return adminPassword ? { 'X-Admin-Password': adminPassword } : {};
+}
+
+// On opening the page: still unlocked from an earlier visit?
+function restoreSession() {
+  const sess = loadSession();
+  if (!sess) return;
+  adminToken = sess.token; adminTokenExpires = sess.expires;
+  isAuthorized = true;
+  // Double-check with the server (e.g. the password was changed since).
+  fetch('/api/auth/check?app=pickleball', { method: 'POST', headers: { 'X-Admin-Token': sess.token } })
+    .then(r => { if (r.status === 401) handleAuthExpired(); })
+    .catch(() => { /* offline: keep the view; saves will be checked by the server anyway */ });
 }
 
 function handleAuthExpired() {
   isAuthorized = false;
   adminPassword = '';
+  clearSession();
   closeForm();
   render();
   showStatus('Session locked — please unlock editing again', true);
@@ -696,7 +755,7 @@ function showAuthPasswordModal() {
   const overlay = document.getElementById('authOverlay');
   document.getElementById('authModalTitle').textContent = 'Unlock Editing';
   document.getElementById('authModalContent').innerHTML = `
-    <div style="font-size: 13px; color: var(--muted); margin-bottom: 8px;">Enter the committee password to unlock editing:</div>
+    <div style="font-size: 13px; color: var(--muted); margin-bottom: 8px;">Enter the committee password to unlock editing. This phone stays unlocked for 7 days — tap Lock to end it sooner.</div>
     <input type="password" id="authPasswordInput" placeholder="Password" style="margin-bottom: 10px;" onkeydown="if(event.key==='Enter') submitAuthPassword()" />
     <div id="authError" style="color: var(--rust); font-size: 12px; margin-bottom: 10px; display: none;">Incorrect password.</div>
     <button type="button" class="fab-primary submit-btn" onclick="submitAuthPassword()">Unlock</button>
@@ -709,7 +768,7 @@ function showAuthConfirmModal() {
   const overlay = document.getElementById('authOverlay');
   document.getElementById('authModalTitle').textContent = 'Lock Editing';
   document.getElementById('authModalContent').innerHTML = `
-    <div style="font-size: 14px; color: var(--ink); margin-bottom: 16px;">Lock editing mode back to read-only?</div>
+    <div style="font-size: 14px; color: var(--ink); margin-bottom: 16px;">Lock editing mode back to read-only?${adminTokenExpires ? `<div style="font-size:12px; color:var(--muted); margin-top:4px;">Otherwise this phone stays unlocked until ${unlockedUntilText()}.</div>` : ''}</div>
     <div style="display: flex; gap: 10px;">
       <button type="button" class="fab-primary submit-btn" style="background: var(--muted); flex: 1; animation: none;" onclick="closeAuthModal()">Cancel</button>
       <button type="button" class="fab-primary submit-btn" style="background: var(--rust); flex: 1; animation: none;" onclick="confirmLockAuth()">Lock</button>
@@ -724,10 +783,10 @@ async function submitAuthPassword() {
   const pwd = document.getElementById('authPasswordInput').value;
   if (pwd && await verifyAdminPassword(pwd)) {
     isAuthorized = true;
-    adminPassword = pwd;
+    adminPassword = adminToken ? '' : pwd; // keep the password only if no key could be issued
     closeAuthModal();
     render();
-    showStatus("Editing mode unlocked!");
+    showStatus(adminTokenExpires ? `Unlocked on this phone until ${unlockedUntilText()}` : "Editing mode unlocked!");
     loadData(); // fetch the committee view (includes device details)
   } else {
     const err = document.getElementById('authError');
@@ -738,6 +797,7 @@ async function submitAuthPassword() {
 function confirmLockAuth() {
   isAuthorized = false;
   adminPassword = '';
+  clearSession();
   closeAuthModal();
   closeForm();
   closeBackups();
@@ -884,21 +944,33 @@ function revertToLog(logId) {
 
 // ---------- What's new (feature summary) ----------
 // Bump this when there is a new feature summary to show; the banner returns once.
-const WHATS_NEW_VERSION = '2026-11-reclub';
+const WHATS_NEW_VERSION = '2026-11-owes-unlock';
 function whatsNewSeen() {
   try { return localStorage.getItem('pb_whats_new') === WHATS_NEW_VERSION; } catch { return false; }
 }
 function markWhatsNewSeen() {
   try { localStorage.setItem('pb_whats_new', WHATS_NEW_VERSION); } catch { /* private mode: banner just comes back */ }
 }
-// Tour-style bubble pointing at the Contributions tab, until dismissed on this device.
+// ---- New-feature tour: a few bubbles, each pointing at where the feature is ----
+// Shown once per device (until "Skip" or the last "Got it").
+const TOUR_STEPS = [
+  { target: '.tab-btn[data-tab="contributions"]', html: '<strong>❌ New: Who still owes</strong><br>See everyone who hasn\'t paid yet, across all games — at the top of <strong>Contributions</strong>.' },
+  { target: '.tab-btn[data-tab="contributions"]', html: '<strong>👥 Who paid each game</strong><br>On Contributions, tap a game\'s <strong>👥 Reclub</strong> line to see who paid, who has the fee waived and who hasn\'t paid.' },
+  { target: '#authBtn', html: '<strong>🔓 For the committee</strong><br>Unlock once and this phone stays unlocked for <strong>7 days</strong>. Then tap a game to edit it and upload the Reclub screenshot — it fills in Players and who paid.' },
+];
+let tourIndex = 0;
 function positionTourBubble() {
   const el = document.getElementById('tourBubble');
-  const tab = document.querySelector('.tab-btn[data-tab="contributions"]');
-  if (!el || !tab) return;
+  if (!el) return;
   if (whatsNewSeen()) { el.hidden = true; return; }
+  const step = TOUR_STEPS[Math.min(tourIndex, TOUR_STEPS.length - 1)];
+  const target = document.querySelector(step.target);
+  if (!target) { el.hidden = true; return; }
+  document.getElementById('tourStep').textContent = `✨ What's new · ${tourIndex + 1} of ${TOUR_STEPS.length}`;
+  document.getElementById('tourText').innerHTML = step.html;
+  document.getElementById('tourNext').textContent = tourIndex < TOUR_STEPS.length - 1 ? 'Next' : 'Got it';
   el.hidden = false;
-  const r = tab.getBoundingClientRect();
+  const r = target.getBoundingClientRect();
   const w = el.offsetWidth;
   const center = r.left + r.width / 2;
   const left = Math.max(12, Math.min(window.innerWidth - w - 12, center - w / 2));
@@ -909,7 +981,22 @@ function positionTourBubble() {
 window.addEventListener('resize', () => positionTourBubble());
 window.addEventListener('load', () => positionTourBubble());
 if (document.fonts && document.fonts.ready) document.fonts.ready.then(() => positionTourBubble()); // fonts can shift the tabs
-function tourShowMe() { switchTab('contributions'); openWhatsNew(); }
+
+function tourNext() {
+  if (tourIndex < TOUR_STEPS.length - 1) {
+    tourIndex++;
+    positionTourBubble();
+    const t = document.querySelector(TOUR_STEPS[tourIndex].target);
+    const el = document.getElementById('tourBubble');
+    if (t && el) {
+      const top = t.getBoundingClientRect().top, bottom = el.getBoundingClientRect().bottom;
+      if (top < 0 || bottom > window.innerHeight) window.scrollTo({ top: Math.max(0, window.scrollY + top - 80), behavior: 'smooth' });
+    }
+  } else {
+    markWhatsNewSeen();
+    positionTourBubble();
+  }
+}
 
 function openWhatsNew() { document.getElementById('whatsNewOverlay').classList.add('open'); }
 function closeWhatsNew() {
@@ -951,9 +1038,58 @@ function reclubCounts(people) {
   return n;
 }
 
+// ---------- Who still owes (everyone marked Not paid, across all games) ----------
+let owesOpen = false;
+function computeOwes() {
+  const byKey = new Map();
+  for (const c of data.contributions) {
+    for (const p of (c.reclub && c.reclub.people) || []) {
+      if (p.status !== 'unpaid') continue;
+      const name = String(p.name || '').trim();
+      const key = name.toLowerCase().replace(/[^\p{L}\p{N}]/gu, '');
+      if (!key) continue;
+      if (!byKey.has(key)) byKey.set(key, { name, total: 0, games: [] });
+      const o = byKey.get(key);
+      const fee = Number(c.feePerPerson) || 0;
+      o.total += fee;
+      o.games.push({ date: c.date, fee });
+    }
+  }
+  const people = [...byKey.values()];
+  people.forEach(o => o.games.sort((a, b) => a.date.localeCompare(b.date)));
+  people.sort((a, b) => b.total - a.total || b.games.length - a.games.length || a.name.localeCompare(b.name));
+  return { people, total: people.reduce((s, o) => s + o.total, 0) };
+}
+function toggleOwes() { owesOpen = !owesOpen; render(); }
+function owesBarHtml() {
+  const { people, total } = computeOwes();
+  if (!people.length) return '';
+  const rows = owesOpen ? `<div class="owes-list">${people.map(o => `
+      <div class="owes-row">
+        <span>❌ ${escAttr(o.name)}</span>
+        <span class="owes-amt">${fmt(o.total)}</span>
+        <span class="owes-games">${o.games.length} game${o.games.length > 1 ? 's' : ''}: ${o.games.map(g => escAttr(fmtDate(g.date)) + (g.fee ? '' : ' (fee not set)')).join(', ')}</span>
+      </div>`).join('')}
+      <div class="owes-note">From the Reclub lists of each game. ${isAuthorized ? 'When someone pays, tap the game and set them to ✅ Paid.' : ''}</div>
+    </div>` : '';
+  return `<div class="owes-bar">
+      <div class="owes-head" onclick="toggleOwes()" role="button" aria-expanded="${owesOpen}">
+        <span>❌ ${people.length} ${people.length === 1 ? 'person still owes' : 'people still owe'} · ${fmt(total)}</span><span>${owesOpen ? '▴' : '▾'}</span>
+      </div>${rows}
+    </div>`;
+}
+
 function toggleReclubTile(id) {
   if (reclubOpenTiles.has(id)) reclubOpenTiles.delete(id); else reclubOpenTiles.add(id);
   render();
+}
+
+function reclubNamesFor(people, status) {
+  const list = people.filter(p => p.status === status);
+  const named = list.filter(p => String(p.name || '').trim()).map(p => escAttr(p.name));
+  const blank = list.length - named.length;
+  if (blank) named.push(`${blank} slot${blank > 1 ? 's' : ''} (name not added yet)`);
+  return named.join(', ');
 }
 
 // Read-only summary on each game (everyone can see it).
@@ -967,7 +1103,7 @@ function reclubSummaryHtml(c) {
   if (open) {
     lists = '<div class="rc-lists" onclick="event.stopPropagation()">' + RECLUB_ORDER.filter(k => n[k]).map(k => `
       <div class="rc-group"><span class="rc-label">${RECLUB_STATUS[k].icon} ${RECLUB_STATUS[k].label}:</span>
-        ${rc.people.filter(p => p.status === k).map(p => escAttr(p.name)).join(', ')}</div>`).join('') +
+        ${reclubNamesFor(rc.people, k)}</div>`).join('') +
       ((rc.screenshots || []).length ? `<div class="rc-group">${rc.screenshots.filter(u => /^\/api\/pickleball\/images\/[A-Za-z0-9._-]+$/.test(u)).map((u, i) => `<a href="${escAttr(u)}" target="_blank" rel="noopener">📷 Screenshot ${i + 1}</a>`).join(' · ')}</div>` : '') +
       '</div>';
   }
@@ -1490,7 +1626,7 @@ async function saveData() {
 
     const res = await fetch(API_URL, { 
       method: 'PUT', 
-      headers: { 'Content-Type': 'application/json', 'X-Admin-Password': adminPassword }, 
+      headers: { 'Content-Type': 'application/json', ...authHeaders() }, 
       body: JSON.stringify(data) 
     });
     
@@ -1743,7 +1879,7 @@ function renderContributions() {
     : list.filter(c => c.date === tabState.contributions.dateFilter);
   const controls = controlsBar('contributions', 'Search remarks, added by…', dateFilterSelect('contributions', data.contributions));
 
-  if (filtered.length === 0) return `<div class="panel-title">Game Contributions</div>${controls}<div class="empty-state">No games match.</div>`;
+  if (filtered.length === 0) return `<div class="panel-title">Game Contributions</div>${owesBarHtml()}${controls}<div class="empty-state">No games match.</div>`;
 
   const groupsHtml = groupByDate(filtered).map(({ date, items }) => {
     const countedTotal = items.reduce((s, c) => s + (contributionNeedsUpdate(c) ? 0 : (calcExpected(c) - liveCcSpent(c))), 0);
@@ -1758,7 +1894,7 @@ function renderContributions() {
       </div>`;
   }).join('');
 
-  return `<div class="panel-title">Game Contributions</div>${controls}${groupsHtml}`;
+  return `<div class="panel-title">Game Contributions</div>${owesBarHtml()}${controls}${groupsHtml}`;
 }
 
 function contributionTileHtml(c, i) {
@@ -2149,7 +2285,7 @@ async function submitBooking() {
       try {
         const res = await fetch('/api/pickleball/upload-image', {
           method: 'POST',
-          headers: { 'Content-Type': 'application/json', 'X-Admin-Password': adminPassword },
+          headers: { 'Content-Type': 'application/json', ...authHeaders() },
           body: JSON.stringify({ imageBase64: img })
         });
         if (res.status === 401) return handleAuthExpired();
@@ -2520,6 +2656,7 @@ function finishSubmit() {
   return saveData();
 }
 
+restoreSession();
 loadData();
 </script>
 </body>
