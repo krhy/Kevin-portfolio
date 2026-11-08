@@ -354,6 +354,8 @@
   .rc-match.warn { background: #FBEDE3; color: #8A3B12; }
   .rc-status { font-size: 12px; color: var(--muted); margin: 6px 0; min-height: 16px; }
   .rc-section { margin-top: 14px; padding-top: 12px; border-top: 1px solid var(--border); }
+  .rc-upload { margin: 2px 0 10px; padding: 10px 12px 4px; border: 1px dashed var(--border-strong); border-radius: 12px; background: var(--paper); }
+  .rc-upload .rc-match { margin: 6px 0 8px; }
   .rc-head { font-weight: 700; font-size: 13px; color: var(--ink); margin-bottom: 2px; }
   .rc-help { font-size: 12px; color: var(--muted); margin-bottom: 8px; }
   .rc-shots { display: flex; flex-wrap: wrap; gap: 8px; margin: 6px 0 4px; }
@@ -1091,20 +1093,27 @@ function renderReclub() {
       <div class="rc-shot"><img src="${escAttr(u)}" alt="New screenshot ${i + 1}" /><span class="rc-new">new</span>
         <button type="button" class="rc-x" onclick="reclubRemoveShot('new', ${i})" aria-label="Remove screenshot">✕</button></div>`).join('');
   const hasAny = d.people.length || d.screenshots.length || d.newShots.length;
-  el.innerHTML = `
-    <div class="rc-head">👥 Reclub attendance (optional)</div>
-    <div class="rc-help">Upload a screenshot of the Reclub Participants screen to fill in who paid. You can fix anything below before saving.</div>
+  const up = document.getElementById('reclubUpload');
+  if (up) up.innerHTML = `
+    <div class="rc-head">👥 Reclub attendance <span style="font-weight:400; color:var(--muted);">(optional)</span></div>
+    <div class="rc-help">Upload the Reclub Participants screenshot — it fills in Players below and the list of who paid.</div>
     <label class="action-btn" style="display:flex; justify-content:center; cursor:${d.busy ? 'wait' : 'pointer'}; margin-bottom:6px;">
       📷 ${hasAny ? 'Add another screenshot' : 'Upload Reclub screenshot'}
       <input type="file" accept="image/*" multiple style="display:none" ${d.busy ? 'disabled' : ''} onchange="reclubFiles(this.files); this.value='';" />
     </label>
     <div class="rc-status" id="reclubStatus">${escAttr(d.message)}</div>
     ${shots ? `<div class="rc-shots">${shots}</div>` : ''}
-    <div id="reclubMatch">${reclubMatchHtml()}</div>
+    <div id="reclubMatch">${reclubMatchHtml()}</div>`;
+  el.innerHTML = hasAny ? `
+    <div class="rc-head">👥 Reclub names</div>
+    <div class="rc-help">Check each person's status. Change, ＋ add or ✕ remove as needed.</div>
     <div>${rows}</div>
     <div class="rc-tools">
       <button type="button" class="link-btn" onclick="reclubAdd()">＋ Add person</button>
-      ${hasAny ? `<button type="button" class="link-btn danger" onclick="reclubClear()">🗑 Clear attendance</button>` : ''}
+      <button type="button" class="link-btn danger" onclick="reclubClear()">🗑 Clear attendance</button>
+    </div>` : `
+    <div class="rc-tools">
+      <button type="button" class="link-btn" onclick="reclubAdd()">＋ Add Reclub attendance manually</button>
     </div>`;
 }
 
@@ -1745,6 +1754,7 @@ function contributionFormFields(c) {
     <div id="linkSuggest"></div>
     <label class="field">Added by<input type="text" id="fAddedBy" placeholder="e.g. Doreen" value="${c ? escapeHtml(c.addedBy || '') : ''}" /></label>
     <label class="field">Fee per person ($)<input type="number" step="0.01" min="0" id="fFee" placeholder="e.g. 10" value="${feeVal}" oninput="updateContribPreview()" /></label>
+    <div class="rc-upload" id="reclubUpload"></div>
     <label class="field">Players<input type="number" min="1" id="fPlayers" placeholder="e.g. 4" value="${playersVal}" oninput="updateContribPreview()" /></label>
     <label class="field">Extra Collections (+) (e.g. cancellation fees, top-ups)<input type="number" step="0.01" min="0" id="fExtraCollections" value="${extraColl}" oninput="updateContribPreview()" /></label>
     <label class="field">Deductions (-) (e.g. session-specific expenses)<input type="number" step="0.01" min="0" id="fDeductions" value="${deduct}" oninput="updateContribPreview()" /></label>
