@@ -514,28 +514,30 @@
       <button class="close-btn" onclick="closeWhatsNew()">✕</button>
     </div>
     <div class="wn-body" style="font-size: 13.5px; color: var(--ink); line-height: 1.5; max-height: 65vh; overflow-y: auto;">
-      <div style="font-weight:700;">❌ Who still owes &amp; 🔓 stay unlocked (November 2026)</div>
-      <ul style="margin-top:6px;">
+      <div style="color:var(--muted); font-size:12.5px;">New in November 2026:</div>
+
+      <h4>1 · 📷 Upload screenshots from Reclub</h4>
+      <div style="color:var(--muted); font-size:12.5px; margin-bottom:6px;">You can now upload screenshots from Reclub. The app reads them and shows, for each game, who paid, who has the fee waived and who hasn't paid yet.</div>
+      <ul>
+        <li>On the <strong>Contributions</strong> tab, each game shows a summary like “✅ 9 paid · 🟡 2 fee waived · ❌ 2 not paid · 🔒 1 reserved”. Tap it to see the names and the Reclub screenshot.</li>
+        <li><strong>Committee:</strong> tap a game to edit it (“✎ Tap to edit”), then tap <strong>📷 Upload Reclub screenshot</strong>, right above Players. For long lists, add 2–3 screenshots; duplicates are merged.</li>
+        <li>The app reads the <strong>Confirmed</strong> list on your phone: names, Paid / Fee waived / Not paid badges, reserved slots and the confirmed count. It fills in <strong>Players</strong> and checks the total (e.g. “✅ 14 of 14”).</li>
+        <li>Check the names at the bottom of the form and fix anything: change a status, edit a name, ＋ add or ✕ remove a person. Reserved names can be added later.</li>
+        <li>Made a mistake? ✕ on a screenshot removes it and its names, 🗑 <strong>Clear attendance</strong> starts over, and <strong>Cancel</strong> undoes everything since you opened the form.</li>
+        <li><strong>Save</strong> saves the game and attendance together. Every change is in the Activity Log.</li>
+      </ul>
+
+      <h4>2 · ❌ Who still owes</h4>
+      <ul>
         <li>At the top of <strong>Contributions</strong>, a bar shows how many people still owe and the total, e.g. “❌ 3 people still owe · $30”. Tap it to see each person, how many games and which dates.</li>
-        <li>It comes from the Reclub lists: when someone pays, the committee taps the game and sets them to ✅ Paid, and they drop off the list.</li>
+        <li>When someone pays, the committee taps the game and sets them to ✅ Paid, and they drop off the list.</li>
+      </ul>
+
+      <h4>3 · 🔓 Stay unlocked for 7 days (committee)</h4>
+      <ul>
         <li>After entering the committee password, <strong>this phone stays unlocked for 7 days</strong>. Tap <strong>Lock</strong> to end it sooner. Changing the password signs out every phone.</li>
       </ul>
-      <div style="font-weight:700; margin-top:16px;">👥 Reclub attendance (November 2026)</div>
-      <div style="color:var(--muted); font-size:12.5px;">Each game can now show who paid, who has the fee waived and who hasn't paid yet, read straight from a Reclub screenshot.</div>
-      <h4>For everyone</h4>
-      <ul>
-        <li>On the <strong>Contributions</strong> tab, each game shows a summary like “✅ 9 paid · 🟡 2 fee waived · ❌ 2 not paid · 🔒 1 reserved”.</li>
-        <li>Tap the summary to see the names in each group and the Reclub screenshot.</li>
-      </ul>
-      <h4>For the committee (after Unlock Editing)</h4>
-      <ul>
-        <li><strong>Tap a game to edit it</strong> (look for “✎ Tap to edit”).</li>
-        <li>In the edit form, scroll to <strong>👥 Reclub attendance</strong> and tap <strong>📷 Upload Reclub screenshot</strong>. For long lists, add 2–3 screenshots; duplicates are merged.</li>
-        <li>The app reads the <strong>Confirmed</strong> list on your phone: names, Paid / Fee waived / Not paid badges, reserved slots and the confirmed count. It fills in <strong>Players</strong> and checks the total (e.g. “✅ 14 of 14”).</li>
-        <li>Check the list and fix anything: change a status, edit a name, ＋ add or ✕ remove a person. Reserved names can be added later.</li>
-        <li>Made a mistake? ✕ removes a screenshot, 🗑 <strong>Clear attendance</strong> starts over, and <strong>Cancel</strong> undoes everything since you opened the form.</li>
-        <li><strong>Save</strong> saves the game and attendance together. Removed screenshots are deleted then. Every change is in the Activity Log.</li>
-      </ul>
+
       <h4>Good to know</h4>
       <ul>
         <li>“Fee waived” is a label only — it doesn't change the funds.</li>
@@ -944,7 +946,7 @@ function revertToLog(logId) {
 
 // ---------- What's new (feature summary) ----------
 // Bump this when there is a new feature summary to show; the banner returns once.
-const WHATS_NEW_VERSION = '2026-11-owes-unlock';
+const WHATS_NEW_VERSION = '2026-11-tour-v2';
 function whatsNewSeen() {
   try { return localStorage.getItem('pb_whats_new') === WHATS_NEW_VERSION; } catch { return false; }
 }
@@ -954,8 +956,8 @@ function markWhatsNewSeen() {
 // ---- New-feature tour: a few bubbles, each pointing at where the feature is ----
 // Shown once per device (until "Skip" or the last "Got it").
 const TOUR_STEPS = [
+  { target: '.tab-btn[data-tab="contributions"]', html: '<strong>📷 New: Upload screenshots from Reclub</strong><br>You can now upload a Reclub screenshot to a game, and the app fills in who paid, who has the fee waived and who hasn\'t paid. On <strong>Contributions</strong>, tap a game\'s <strong>👥 Reclub</strong> line to see the names.' },
   { target: '.tab-btn[data-tab="contributions"]', html: '<strong>❌ New: Who still owes</strong><br>See everyone who hasn\'t paid yet, across all games — at the top of <strong>Contributions</strong>.' },
-  { target: '.tab-btn[data-tab="contributions"]', html: '<strong>👥 Who paid each game</strong><br>On Contributions, tap a game\'s <strong>👥 Reclub</strong> line to see who paid, who has the fee waived and who hasn\'t paid.' },
   { target: '#authBtn', html: '<strong>🔓 For the committee</strong><br>Unlock once and this phone stays unlocked for <strong>7 days</strong>. Then tap a game to edit it and upload the Reclub screenshot — it fills in Players and who paid.' },
 ];
 let tourIndex = 0;
