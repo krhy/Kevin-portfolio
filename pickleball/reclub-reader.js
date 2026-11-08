@@ -214,13 +214,17 @@
       for (const p of r.people || []) {
         const k = nameKey(p.name);
         if (!k) continue;
+        // "from": which screenshot(s) this name was read from (r.source), so
+        // removing a screenshot can remove its names too.
+        const from = [...(p.from || []), ...(r.source != null ? [r.source] : [])];
         const had = byKey.get(k);
         if (!had) {
-          const copy = { name: p.name, status: p.status };
+          const copy = { name: p.name, status: p.status, from: [...new Set(from)] };
           byKey.set(k, copy);
           out.people.push(copy);
-        } else if ((RANK[p.status] || 0) > (RANK[had.status] || 0)) {
-          had.status = p.status;
+        } else {
+          if ((RANK[p.status] || 0) > (RANK[had.status] || 0)) had.status = p.status;
+          had.from = [...new Set([...had.from, ...from])];
         }
       }
     }

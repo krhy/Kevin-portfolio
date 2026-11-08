@@ -1046,16 +1046,25 @@ const RECLUB_URL_RE = /^\/api\/pickleball\/images\/[A-Za-z0-9._-]+$/;
 // Called when the game's edit form opens (new or existing game).
 function initReclubSection(c) {
   const rc = (c && c.reclub) || {};
+  const screenshots = (rc.screenshots || []).filter(u => RECLUB_URL_RE.test(u));
+  // Which screenshot gave the confirmed count (older saves: the first one).
+  const shotConfirmed = {};
+  if (rc.confirmed != null && screenshots.length) shotConfirmed[screenshots.includes(rc.confirmedFrom) ? rc.confirmedFrom : screenshots[0]] = rc.confirmed;
   reclubDraft = {
     contribId: c ? c.id : null,
     confirmed: rc.confirmed ?? null,
-    people: (rc.people || []).map(p => ({ name: p.name, status: p.status })),
-    screenshots: (rc.screenshots || []).filter(u => RECLUB_URL_RE.test(u)),
+    // from = the screenshots a name was read from. Older saves didn't record
+    // it, so their names count as coming from all of the game's screenshots.
+    people: (rc.people || []).map(p => ({ name: p.name, status: p.status, from: Array.isArray(p.from) ? p.from.filter(u => screenshots.includes(u)) : [...screenshots], ...(p.manual ? { manual: true } : {}) })),
+    screenshots,
+    shotConfirmed,
     removed: [],
-    newShots: [],
+    newShots: [],     // [{ id: 'new-1', data: 'data:image/jpeg…' }]
+    shotSeq: 0,
     cleared: false,
     busy: false,
     message: '',
+    originalPlayers: (document.getElementById('fPlayers') || {}).value || '',
     original: JSON.stringify({ p: rc.people || [], s: rc.screenshots || [] }),
   };
   renderReclub();
@@ -1090,7 +1099,7 @@ function renderReclub() {
       <div class="rc-shot"><a href="${escAttr(u)}" target="_blank" rel="noopener"><img src="${escAttr(u)}" alt="Screenshot ${i + 1}" /></a>
         <button type="button" class="rc-x" onclick="reclubRemoveShot('saved', ${i})" aria-label="Remove screenshot">✕</button></div>`).join('') +
     d.newShots.map((u, i) => `
-      <div class="rc-shot"><img src="${escAttr(u)}" alt="New screenshot ${i + 1}" /><span class="rc-new">new</span>
+      <div class="rc-shot"><img src="${escAttr(u.data)}" alt="New screenshot ${i + 1}" /><span class="rc-new">new</span>
         <button type="button" class="rc-x" onclick="reclubRemoveShot('new', ${i})" aria-label="Remove screenshot">✕</button></div>`).join('');
   const hasAny = d.people.length || d.screenshots.length || d.newShots.length;
   const up = document.getElementById('reclubUpload');
@@ -1123,15 +1132,50 @@ function reclubSetStatus(i, status) {
   renderReclub();
 }
 function reclubRemove(i) { if (reclubDraft) { reclubDraft.people.splice(i, 1); renderReclub(); } }
-function reclubAdd() { if (reclubDraft) { reclubDraft.people.push({ name: '', status: 'paid' }); renderReclub(); } }
+function reclubAdd() { if (reclubDraft) { reclubDraft.people.push({ name: '', status: 'paid', from: [], manual: true }); renderReclub(); } }
+const reclubKey = n => String(n || '').toLowerCase().replace(/[^\p{L}\p{N}]/gu, '');
 
-// Removing a screenshot only takes effect when the game is saved (Cancel undoes it).
+function reclubShotTokens(d) { return [...d.screenshots, ...d.newShots.map(x => x.id)]; }
+
+// Players follows the screenshots: the confirmed count, else the people found.
+function reclubApplyPlayers(d, note) {
+  const fp = document.getElementById('fPlayers');
+  if (!fp || reclubDraft !== d) return '';
+  const value = d.confirmed != null ? d.confirmed : d.people.length;
+  fp.value = value;
+  updateContribPreview();
+  fp.classList.remove('rc-flash'); void fp.offsetWidth; fp.classList.add('rc-flash');
+  return d.confirmed != null ? ` Players set to ${value} (Reclub confirmed).` : ` Players set to ${value} (the people found${note || ''}).`;
+}
+
+// ✕ on a screenshot removes it AND the names read only from it. Takes effect
+// when the game is saved; Cancel undoes it.
 function reclubRemoveShot(kind, i) {
   const d = reclubDraft;
   if (!d || d.busy) return;
-  if (kind === 'saved') d.removed.push(...d.screenshots.splice(i, 1));
-  else d.newShots.splice(i, 1);
-  d.message = 'Screenshot removed (deleted when you save). Fix the names below if needed.';
+  let token;
+  if (kind === 'saved') { token = d.screenshots[i]; d.removed.push(...d.screenshots.splice(i, 1)); }
+  else { token = d.newShots[i].id; d.newShots.splice(i, 1); }
+  const before = d.people.length;
+  d.people = d.people.filter(p => {
+    if (!(p.from || []).includes(token)) return true;
+    p.from = p.from.filter(t => t !== token);
+    return p.from.length > 0 || p.manual; // still seen in another screenshot, or added by hand
+  });
+  const gone = before - d.people.length;
+  delete d.shotConfirmed[token];
+  const left = reclubShotTokens(d);
+  const firstCount = left.find(t => d.shotConfirmed[t] != null);
+  d.confirmed = firstCount !== undefined ? d.shotConfirmed[firstCount] : null;
+  let msg = `Screenshot removed${gone ? ` with the ${gone} name${gone > 1 ? 's' : ''} read from it` : ''} (deleted when you save).`;
+  const fp = document.getElementById('fPlayers');
+  if (!left.length) {
+    if (fp) { fp.value = d.originalPlayers; updateContribPreview(); fp.classList.remove('rc-flash'); void fp.offsetWidth; fp.classList.add('rc-flash'); }
+    msg += ` Players back to ${d.originalPlayers || 'blank'}.`;
+  } else {
+    msg += reclubApplyPlayers(d);
+  }
+  d.message = msg;
   renderReclub();
 }
 
@@ -1160,6 +1204,8 @@ async function reclubFiles(fileList) {
   const d = reclubDraft;
   const files = Array.from(fileList || []); // copy now: the input is cleared right after this call
   if (!d || !files.length || d.busy) return;
+  // Remember Players as it was before the first screenshot, to restore it if all are removed.
+  if (!reclubShotTokens(d).length) d.originalPlayers = (document.getElementById('fPlayers') || {}).value || '';
   d.busy = true;
   d.onProgress = m => {
     if (m.status && /load|initializ/i.test(m.status)) reclubSetMessage(`Preparing the screenshot reader… ${Math.round((m.progress || 0) * 100)}% (first time only)`);
@@ -1170,31 +1216,30 @@ async function reclubFiles(fileList) {
     for (let i = 0; i < files.length; i++) {
       reclubSetMessage(`Reading screenshot ${i + 1} of ${files.length}…`);
       const { result, shot } = await readReclubScreenshot(files[i]);
+      const id = 'new-' + (++d.shotSeq);
+      result.source = id;
+      d.shotConfirmed[id] = result.confirmed;
       results.push(result);
-      d.newShots.push(shot);
+      d.newShots.push({ id, data: shot });
     }
-    const merged = ReclubReader.mergeReclub([{ confirmed: d.confirmed, reserved: 0, people: d.people.filter(p => p.status !== 'reserved') }, ...results]);
-    const reservedRows = d.people.filter(p => p.status === 'reserved');
-    const people = merged.people.map(p => ({ name: p.name, status: p.status }));
+    const keep = d.people.filter(p => p.status !== 'reserved' && String(p.name || '').trim());
+    const merged = ReclubReader.mergeReclub([{ people: keep }, ...results]);
+    const manualKeys = new Set(keep.filter(p => p.manual).map(p => reclubKey(p.name)));
+    const people = merged.people.map(p => ({ name: p.name, status: p.status, from: p.from || [], ...(manualKeys.has(reclubKey(p.name)) ? { manual: true } : {}) }));
     d.people.filter(p => p.status !== 'reserved' && !String(p.name || '').trim()).forEach(p => people.push(p)); // keep rows still being typed
-    const reservedCount = Math.max(reservedRows.length, ...results.map(r => r.reserved || 0));
-    for (let k = 0; k < reservedCount; k++) people.push(reservedRows[k] || { name: '', status: 'reserved' });
-    d.people = people;
-    if (merged.confirmed != null) d.confirmed = merged.confirmed;
-    const found = results.reduce((s, r) => s + r.people.length + (r.reserved || 0), 0);
-    // Players: Reclub's confirmed count, or (if it couldn't be read) everyone found.
-    let playersNote = '';
-    const fp = document.getElementById('fPlayers');
-    if (fp && reclubDraft === d && found) {
-      // The screenshot fills Players every time; it can still be changed before saving.
-      const target = d.confirmed != null ? d.confirmed : d.people.length;
-      fp.value = target;
-      updateContribPreview();
-      fp.classList.remove('rc-flash'); void fp.offsetWidth; fp.classList.add('rc-flash');
-      playersNote = d.confirmed != null
-        ? ` Players set to ${target} (Reclub confirmed).`
-        : ` Players set to ${target} (the people found — Reclub's confirmed number couldn't be read, please check).`;
+    // Reserved slots: reuse existing rows, add more if a screenshot shows more.
+    const reservedRows = d.people.filter(p => p.status === 'reserved');
+    for (const r of results) {
+      const k = r.reserved || 0;
+      for (let j = 0; j < Math.min(k, reservedRows.length); j++) reservedRows[j].from = [...new Set([...(reservedRows[j].from || []), r.source])];
+      while (reservedRows.length < k) reservedRows.push({ name: '', status: 'reserved', from: [r.source] });
     }
+    people.push(...reservedRows);
+    d.people = people;
+    const firstCount = reclubShotTokens(d).find(t => d.shotConfirmed[t] != null);
+    d.confirmed = firstCount !== undefined ? d.shotConfirmed[firstCount] : null;
+    const found = results.reduce((s, r) => s + r.people.length + (r.reserved || 0), 0);
+    const playersNote = found ? reclubApplyPlayers(d, " — Reclub's confirmed number couldn't be read, please check") : '';
     d.message = found ? 'Done — please check the list below, then tap Save.' + playersNote : 'No names were found. Is this the Reclub Participants screen? You can add people manually.';
   } catch (e) {
     console.error('Reclub screenshot error', e);
@@ -1221,25 +1266,36 @@ async function reclubPrepareForSave(progress) {
   const d = reclubDraft;
   if (!d) return { reclub: null, removed: [], logText: '' };
   const urls = [];
+  const idToUrl = {};
   for (let i = 0; i < d.newShots.length; i++) {
     progress(`Saving screenshot ${i + 1} of ${d.newShots.length}…`);
     const res = await fetch('/api/pickleball/upload-image', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json', ...authHeaders() },
-      body: JSON.stringify({ imageBase64: d.newShots[i] }),
+      body: JSON.stringify({ imageBase64: d.newShots[i].data }),
     });
     if (res.status === 401) throw Object.assign(new Error('auth'), { authExpired: true });
     if (!res.ok) throw new Error('upload failed');
-    urls.push((await res.json()).url);
+    const url = (await res.json()).url;
+    urls.push(url);
+    idToUrl[d.newShots[i].id] = url;
   }
   // Screenshots uploaded in this edit become part of the game; they won't be deleted below.
+  const mapRef = t => idToUrl[t] || t;
+  const countFrom = reclubShotTokens(d).find(t => d.shotConfirmed[t] != null);
   d.newShots = [];
   d.screenshots.push(...urls);
-  const people = d.people.map(p => ({ name: String(p.name || '').trim().slice(0, 40), status: p.status }));
+  const people = d.people.map(p => ({
+    name: String(p.name || '').trim().slice(0, 40),
+    status: p.status,
+    from: (p.from || []).map(mapRef).filter(u => d.screenshots.includes(u)),
+    ...(p.manual ? { manual: true } : {}),
+  }));
   const reclub = (people.length || d.screenshots.length)
-    ? { confirmed: d.confirmed, players: d.confirmed, people, screenshots: [...d.screenshots], updatedAt: Date.now() }
+    ? { confirmed: d.confirmed, confirmedFrom: countFrom !== undefined ? mapRef(countFrom) : null, players: d.confirmed, people, screenshots: [...d.screenshots], updatedAt: Date.now() }
     : null;
-  const changed = urls.length > 0 || d.removed.length > 0 || JSON.stringify({ p: people, s: d.screenshots }) !== d.original;
+  const plain = ps => ps.map(({ name, status }) => ({ name, status }));
+  const changed = urls.length > 0 || d.removed.length > 0 || JSON.stringify({ p: plain(people), s: d.screenshots }) !== JSON.stringify({ p: plain(JSON.parse(d.original).p), s: JSON.parse(d.original).s });
   let logText = '';
   if (changed) {
     if (!reclub) logText = ' · Reclub attendance cleared';

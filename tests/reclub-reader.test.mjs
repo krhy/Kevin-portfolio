@@ -108,7 +108,7 @@ test("merging screenshots: no duplicates, clearest status wins, counts kept", ()
   const a = { confirmed: 14, reserved: 0, people: [{ name: "Alex", status: "paid" }, { name: "Bill", status: "check" }] };
   const b = { confirmed: null, reserved: 1, people: [{ name: "alex", status: "unpaid" }, { name: "Bill", status: "unpaid" }, { name: "Cy", status: "waived" }, { name: "", status: "paid" }] };
   const m = mergeReclub([a, b]);
-  assert.deepEqual(m.people, [{ name: "Alex", status: "paid" }, { name: "Bill", status: "unpaid" }, { name: "Cy", status: "waived" }]);
+  assert.deepEqual(m.people.map(({ name, status }) => ({ name, status })), [{ name: "Alex", status: "paid" }, { name: "Bill", status: "unpaid" }, { name: "Cy", status: "waived" }]);
   assert.equal(m.confirmed, 14);
   assert.equal(m.reserved, 1);
 });
@@ -131,4 +131,13 @@ test("misread count on the CONFIRMED line is still found", () => {
   const shot2 = makeShot();
   shot2.words.find((w) => w.t === "•14/14").t = "©";
   assert.equal(parseReclub(shot2).confirmed, null, "unreadable -> null (app falls back to people found)");
+});
+
+test("merging remembers which screenshot each name came from", () => {
+  const a = { source: "A", confirmed: 14, reserved: 0, people: [{ name: "Alex", status: "paid" }, { name: "Bea", status: "waived" }] };
+  const b = { source: "B", confirmed: null, reserved: 0, people: [{ name: "Bea", status: "waived" }, { name: "Cy", status: "unpaid" }] };
+  const kept = { people: [{ name: "Manual", status: "paid", from: [] }] };
+  const m = mergeReclub([kept, a, b]);
+  const from = Object.fromEntries(m.people.map((p) => [p.name, p.from]));
+  assert.deepEqual(from, { Manual: [], Alex: ["A"], Bea: ["A", "B"], Cy: ["B"] });
 });
