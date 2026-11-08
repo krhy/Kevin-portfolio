@@ -203,13 +203,13 @@
   }
   .overlay.open .sheet { transform: translateY(0); }
   
-  .overlay#authOverlay, .overlay#imageModalOverlay, .overlay#logDetailOverlay, .overlay#backupsOverlay { align-items: center; justify-content: center; padding: 20px; }
-  .overlay#authOverlay .sheet, .overlay#imageModalOverlay .sheet, .overlay#logDetailOverlay .sheet, .overlay#backupsOverlay .sheet {
+  .overlay#authOverlay, .overlay#imageModalOverlay, .overlay#logDetailOverlay, .overlay#backupsOverlay, .overlay#reclubOverlay { align-items: center; justify-content: center; padding: 20px; }
+  .overlay#authOverlay .sheet, .overlay#imageModalOverlay .sheet, .overlay#logDetailOverlay .sheet, .overlay#backupsOverlay .sheet, .overlay#reclubOverlay .sheet {
     max-width: 440px; border-radius: 22px; transform: scale(0.95); opacity: 0;
     transition: transform 0.25s cubic-bezier(0.34, 1.2, 0.4, 1), opacity 0.25s ease;
     box-shadow: 0 10px 30px rgba(36,29,22,0.2);
   }
-  .overlay#authOverlay.open .sheet, .overlay#imageModalOverlay.open .sheet, .overlay#logDetailOverlay.open .sheet, .overlay#backupsOverlay.open .sheet { transform: scale(1); opacity: 1; }
+  .overlay#authOverlay.open .sheet, .overlay#imageModalOverlay.open .sheet, .overlay#logDetailOverlay.open .sheet, .overlay#backupsOverlay.open .sheet, .overlay#reclubOverlay.open .sheet { transform: scale(1); opacity: 1; }
 
   .drag-handle { width: 36px; height: 4px; border-radius: 999px; background: var(--border-strong); margin: 4px auto 14px; }
   .sheet-head { display: flex; justify-content: space-between; align-items: center; margin-bottom: 14px; }
@@ -340,6 +340,20 @@
   .backup-compare { display: grid; grid-template-columns: 1fr auto auto; gap: 4px 12px; font-size: 13px; margin: 10px 0 14px; }
   .backup-compare .h { font-size: 11px; color: var(--muted); text-transform: uppercase; letter-spacing: .04em; }
 
+  .rc-summary { margin-top: 8px; padding: 6px 8px; border-radius: 8px; background: var(--paper); font-size: 12px; color: var(--ink); cursor: pointer; display: flex; justify-content: space-between; align-items: center; gap: 6px; }
+  .rc-summary .rc-counts { display: flex; flex-wrap: wrap; gap: 4px 10px; }
+  .rc-lists { margin-top: 6px; font-size: 12px; line-height: 1.5; }
+  .rc-lists .rc-group { margin-top: 4px; }
+  .rc-lists .rc-label { font-weight: 600; }
+  .rc-row { display: grid; grid-template-columns: 1fr auto auto; gap: 6px; align-items: center; margin-bottom: 6px; }
+  .rc-row input[type="text"] { min-width: 0; }
+  .rc-row select { width: auto; }
+  .rc-remove { background: none; border: 1px solid var(--border); border-radius: 8px; width: 34px; height: 34px; cursor: pointer; color: var(--muted); font-size: 14px; }
+  .rc-match { padding: 8px 10px; border-radius: 10px; font-size: 13px; margin: 8px 0 10px; }
+  .rc-match.ok { background: #E7F3EC; color: #24563A; }
+  .rc-match.warn { background: #FBEDE3; color: #8A3B12; }
+  .rc-status { font-size: 12px; color: var(--muted); margin: 6px 0; min-height: 16px; }
+
   /* Phones: 16px text in form fields stops iPhones from auto-zooming
      the page when a field is tapped (which pushed popups off-screen). */
   @media (max-width: 640px) {
@@ -450,6 +464,17 @@
   </div>
 </div>
 
+<div class="overlay" id="reclubOverlay" onclick="closeReclub()">
+  <div class="sheet" onclick="event.stopPropagation()">
+    <div class="drag-handle"></div>
+    <div class="sheet-head">
+      <div class="sheet-title" id="reclubTitle">Reclub Attendance</div>
+      <button class="close-btn" onclick="closeReclub()">✕</button>
+    </div>
+    <div id="reclubContent" style="font-size: 13.5px; color: var(--ink); line-height: 1.5;"></div>
+  </div>
+</div>
+
 <div class="overlay" id="imageModalOverlay" onclick="closeImageModal()">
   <div class="sheet" style="text-align:center;" onclick="event.stopPropagation()">
     <div class="drag-handle"></div>
@@ -469,6 +494,7 @@
 
 <div class="status-banner" id="statusBanner" style="opacity:0; position:fixed; top:14px; right:14px; font-size:11px; font-family:'Space Grotesk',sans-serif; font-weight:600; transition:opacity 0.3s; z-index:20; background:rgba(0,0,0,0.22); padding:4px 10px; border-radius:999px;">Saving…</div>
 
+<script src="/pickleball/reclub-reader.js"></script>
 <script>
 const API_URL = '/api/pickleball/entries';
 const TAB_ORDER = ['bookings', 'contributions', 'expenses', 'summary'];
@@ -797,6 +823,312 @@ function revertToLog(logId) {
   }
 }
 
+// ---------- Reclub attendance (screenshot -> paid / waived / not paid) ----------
+// The screenshot is read on this phone (free text recognition + badge colours);
+// nothing is sent anywhere except the saved screenshot itself.
+const RECLUB_OCR = {
+  script: 'https://cdn.jsdelivr.net/npm/tesseract.js@5.1.1/dist/tesseract.min.js',
+  integrity: 'sha384-GJqSu7vueQ9qN0E9yLPb3Wtpd7OrgK8KmYzC8T1IysG1bcvxvIO4qtYR/D3A991F',
+  workerPath: 'https://cdn.jsdelivr.net/npm/tesseract.js@5.1.1/dist/worker.min.js',
+  corePath: 'https://cdn.jsdelivr.net/npm/tesseract.js-core@5.1.1',
+  langPath: 'https://cdn.jsdelivr.net/npm/@tesseract.js-data/eng@1.0.0/4.0.0_best_int',
+};
+const RECLUB_STATUS = {
+  paid: { icon: '✅', label: 'Paid' },
+  waived: { icon: '🟡', label: 'Fee waived' },
+  unpaid: { icon: '❌', label: 'Not paid' },
+  reserved: { icon: '🔒', label: 'Reserved' },
+  check: { icon: '⚠️', label: 'Check' },
+};
+const RECLUB_ORDER = ['unpaid', 'reserved', 'waived', 'paid'];
+let reclubDraft = null;
+let reclubOpenTiles = new Set();
+let reclubWorkerPromise = null;
+
+// Escapes for text AND attribute values (also quotes).
+function escAttr(s) {
+  return String(s == null ? '' : s).replace(/[&<>"'`]/g, ch => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;', '`': '&#96;' }[ch]));
+}
+
+function reclubCounts(people) {
+  const n = { paid: 0, waived: 0, unpaid: 0, reserved: 0, check: 0 };
+  (people || []).forEach(p => { if (n[p.status] !== undefined) n[p.status]++; });
+  return n;
+}
+
+function toggleReclubTile(id) {
+  if (reclubOpenTiles.has(id)) reclubOpenTiles.delete(id); else reclubOpenTiles.add(id);
+  render();
+}
+
+// Read-only summary on each game (everyone can see it).
+function reclubSummaryHtml(c) {
+  const rc = c.reclub;
+  if (!rc || !Array.isArray(rc.people) || rc.people.length === 0) return '';
+  const n = reclubCounts(rc.people);
+  const open = reclubOpenTiles.has(c.id);
+  const counts = RECLUB_ORDER.filter(k => n[k]).map(k => `<span>${RECLUB_STATUS[k].icon} ${n[k]} ${RECLUB_STATUS[k].label.toLowerCase()}</span>`).join('');
+  let lists = '';
+  if (open) {
+    lists = '<div class="rc-lists">' + RECLUB_ORDER.filter(k => n[k]).map(k => `
+      <div class="rc-group"><span class="rc-label">${RECLUB_STATUS[k].icon} ${RECLUB_STATUS[k].label}:</span>
+        ${rc.people.filter(p => p.status === k).map(p => escAttr(p.name)).join(', ')}</div>`).join('') +
+      ((rc.screenshots || []).length ? `<div class="rc-group">${rc.screenshots.filter(u => /^\/api\/pickleball\/images\/[A-Za-z0-9._-]+$/.test(u)).map((u, i) => `<a href="${escAttr(u)}" target="_blank" rel="noopener">📷 Screenshot ${i + 1}</a>`).join(' · ')}</div>` : '') +
+      '</div>';
+  }
+  return `
+    <div class="rc-summary" onclick="toggleReclubTile('${escAttr(c.id)}')">
+      <span class="rc-counts"><strong>👥 Reclub</strong>${counts}</span><span>${open ? '▴' : '▾'}</span>
+    </div>${lists}`;
+}
+
+function loadScriptOnce(src, integrity) {
+  return new Promise((resolve, reject) => {
+    if (window.Tesseract) return resolve();
+    const el = document.createElement('script');
+    el.src = src;
+    if (integrity) { el.integrity = integrity; el.crossOrigin = 'anonymous'; }
+    el.onload = () => resolve();
+    el.onerror = () => reject(new Error('Could not load ' + src));
+    document.head.appendChild(el);
+  });
+}
+
+function getReclubWorker(onProgress) {
+  if (!reclubWorkerPromise) {
+    reclubWorkerPromise = (async () => {
+      await loadScriptOnce(RECLUB_OCR.script, RECLUB_OCR.integrity);
+      return Tesseract.createWorker('eng', 1, {
+        workerPath: RECLUB_OCR.workerPath,
+        corePath: RECLUB_OCR.corePath,
+        langPath: RECLUB_OCR.langPath,
+        logger: m => { if (reclubDraft && reclubDraft.onProgress) reclubDraft.onProgress(m); },
+      });
+    })();
+    reclubWorkerPromise.catch(() => { reclubWorkerPromise = null; });
+  }
+  return reclubWorkerPromise;
+}
+
+function fileToImage(file) {
+  return new Promise((resolve, reject) => {
+    const url = URL.createObjectURL(file);
+    const img = new Image();
+    img.onload = () => { URL.revokeObjectURL(url); resolve(img); };
+    img.onerror = () => { URL.revokeObjectURL(url); reject(new Error('Not an image')); };
+    img.src = url;
+  });
+}
+
+// Read one screenshot -> { confirmed, reserved, people:[{name,status}] } and a compressed copy to save.
+async function readReclubScreenshot(file) {
+  const img = await fileToImage(file);
+  const W = 1515; // ~3x Reclub's layout width: best for text recognition
+  const H = Math.min(12000, Math.round(img.height * W / img.width));
+  const canvas = document.createElement('canvas');
+  canvas.width = W; canvas.height = H;
+  const ctx = canvas.getContext('2d', { willReadFrequently: true });
+  ctx.fillStyle = '#fff'; ctx.fillRect(0, 0, W, H);
+  ctx.drawImage(img, 0, 0, W, H);
+
+  const worker = await getReclubWorker();
+  const { data: ocr } = await worker.recognize(canvas);
+  const words = (ocr.words || []).map(w => ({ t: w.text, c: w.confidence, x0: w.bbox.x0, y0: w.bbox.y0, x1: w.bbox.x1, y1: w.bbox.y1 }));
+  const px = ctx.getImageData(0, 0, W, H).data;
+  const getRGB = (x, y) => { const i = (y * W + x) * 4; return [px[i], px[i + 1], px[i + 2]]; };
+  const result = ReclubReader.parseReclub({ words, width: W, height: H, getRGB });
+
+  // Smaller copy kept as evidence (readable, ~a few hundred KB).
+  const sw = Math.min(1080, img.width), sh = Math.round(img.height * sw / img.width);
+  const small = document.createElement('canvas');
+  small.width = sw; small.height = sh;
+  small.getContext('2d').drawImage(img, 0, 0, sw, sh);
+  return { result, shot: small.toDataURL('image/jpeg', 0.8) };
+}
+
+function openReclub(contribId) {
+  if (!isAuthorized) return;
+  const c = data.contributions.find(x => x.id === contribId);
+  if (!c) return;
+  const rc = c.reclub || {};
+  reclubDraft = {
+    contribId,
+    confirmed: rc.confirmed ?? null,
+    players: c.players || rc.players || rc.confirmed || '',
+    playersTouched: false, // a screenshot's confirmed count becomes the default unless typed here
+    people: (rc.people || []).map(p => ({ name: p.name, status: p.status })),
+    screenshots: [...(rc.screenshots || [])],
+    newShots: [],
+    busy: false,
+    message: '',
+  };
+  document.getElementById('reclubTitle').textContent = 'Reclub · ' + fmtDate(c.date);
+  renderReclub();
+  document.getElementById('reclubOverlay').classList.add('open');
+}
+
+function closeReclub() {
+  if (reclubDraft && reclubDraft.busy) return;
+  document.getElementById('reclubOverlay')?.classList.remove('open');
+  reclubDraft = null;
+}
+
+function reclubMatchHtml() {
+  const d = reclubDraft;
+  const total = d.people.length;
+  const n = reclubCounts(d.people);
+  const want = d.confirmed != null ? d.confirmed : null;
+  if (total === 0) return '';
+  const parts = RECLUB_ORDER.concat('check').filter(k => n[k]).map(k => `${RECLUB_STATUS[k].icon} ${n[k]}`).join(' · ');
+  if (n.check) return `<div class="rc-match warn">⚠️ ${n.check} ${n.check === 1 ? 'person needs' : 'people need'} a status (marked “Check”). ${parts}</div>`;
+  if (want == null) return `<div class="rc-match ok">${total} listed · ${parts}</div>`;
+  if (total === want) return `<div class="rc-match ok">✅ ${total} of ${want} confirmed accounted for · ${parts}</div>`;
+  return `<div class="rc-match warn">⚠️ ${total} listed but Reclub shows ${want} confirmed — please check for ${total < want ? 'a missed name or a second screenshot' : 'a duplicate'}. ${parts}</div>`;
+}
+
+function renderReclub() {
+  const d = reclubDraft;
+  if (!d) return;
+  const c = data.contributions.find(x => x.id === d.contribId);
+  const feeMissing = !c || !(c.feePerPerson > 0);
+  const rows = d.people.map((p, i) => `
+    <div class="rc-row">
+      <input type="text" maxlength="40" value="${escAttr(p.name)}" placeholder="${p.status === 'reserved' ? 'Name (add later)' : 'Name'}" oninput="reclubDraft.people[${i}].name = this.value" aria-label="Name" />
+      <select onchange="reclubSetStatus(${i}, this.value)" aria-label="Status">
+        ${Object.keys(RECLUB_STATUS).filter(k => k !== 'check' || p.status === 'check').map(k => `<option value="${k}" ${p.status === k ? 'selected' : ''}>${RECLUB_STATUS[k].icon} ${RECLUB_STATUS[k].label}</option>`).join('')}
+      </select>
+      <button type="button" class="rc-remove" onclick="reclubRemove(${i})" aria-label="Remove">✕</button>
+    </div>`).join('');
+  document.getElementById('reclubContent').innerHTML = `
+    <label class="action-btn" style="display:flex; justify-content:center; cursor:${d.busy ? 'wait' : 'pointer'}; margin-bottom:6px;">
+      📷 ${d.people.length ? 'Add another screenshot' : 'Upload Reclub screenshot'}
+      <input type="file" accept="image/*" multiple style="display:none" ${d.busy ? 'disabled' : ''} onchange="reclubFiles(this.files); this.value='';" />
+    </label>
+    <div class="rc-status" id="reclubStatus">${escAttr(d.message)}</div>
+    <div id="reclubMatch">${reclubMatchHtml()}</div>
+    <label class="field" style="margin-bottom:10px;">Player count${d.confirmed != null ? ` (Reclub confirmed: ${d.confirmed})` : ''}
+      <input type="number" min="1" id="reclubPlayers" value="${escAttr(d.players)}" oninput="reclubDraft.players = this.value; reclubDraft.playersTouched = true;" />
+    </label>
+    ${feeMissing ? `<div style="font-size:12px; color:var(--muted); margin:-4px 0 10px;">This game has no fee per person yet, so the player count is saved as a suggestion and filled in when you edit the game. The funds don't change.</div>` : ''}
+    <div style="margin-bottom:8px;">${rows || '<div class="empty-state" style="padding:12px;">Upload a screenshot of the Reclub Participants screen, or add people manually.</div>'}</div>
+    <button type="button" class="link-btn" style="margin-bottom:12px;" onclick="reclubAdd()">＋ Add person</button>
+    <div style="display:flex; gap:10px;">
+      <button type="button" class="fab-primary submit-btn" style="background: var(--muted); flex:1; animation:none;" onclick="closeReclub()">Cancel</button>
+      <button type="button" class="fab-primary submit-btn" style="flex:1; animation:none;" ${d.busy ? 'disabled' : ''} onclick="saveReclub()">Save</button>
+    </div>`;
+}
+
+function reclubRefreshMatch() {
+  const el = document.getElementById('reclubMatch');
+  if (el && reclubDraft) el.innerHTML = reclubMatchHtml();
+}
+function reclubSetStatus(i, status) {
+  if (!reclubDraft || !RECLUB_STATUS[status]) return;
+  reclubDraft.people[i].status = status;
+  renderReclub();
+}
+function reclubRemove(i) { if (reclubDraft) { reclubDraft.people.splice(i, 1); renderReclub(); } }
+function reclubAdd() { if (reclubDraft) { reclubDraft.people.push({ name: '', status: 'paid' }); renderReclub(); } }
+
+function reclubSetMessage(msg) {
+  if (!reclubDraft) return;
+  reclubDraft.message = msg;
+  const el = document.getElementById('reclubStatus');
+  if (el) el.textContent = msg;
+}
+
+async function reclubFiles(fileList) {
+  const d = reclubDraft;
+  const files = Array.from(fileList || []); // copy now: the input is cleared right after this call
+  if (!d || !files.length || d.busy) return;
+  d.busy = true;
+  d.onProgress = m => {
+    if (m.status && /load|initializ/i.test(m.status)) reclubSetMessage(`Preparing the screenshot reader… ${Math.round((m.progress || 0) * 100)}% (first time only)`);
+  };
+  renderReclub();
+  const results = [];
+  try {
+    for (let i = 0; i < files.length; i++) {
+      reclubSetMessage(`Reading screenshot ${i + 1} of ${files.length}…`);
+      const { result, shot } = await readReclubScreenshot(files[i]);
+      results.push(result);
+      d.newShots.push(shot);
+    }
+    const merged = ReclubReader.mergeReclub([{ confirmed: d.confirmed, reserved: 0, people: d.people.filter(p => p.status !== 'reserved') }, ...results]);
+    const reservedRows = d.people.filter(p => p.status === 'reserved');
+    const people = merged.people.map(p => ({ name: p.name, status: p.status }));
+    d.people.filter(p => p.status !== 'reserved' && !String(p.name || '').trim()).forEach(p => people.push(p)); // keep rows still being typed
+    const reservedCount = Math.max(reservedRows.length, ...results.map(r => r.reserved || 0));
+    for (let k = 0; k < reservedCount; k++) people.push(reservedRows[k] || { name: '', status: 'reserved' });
+    d.people = people;
+    if (merged.confirmed != null) d.confirmed = merged.confirmed;
+    if (!d.playersTouched && d.confirmed != null) d.players = d.confirmed;
+    const found = results.reduce((s, r) => s + r.people.length + (r.reserved || 0), 0);
+    d.message = found ? 'Done — please check the list below before saving.' : 'No names were found. Is this the Reclub Participants screen? You can add people manually.';
+  } catch (e) {
+    console.error('Reclub screenshot error', e);
+    d.message = 'Could not read the screenshot (' + (e && e.message ? e.message : 'error') + '). Check your connection, or add people manually.';
+  } finally {
+    d.busy = false;
+    d.onProgress = null;
+    if (reclubDraft === d) renderReclub();
+  }
+}
+
+async function saveReclub() {
+  const d = reclubDraft;
+  if (!d || d.busy || !isAuthorized) return;
+  const c = data.contributions.find(x => x.id === d.contribId);
+  if (!c) return closeReclub();
+  const people = d.people.map(p => ({ name: String(p.name || '').trim().slice(0, 40), status: p.status }));
+  if (people.some(p => p.status === 'check')) return reclubSetMessage('Please choose a status for everyone marked “Check”.');
+  if (people.some(p => !p.name && p.status !== 'reserved')) return reclubSetMessage('Please type a name for everyone (only reserved slots can be left blank).');
+  const players = parseInt(d.players, 10);
+  if (d.players !== '' && d.players != null && !(players > 0)) return reclubSetMessage('Player count must be 1 or more.');
+
+  d.busy = true;
+  renderReclub();
+  try {
+    const urls = [];
+    for (let i = 0; i < d.newShots.length; i++) {
+      reclubSetMessage(`Saving screenshot ${i + 1} of ${d.newShots.length}…`);
+      const res = await fetch('/api/pickleball/upload-image', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', ...authHeaders() },
+        body: JSON.stringify({ imageBase64: d.newShots[i] }),
+      });
+      if (res.status === 401) { d.busy = false; closeReclub(); return handleAuthExpired(); }
+      if (!res.ok) throw new Error('upload failed');
+      urls.push((await res.json()).url);
+    }
+    const feeSet = c.feePerPerson > 0;
+    c.reclub = {
+      confirmed: d.confirmed,
+      players: players > 0 ? players : null,
+      people,
+      screenshots: [...d.screenshots, ...urls],
+      updatedAt: Date.now(),
+    };
+    if (feeSet && players > 0 && players !== c.players) {
+      c.players = players;
+      c.expectedCollection = calcExpected(c);
+      c.extra = c.expectedCollection - c.ccSpent;
+    }
+    c.updatedAt = Date.now();
+    const n = reclubCounts(people);
+    logActivity(`Updated Reclub attendance for ${c.date}: ${n.paid} paid, ${n.waived} fee waived, ${n.unpaid} not paid${n.reserved ? `, ${n.reserved} reserved` : ''}${feeSet && players > 0 ? ` (${players} players)` : ''}`);
+    d.busy = false;
+    closeReclub();
+    render();
+    saveData();
+    showToast('Reclub attendance saved!');
+  } catch (e) {
+    d.busy = false;
+    reclubSetMessage('Saving failed — check your connection and try again. Nothing was changed.');
+    renderReclub();
+  }
+}
+
 // ---------- Server backups (list / preview / restore) ----------
 const BACKUP_REASONS = { 'before-save': 'Before a save', 'daily': 'Daily backup', 'before-restore': 'Before a restore' };
 let backupItems = [];
@@ -922,7 +1254,7 @@ function intelligentMerge(serverData, localData) {
       if (!map.has(item.id)) {
         map.set(item.id, { ...item, source: 'local_new' });
       } else {
-        if (item.createdAt && item.createdAt > (window.appLoadedAt || 0)) {
+        if (Math.max(item.createdAt || 0, item.updatedAt || 0) > (window.appLoadedAt || 0)) {
           map.set(item.id, { ...item, source: 'local_updated' });
         }
       }
@@ -1250,7 +1582,7 @@ function contributionTileHtml(c, i) {
     const confirming = confirmDeleteId === c.id && confirmDeleteTab === 'contributions';
     actions = confirming
       ? `<div class="tile-actions"><button class="link-btn danger" onclick="doDelete('contributions','${c.id}')">Confirm delete</button><button class="link-btn" onclick="cancelDelete()">Cancel</button></div>`
-      : `<div class="tile-actions"><button class="link-btn" onclick="openEdit('contributions','${c.id}')">✎ Edit</button><button class="link-btn danger" onclick="askDelete('contributions','${c.id}')">🗑 Delete</button></div>`;
+      : `<div class="tile-actions"><button class="link-btn" onclick="openEdit('contributions','${c.id}')">✎ Edit</button><button class="link-btn" onclick="openReclub('${c.id}')">👥 Reclub</button><button class="link-btn danger" onclick="askDelete('contributions','${c.id}')">🗑 Delete</button></div>`;
   }
 
   return `
@@ -1265,6 +1597,7 @@ function contributionTileHtml(c, i) {
         ? `<div class="needs-update-banner">⚠ Needs update — add fee &amp; players. CC spent: ${fmt(ccSpent)}</div>`
         : `<div class="tile-desc" style="white-space:normal">${c.players} × ${fmt(c.feePerPerson)}${extraColl ? ' + ' + fmt(extraColl) : ''}${deduct ? ' - ' + fmt(deduct) : ''} = ${fmt(expected)} expected · CC spent ${fmt(ccSpent)}</div>`}
       ${c.remarks ? `<div class="tile-meta" style="margin-top:4px; white-space:normal">${escapeHtml(c.remarks)}</div>` : ''}
+      ${reclubSummaryHtml(c)}
       ${actions}
     </div>`;
 }
@@ -1273,7 +1606,7 @@ function contributionFormFields(c) {
   const extraColl = c ? (c.extraCollections || c.additionalContributions || '') : '';
   const deduct = c ? (c.deductions || c.additionalExpenses || '') : '';
   const feeVal = c && c.feePerPerson ? c.feePerPerson : '';
-  const playersVal = c && c.players ? c.players : '';
+  const playersVal = c && c.players ? c.players : (c && c.reclub && c.reclub.players ? c.reclub.players : '');
 
   return `
     <label class="field">Game Date
@@ -1361,6 +1694,11 @@ function submitContribution() {
     remarks: document.getElementById('fRemarks').value.trim(),
     createdAt: isEdit ? data.contributions.find(x => x.id === editingId).createdAt : Date.now(),
   };
+  if (isEdit) {
+    const existing = data.contributions.find(x => x.id === editingId);
+    if (existing && existing.reclub) entry.reclub = existing.reclub; // keep the Reclub attendance list
+    entry.updatedAt = Date.now();
+  }
   if (isEdit) data.contributions = data.contributions.map(x => x.id === editingId ? entry : x);
   else data.contributions.push(entry);
 
