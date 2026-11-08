@@ -117,3 +117,18 @@ test("empty or broken input does not crash", () => {
   assert.deepEqual(parseReclub({ words: [], width: 505, height: 100, getRGB: () => WHITE }), { confirmed: null, reserved: 0, people: [] });
   assert.deepEqual(mergeReclub([null, undefined]), { confirmed: null, reserved: 0, people: [] });
 });
+
+test("confirmed count survives common misreads of '14/14'", () => {
+  const { readCount } = require("../pickleball/reclub-reader.js");
+  const cases = { "•14/14": 14, "«14/14": 14, "14 / 14": 14, "14714": 14, "14114": 14, "14I14": 14, "1414": 14, "12/16": 12, "• 9/12": 9, "12716": null, "": null };
+  for (const [t, want] of Object.entries(cases)) assert.equal(readCount(t), want, JSON.stringify(t));
+});
+
+test("misread count on the CONFIRMED line is still found", () => {
+  const shot = makeShot();
+  shot.words.find((w) => w.t === "•14/14").t = "14714";
+  assert.equal(parseReclub(shot).confirmed, 14);
+  const shot2 = makeShot();
+  shot2.words.find((w) => w.t === "•14/14").t = "©";
+  assert.equal(parseReclub(shot2).confirmed, null, "unreadable -> null (app falls back to people found)");
+});

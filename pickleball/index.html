@@ -363,9 +363,15 @@
   .rc-shot .rc-new { position: absolute; bottom: 0; left: 0; right: 0; font-size: 10px; text-align: center; background: rgba(255,255,255,.85); color: var(--ink); }
   .rc-tools { display: flex; justify-content: space-between; align-items: center; gap: 10px; margin-top: 4px; }
   .tile-hint { font-size: 11px; color: var(--muted); margin-top: 6px; }
-  .wn-banner { display: flex; align-items: center; gap: 10px; padding: 10px 12px; margin: 0 0 12px; border-radius: 12px; background: #FFF6E5; border: 1px solid #F1D9A8; color: var(--ink); font-size: 13px; cursor: pointer; }
-  .wn-banner .wn-text { flex: 1; }
-  .wn-banner .wn-close { background: none; border: none; font-size: 16px; color: var(--muted); cursor: pointer; padding: 4px; }
+  @keyframes rcFlash { 0% { box-shadow: 0 0 0 0 rgba(212,160,23,.0); } 30% { box-shadow: 0 0 0 4px rgba(212,160,23,.55); } 100% { box-shadow: 0 0 0 0 rgba(212,160,23,0); } }
+  .rc-flash { animation: rcFlash 1.6s ease 2; }
+  .tour-bubble { position: absolute; z-index: 9; width: min(300px, calc(100vw - 24px)); background: #1E3B38; color: #fff; border-radius: 14px; padding: 12px 14px; box-shadow: 0 10px 28px rgba(0,0,0,.28); font-size: 13px; line-height: 1.45; animation: tourPop .35s cubic-bezier(.34,1.4,.5,1); }
+  .tour-bubble[hidden] { display: none; }
+  .tour-arrow { position: absolute; top: -7px; width: 14px; height: 14px; background: #1E3B38; transform: rotate(45deg); border-radius: 2px; }
+  .tour-actions { display: flex; gap: 8px; justify-content: flex-end; align-items: center; margin-top: 10px; }
+  .tour-actions .tour-go { background: #E7B26B; color: #1E3B38; border: none; border-radius: 999px; padding: 7px 14px; font-weight: 700; font-size: 13px; cursor: pointer; font-family: inherit; }
+  .tour-actions .tour-x { background: none; border: 1px solid rgba(255,255,255,.35); color: #fff; border-radius: 999px; padding: 6px 12px; font-size: 12px; cursor: pointer; font-family: inherit; }
+  @keyframes tourPop { from { opacity: 0; transform: translateY(-6px) scale(.96); } to { opacity: 1; transform: none; } }
   .wn-body h4 { margin: 14px 0 6px; font-size: 13px; color: var(--teal-deep); text-transform: uppercase; letter-spacing: .04em; }
   .wn-body ul { margin: 0; padding-left: 18px; }
   .wn-body li { margin-bottom: 6px; }
@@ -477,6 +483,15 @@
       <button class="close-btn" onclick="closeBackups()">✕</button>
     </div>
     <div id="backupsContent" style="font-size: 13.5px; color: var(--ink); line-height: 1.5;"></div>
+  </div>
+</div>
+
+<div id="tourBubble" class="tour-bubble" role="dialog" aria-label="New feature" hidden>
+  <div class="tour-arrow" id="tourArrow"></div>
+  <div><strong>✨ New: Reclub attendance</strong><br>See who paid, who has the fee waived and who hasn't paid — straight from a Reclub screenshot.</div>
+  <div class="tour-actions">
+    <button type="button" class="tour-x" onclick="dismissWhatsNew()">Dismiss</button>
+    <button type="button" class="tour-go" onclick="tourShowMe()">Show me</button>
   </div>
 </div>
 
@@ -874,19 +889,32 @@ function whatsNewSeen() {
 function markWhatsNewSeen() {
   try { localStorage.setItem('pb_whats_new', WHATS_NEW_VERSION); } catch { /* private mode: banner just comes back */ }
 }
-function whatsNewBannerHtml() {
-  if (whatsNewSeen()) return '';
-  return `<div class="wn-banner" onclick="openWhatsNew()" role="button">
-      <span>✨</span><span class="wn-text"><strong>New: Reclub attendance.</strong> See who paid, from a Reclub screenshot. Tap to learn more.</span>
-      <button type="button" class="wn-close" onclick="event.stopPropagation(); dismissWhatsNew()" aria-label="Dismiss">✕</button>
-    </div>`;
+// Tour-style bubble pointing at the Contributions tab, until dismissed on this device.
+function positionTourBubble() {
+  const el = document.getElementById('tourBubble');
+  const tab = document.querySelector('.tab-btn[data-tab="contributions"]');
+  if (!el || !tab) return;
+  if (whatsNewSeen()) { el.hidden = true; return; }
+  el.hidden = false;
+  const r = tab.getBoundingClientRect();
+  const w = el.offsetWidth;
+  const center = r.left + r.width / 2;
+  const left = Math.max(12, Math.min(window.innerWidth - w - 12, center - w / 2));
+  el.style.left = (left + window.scrollX) + 'px';
+  el.style.top = (r.bottom + window.scrollY + 12) + 'px';
+  document.getElementById('tourArrow').style.left = Math.max(14, Math.min(w - 28, center - left - 7)) + 'px';
 }
+window.addEventListener('resize', () => positionTourBubble());
+window.addEventListener('load', () => positionTourBubble());
+if (document.fonts && document.fonts.ready) document.fonts.ready.then(() => positionTourBubble()); // fonts can shift the tabs
+function tourShowMe() { switchTab('contributions'); openWhatsNew(); }
+
 function openWhatsNew() { document.getElementById('whatsNewOverlay').classList.add('open'); }
 function closeWhatsNew() {
   document.getElementById('whatsNewOverlay').classList.remove('open');
-  if (!whatsNewSeen()) { markWhatsNewSeen(); render(); }
+  if (!whatsNewSeen()) { markWhatsNewSeen(); positionTourBubble(); }
 }
-function dismissWhatsNew() { markWhatsNewSeen(); render(); }
+function dismissWhatsNew() { markWhatsNewSeen(); positionTourBubble(); }
 
 // ---------- Reclub attendance (screenshot -> paid / waived / not paid) ----------
 // The screenshot is read on this phone (free text recognition + badge colours);
@@ -1026,11 +1054,8 @@ function initReclubSection(c) {
     cleared: false,
     busy: false,
     message: '',
-    playersTouched: false,
     original: JSON.stringify({ p: rc.people || [], s: rc.screenshots || [] }),
   };
-  const fp = document.getElementById('fPlayers');
-  if (fp) fp.addEventListener('input', () => { if (reclubDraft) reclubDraft.playersTouched = true; });
   renderReclub();
 }
 
@@ -1147,10 +1172,21 @@ async function reclubFiles(fileList) {
     for (let k = 0; k < reservedCount; k++) people.push(reservedRows[k] || { name: '', status: 'reserved' });
     d.people = people;
     if (merged.confirmed != null) d.confirmed = merged.confirmed;
-    const fp = document.getElementById('fPlayers');
-    if (fp && !d.playersTouched && d.confirmed != null && reclubDraft === d) { fp.value = d.confirmed; updateContribPreview(); }
     const found = results.reduce((s, r) => s + r.people.length + (r.reserved || 0), 0);
-    d.message = found ? 'Done — please check the list below, then tap Save.' : 'No names were found. Is this the Reclub Participants screen? You can add people manually.';
+    // Players: Reclub's confirmed count, or (if it couldn't be read) everyone found.
+    let playersNote = '';
+    const fp = document.getElementById('fPlayers');
+    if (fp && reclubDraft === d && found) {
+      // The screenshot fills Players every time; it can still be changed before saving.
+      const target = d.confirmed != null ? d.confirmed : d.people.length;
+      fp.value = target;
+      updateContribPreview();
+      fp.classList.remove('rc-flash'); void fp.offsetWidth; fp.classList.add('rc-flash');
+      playersNote = d.confirmed != null
+        ? ` Players set to ${target} (Reclub confirmed).`
+        : ` Players set to ${target} (the people found — Reclub's confirmed number couldn't be read, please check).`;
+    }
+    d.message = found ? 'Done — please check the list below, then tap Save.' + playersNote : 'No names were found. Is this the Reclub Participants screen? You can add people manually.';
   } catch (e) {
     console.error('Reclub screenshot error', e);
     d.message = 'Could not read the screenshot (' + (e && e.message ? e.message : 'error') + '). Check your connection, or add people manually.';
@@ -1552,6 +1588,7 @@ function render() {
   else if (activeTab === 'bookings') body.innerHTML = renderBookings();
   else if (activeTab === 'expenses') body.innerHTML = renderExpenses();
   else body.innerHTML = renderSummaryAndLogs(s);
+  positionTourBubble(); // feature shout-out bubble under the tabs until dismissed
 }
 
 function applyControls(list, tab, searchFields, amountField) {
@@ -1641,7 +1678,7 @@ function renderContributions() {
     : list.filter(c => c.date === tabState.contributions.dateFilter);
   const controls = controlsBar('contributions', 'Search remarks, added by…', dateFilterSelect('contributions', data.contributions));
 
-  if (filtered.length === 0) return `${whatsNewBannerHtml()}<div class="panel-title">Game Contributions</div>${controls}<div class="empty-state">No games match.</div>`;
+  if (filtered.length === 0) return `<div class="panel-title">Game Contributions</div>${controls}<div class="empty-state">No games match.</div>`;
 
   const groupsHtml = groupByDate(filtered).map(({ date, items }) => {
     const countedTotal = items.reduce((s, c) => s + (contributionNeedsUpdate(c) ? 0 : (calcExpected(c) - liveCcSpent(c))), 0);
@@ -1656,7 +1693,7 @@ function renderContributions() {
       </div>`;
   }).join('');
 
-  return `${whatsNewBannerHtml()}<div class="panel-title">Game Contributions</div>${controls}${groupsHtml}`;
+  return `<div class="panel-title">Game Contributions</div>${controls}${groupsHtml}`;
 }
 
 function contributionTileHtml(c, i) {

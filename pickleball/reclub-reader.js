@@ -30,6 +30,24 @@
   const isGreen = (r, g, b) => g > 170 && r < 140 && g - r > 70 && b < 200;
   const isYellow = (r, g, b) => r > 220 && g > 140 && g < 220 && b < 110;
 
+  // "CONFIRMED • 14/14": the first number is how many are confirmed.
+  // Text recognition sometimes misreads the slash ("14714", "14I14", "1414").
+  function readCount(text) {
+    const t = String(text || "");
+    let m = t.match(/(\d{1,3})\s*[\/\\|]\s*(\d{1,3})/);
+    if (m) return Number(m[1]);
+    m = t.match(/(\d{1,3})\s*[Il]\s*(\d{1,3})/);
+    if (m && m[1] === m[2]) return Number(m[1]);
+    const digits = (t.match(/\d{2,7}/) || [""])[0];
+    const n = digits.length;
+    if (n >= 2 && n % 2 === 0 && digits.slice(0, n / 2) === digits.slice(n / 2)) return Number(digits.slice(0, n / 2));
+    if (n >= 3 && n % 2 === 1) {
+      const k = (n - 1) / 2;
+      if (digits.slice(0, k) === digits.slice(k + 1) && "71".includes(digits[k])) return Number(digits.slice(0, k));
+    }
+    return null;
+  }
+
   function letters(s) {
     return String(s || "").toUpperCase().replace(/[^A-Z]/g, "");
   }
@@ -44,11 +62,9 @@
     let top = header ? header.y0 : 0;
     let confirmed = null;
     if (header) {
-      for (const w of W) {
-        if (Math.abs(w.y0 - header.y0) > 15 * u) continue;
-        const m = w.t.match(/(\d+)\s*\/\s*(\d+)/);
-        if (m) { confirmed = Number(m[1]); break; }
-      }
+      const lineText = W.filter((w) => Math.abs(w.y0 - header.y0) <= 15 * u && w !== header)
+        .sort((a, b) => a.x0 - b.x0).map((w) => w.t).join(" ");
+      confirmed = readCount(lineText);
       const sortBar = W.find((w) => /^sort/i.test(w.t) && w.y0 > header.y0 && w.y0 < header.y0 + 120 * u);
       top = sortBar ? sortBar.y1 + 5 * u : header.y1 + 5 * u;
     }
@@ -211,7 +227,7 @@
     return out;
   }
 
-  const api = { parseReclub, mergeReclub, BASE_WIDTH };
+  const api = { parseReclub, mergeReclub, readCount, BASE_WIDTH };
   root.ReclubReader = api;
   if (typeof module !== "undefined" && module.exports) module.exports = api;
 })(typeof globalThis !== "undefined" ? globalThis : this);
